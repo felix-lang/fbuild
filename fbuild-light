@@ -1,0 +1,15 @@
+#!/usr/bin/env python3.0
+
+import os
+import sys
+
+__fbuild_dirname = os.path.dirname(sys.argv[0])
+
+sys.path.extend((
+    os.path.join(__fbuild_dirname, 'lib'),
+    os.path.join(__fbuild_dirname, 'external', 'PyYAML', 'lib'),
+    '.',
+))
+
+with open(os.path.join(__fbuild_dirname, 'bin', 'fbuild')) as f:
+    exec(f.read())
