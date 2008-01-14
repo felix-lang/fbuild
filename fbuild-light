@@ -2,14 +2,23 @@
 
 import os
 import sys
+import imp
 
-__fbuild_dirname = os.path.dirname(sys.argv[0])
+fbuild_dirname = os.path.dirname(sys.argv[0])
 
 sys.path.extend((
-    os.path.join(__fbuild_dirname, 'lib'),
-    os.path.join(__fbuild_dirname, 'external', 'PyYAML', 'lib'),
+    os.path.join(fbuild_dirname, 'lib'),
+    os.path.join(fbuild_dirname, 'external', 'PyYAML', 'lib'),
     '.',
 ))
 
-with open(os.path.join(__fbuild_dirname, 'bin', 'fbuild')) as f:
-    exec(f.read())
+f, filename, description = imp.find_module('fbuild',
+        [os.path.join(fbuild_dirname, 'bin')])
+
+try:
+    fbuild = imp.load_module('fbuild_exe', f, filename, description)
+finally:
+    f.close()
+
+if __name__ == '__main__':
+    sys.exit(fbuild.main())

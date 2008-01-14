@@ -1,15 +1,37 @@
 import os
 import types
 import functools
+import yaml
 
+import fbuild
 import fbuild.path
 import fbuild.builders
 
 # -----------------------------------------------------------------------------
 
-class Builder:
+class Builder(yaml.YAMLObject):
     def __init__(self, system):
         self.system = system
+
+    def __setstate__(self, state):
+        self.__init__(**state)
+
+    def __getstate__(self):
+        state = {'system': self.system}
+        def f(cls):
+            if cls == type:
+                return
+
+            try:
+                state.update({k:getattr(self, k) for k in cls.yaml_state})
+            except AttributeError:
+                pass
+
+            for c in cls.__bases__:
+                f(c)
+        f(self.__class__)
+
+        return state
 
     def log(self, *args, **kwargs):
         return self.system.log(*args, **kwargs)
@@ -39,21 +61,18 @@ def test(msg, failed, color='green'):
     return decorator
 
 
-def find_program(system, names, *args, **kwds):
+def find_program(system, *names):
     for name in names:
         system.log.check(0, 'checking for program ' + name)
 
-        program = fbuild.path.find_in_paths(name, *args, **kwds)
+        program = fbuild.path.find_in_paths(name)
         if program:
             system.log(0, 'ok %s' % program, color='green')
             return program
         else:
             system.log(0, 'not found', color='yellow')
 
-    if len(names) == 1:
-        raise ConfigFailed('failed to find ' + names[0])
-    else:
-        raise ConfigFailed('failed to find any of ' + ', '.join(names))
+    raise fbuild.ConfigFailed('failed to find any of ' + str(names))
 
 # -----------------------------------------------------------------------------
 
@@ -78,6 +97,8 @@ class SimpleCommand(Builder):
             **kwargs):
         kwargs.setdefault('color', self.color)
 
+        dst = fbuild.path.make_path(dst)
+
         dirname, basename = os.path.split(dst)
         dst = os.path.join(dirname, self.prefix + basename + self.suffix)
 
@@ -88,7 +109,7 @@ class SimpleCommand(Builder):
             cmd.append(self.before_dst)
 
         cmd.append(dst)
-        cmd.extend(srcs)
+        cmd.extend(fbuild.path.glob_paths(srcs))
         cmd.extend(flags)
         cmd.extend(post_flags)
 

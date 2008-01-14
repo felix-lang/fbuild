@@ -1,78 +1,59 @@
-from . import Builder, SimpleCommand, find_program
+import fbuild.builders
 
 # -----------------------------------------------------------------------------
 
-#@fbuild.system.system_cache
-def find_ar_exe(system, exe_names=None):
-    if exe_names is None:
-        exe_names = ['ar']
-    return find_program(system, exe_names)
+class Linker(fbuild.builders.Builder):
+    yaml_state = ('ar', 'ranlib', 'prefix', 'suffix', 'color')
 
+    def __init__(self, system, ar, ranlib, *,
+            prefix='',
+            suffix='',
+            color=None):
+        super().__init__(system)
 
-#@fbuild.system.system_cache
-def find_ranlib_exe(system, exe_names=None):
-    if exe_names is None:
-        exe_names = ['ranlib']
-    return find_program(system, exe_names)
-
-
-class Ar(SimpleCommand):
-    def __init__(self, system, ar, ranlib, *args, **kwargs):
-        super().__init__(system, ar, *args, **kwargs)
-
+        self.ar = ar
         self.ranlib = ranlib
+        self.prefix = prefix
+        self.suffix = suffix
+        self.color = color
 
-    def __call__(self, system, *args, **kwargs):
-        lib = super().__call__(*args, **kwargs)
+        self._ar_cmd = None
+
+    def _get_ar_cmd(self):
+        self._ar_cmd = fbuild.builders.SimpleCommand(
+            self.system, self.ar, self.prefix, self.suffix,
+            color=self.color,
+        )
+
+        return self._ar_cmd
+
+    def __call__(self, *args, **kwargs):
+        ar_cmd = self._ar_cmd or self._get_ar_cmd()
+
+        lib = ar_cmd(*args, **kwargs)
 
         if self.ranlib is not None:
-            system.execute(self.ranlib + [lib],
+            self.system.execute(self.ranlib + [lib],
                 (' '.join(self.ranlib), lib),
                 color=self.color,
+                quieter=kwargs.get('quieter', 0),
             )
 
         return lib
 
-    def __repr__(self):
-        return '%s(ar=%r, ranlib=%r)' % (
-            self.__class__.__name__,
-            self.exe,
-            self.ranlib,
-        )
+# -----------------------------------------------------------------------------
 
+def make(system, *,
+        ar=None,
+        ranlib=None,
+        lib_prefix='',
+        lib_suffix='',
+        **kwargs):
+    ar = ar or fbuild.builders.find_program(system, 'ar')
+    ranlib = ranlib or fbuild.builders.find_program(system, 'ranlib')
 
-#@fbuild.system.system_cache
-def config_link_staticlib2(system, *args, **kwargs):
-    ar = [find_ar_exe(system), 'rc']
-    ranlib = find_ranlib_exe(system)
+    return Linker(system, [ar, 'rc'], [ranlib] if ranlib else None,
+        **kwargs)
 
-    if ranlib is not None:
-        ranlib = [ranlib]
-
-    return Ar(system, ar, ranlib, *args, **kwargs)
-
-class config_link_staticlib(Builder):
-    def __init__(self, system,
-            ar=None, ranlib=None,
-            prefix='', suffix='',
-            color='cyan'):
-
-        if ar is None:
-            ar = [find_ar_exe(system), 'rc']
-
-        if ranlib is None:
-            ranlib = find_ranlib_exe(system)
-
-            if ranlib is not None:
-                ranlib = [ranlib]
-
-        self.state = dict(
-            ar=ar,
-            ranlib=ranlib,
-            prefix=prefix,
-            suffix=suffix,
-            color=color,
-        )
-
-    def __call__(self, system):
-        return Ar(system, **self.state)
+def config(conf, *, **kwargs):
+    conf.configure('ar', make, conf.system, **kwargs)

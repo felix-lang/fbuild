@@ -3,77 +3,119 @@ from optparse import make_option
 
 # -----------------------------------------------------------------------------
 
-cmdline_options = [
-    make_option('--ocamlc'),
-    make_option('--ocamlopt'),
-    make_option('--ocamllex'),
-    make_option('--ocamlyacc'),
-    make_option('--host-cc'),
-    make_option('--host-cxx'),
-    make_option('--target-cc'),
-    make_option('--target-cxx'),
+def pre_options(parser):
+    group = parser.add_option_group('config options')
+    group.add_options([
+        make_option('--ocamlc'),
+        make_option('--ocamlopt'),
+        make_option('--ocamllex'),
+        make_option('--ocamlyacc'),
+        make_option('--build-cc'),
+        make_option('--build-cxx'),
+        make_option('--host-cc'),
+        make_option('--host-cxx'),
+        make_option('--target-cc'),
+        make_option('--target-cxx'),
+    ])
+
+# -----------------------------------------------------------------------------
+
+c_tests = [
+    'fbuild.builders.c.std.detect_std_types',
+    'fbuild.builders.c.posix.config_posix_support',
 ]
 
-# -----------------------------------------------------------------------------
+def config_build(config, options, model):
+    config.log(0, 'configuring build phase', color='green')
+    config['model'] = model
 
-def config_c_compatible_builder(group, builder):
-    #group.subconfigure('fbuild.builders.c.std.detect_std_types', builder)
-    group.subconfigure('fbuild.builders.c.posix.config_posix_support', builder)
-    #import fbuild.builders.c.posix
-    #fbuild.builders.c.posix.config_posix_support(builder)
+    config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
+        exe=options.build_cc,
+        tests=c_tests,
+    )
 
-def config_c_builder(system, group, *args, **kwargs):
-    c = group.make_config_subgroup('c')
-    static = c.configure('static', 'fbuild.builders.c.config_static', system, *args, **kwargs)
-    config_c_compatible_builder(c, static)
+    config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
+        exe=options.build_cxx,
+        tests=c_tests,
+    )
 
-    shared = c.configure('shared', 'fbuild.builders.c.config_shared', system, *args, **kwargs)
-    config_c_compatible_builder(c, shared)
 
-def config_cxx_builder(sstem, group, *args, **kwargs):
-    cxx = group.make_config_subgroup('cxx')
-    static = cxx.configure('static', 'fbuild.builders.cxx.config_static', system, *args, **kwargs)
-    config_c_compatible_builder(cxx, static)
+def config_host(config, options, model, build):
+    config.log(0, 'configuring host phase')
+    config['model'] = model
 
-    shared = cxx.configure('shared', 'fbuild.builders.cxx.config_shared', system, *args, **kwargs)
-    config_c_compatible_builder(cxx, shared)
+    if model == build['model']:
+        config.log(0, "using build's c and cxx compiler")
+        config['c']   = build['c']
+        config['cxx'] = build['cxx']
+    else:
+        config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
+            exe=options.build_cc,
+            tests=c_tests,
+        )
 
-# -----------------------------------------------------------------------------
+        config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
+            exe=options.build_cxx,
+            tests=c_tests,
+        )
 
-def config_build(system, options):
-    system.log(0, 'configuring build phase', color='green')
-    group = system.make_config_subgroup('build')
-    #config_c_builder(group, system, options, exe=options.build_cc)
-    #config_cxx_builder(group, system, options, exe=options.build_cxx)
-
-def config_host(system, options):
-    system.log(0, 'configuring host phase', color='green')
-    group = system.make_config_subgroup('host')
-    config_c_builder(system, group, options, exe=options.host_cc)
-    #config_cxx_builder(system, group, options, system, exe=options.host_cxx)
-
-    group.configure('ocaml', 'fbuild.builders.ocaml.config',
+    config.configure('ocaml', 'fbuild.builders.ocaml.config',
         ocamlc=options.ocamlc,
         ocamlopt=options.ocamlopt,
         ocamllex=options.ocamllex,
         ocamlyacc=options.ocamlyacc,
     )
 
-def config_target(system, options):
-    system.log(0, 'configuring target phase', color='green')
-    group = system.make_config_subgroup('target')
-    config_c_builder(system, group, options, exe=options.target_cc)
-    #config_cxx_builder(system, group, options, exe=options.target_cxx)
+
+def config_target(config, options, model, host):
+    config.log(0, 'configuring target phase')
+    config['model'] = model
+
+    if model == host['model']:
+        config.log(0, "using host's c and cxx compiler")
+        config['c']   = host['c']
+        config['cxx'] = host['cxx']
+    else:
+        config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
+            exe=options.build_cc,
+            tests=c_tests,
+        )
+
+        config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
+            exe=options.build_cxx,
+            tests=c_tests,
+        )
 
 # -----------------------------------------------------------------------------
 
 def configure(system, options):
-    config_build(system, options)
-    config_host(system, options)
-    config_target(system, options)
+    model = None
+
+    build  = system.subconfigure('build',  config_build,  options, model)
+    host   = system.subconfigure('host',   config_host,   options, model, build)
+    target = system.subconfigure('target', config_target, options, model, host)
+
 
 def build(system, options):
-    static = system.config['target']['c']['static']
-    objects = static.compile(['foo.c'])
-    exe = static.link_exe('foo', objects)
-    system.execute([os.path.join('.', exe)], ('running', exe))
+    import shutil
+
+    for lang in 'c', 'cxx':
+        for mode in 'static', 'shared':
+            builder = system.config['build'][lang][mode]['builder']
+
+            d = os.path.join(lang, mode)
+            try:
+                shutil.rmtree(d)
+            except OSError:
+                pass
+
+            os.makedirs(d)
+            shutil.copy('foo.c', d)
+            shutil.copy('bar.c', d)
+
+            objects = builder.compile([(d, 'bar.c')])
+            lib = builder.link_lib((d, 'bar'), objects)
+
+            objects = builder.compile([(d, 'foo.c')])
+            exe = builder.link_exe(os.path.join(d, 'foo'), objects, libs=[lib])
+            system.execute([exe], ('running', exe))

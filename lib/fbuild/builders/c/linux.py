@@ -1,4 +1,3 @@
-@system_cache
 def epoll(system, compiler):
     try:
         compiler.compile_str("""

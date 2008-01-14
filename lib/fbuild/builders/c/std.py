@@ -40,22 +40,19 @@ def detect_type_sizes(system, builder, types):
 
 def detect_types(group, builder, types):
     for t in types:
-        g = group.make_subgroup(t.replace(' ', '_'))
+        g = group.make_config_subgroup(t.replace(' ', '_'))
         g.configure('size',      detect_type_size,      builder, t)
         g.configure('alignment', detect_type_alignment, builder, t)
         g.configure('sign',      detect_type_sign,      builder, t)
         g.configure('alias',     detect_type_alias,     builder, t)
 
 def detect_std_types(group, builder):
-    std_types = group.make_subgroup('std.types')
+    #std_types = group.make_config_subgroup('std.types')
 
     ints = ['char', 'short', 'int', 'long', 'long long']
     signed_ints = ['signed ' + t for t in ints]
     unsigned_ints = ['unsigned ' + t for t in ints]
     types = ints + signed_ints + unsigned_ints + ['bool', 'float', 'double']
-
-    #std_types.subconfigure(
-
 
 # -----------------------------------------------------------------------------
 

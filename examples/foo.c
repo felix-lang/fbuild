@@ -1,6 +1,8 @@
 #include <stdio.h>
 
+extern int bar();
+
 int main(int argc, char** argv) {
-	printf("it worked!\n");
+	printf("mike sucks %d\n", bar());
 	return 0;
 }
