@@ -8,7 +8,7 @@ class Linker(fbuild.builders.Builder):
     def __init__(self, system, ar, ranlib, *,
             prefix='',
             suffix='',
-            color=None):
+            color='cyan'):
         super().__init__(system)
 
         self.ar = ar
@@ -18,6 +18,9 @@ class Linker(fbuild.builders.Builder):
         self.color = color
 
         self._ar_cmd = None
+
+    def __str__(self):
+        return ' '.join(self.ar)
 
     def _get_ar_cmd(self):
         self._ar_cmd = fbuild.builders.SimpleCommand(
