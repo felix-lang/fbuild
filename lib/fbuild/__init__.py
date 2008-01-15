@@ -8,12 +8,15 @@ class ExecutionError(Exception):
         self.returncode = returncode
 
     def __str__(self):
-        if isinstance(cmd, types.StringTypes):
+        if isinstance(self.cmd, str):
             cmd = self.cmd
         else:
             cmd = ' '.join(self.cmd)
 
-        return 'Error running %r exited with %d' % (cmd, self.returncode)
+        lines = ['Error running %r exited with %d' % (cmd, self.returncode)]
+        if self.stdout: lines.append(self.stdout.decode('utf-8'))
+        if self.stderr: lines.append(self.stderr.decode('utf-8'))
+        return '\n'.join(lines)
 
 class ConfigFailed(Exception):
     pass
