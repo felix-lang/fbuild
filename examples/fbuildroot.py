@@ -26,26 +26,26 @@ c_tests = [
 ]
 
 def config_build(config, options, model):
-    config.log(0, 'configuring build phase', color='green')
+    config.log('configuring build phase', color='green')
     config['model'] = model
 
     config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
         exe=options.build_cc,
-        tests=c_tests,
+        optional_tests=c_tests,
     )
 
     config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
         exe=options.build_cxx,
-        tests=c_tests,
+        optional_tests=c_tests,
     )
 
 
 def config_host(config, options, model, build):
-    config.log(0, 'configuring host phase')
+    config.log('configuring host phase')
     config['model'] = model
 
     if model == build['model']:
-        config.log(0, "using build's c and cxx compiler")
+        config.log("using build's c and cxx compiler")
         config['c']   = build['c']
         config['cxx'] = build['cxx']
     else:
@@ -68,11 +68,11 @@ def config_host(config, options, model, build):
 
 
 def config_target(config, options, model, host):
-    config.log(0, 'configuring target phase')
+    config.log('configuring target phase')
     config['model'] = model
 
     if model == host['model']:
-        config.log(0, "using host's c and cxx compiler")
+        config.log("using host's c and cxx compiler")
         config['c']   = host['c']
         config['cxx'] = host['cxx']
     else:

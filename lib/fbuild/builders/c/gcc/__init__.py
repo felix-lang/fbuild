@@ -10,10 +10,7 @@ from ... import c
 class Gcc(fbuild.builders.Builder):
     yaml_state = ('exe', 'prefix', 'suffix', 'color')
 
-    def __init__(self, system, exe,
-            prefix='',
-            suffix='',
-            color=None):
+    def __init__(self, system, exe, *, prefix='', suffix='', color=None):
         super().__init__(system)
 
         self.exe = exe
@@ -22,6 +19,9 @@ class Gcc(fbuild.builders.Builder):
         self.color = color
 
         self._gcc_cmd = None
+
+    def __str__(self):
+        return ' '.join(self.exe)
 
     def __repr__(self):
         return '%s(exe=%r, prefix=%r, suffix=%r, color=%r)' % (
@@ -42,9 +42,8 @@ class Gcc(fbuild.builders.Builder):
 
 
 class Compiler(Gcc):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('color', 'green')
-        super().__init__(*args, **kwargs)
+    def __init__(self, system, exe, *, color='green', **kwargs):
+        super().__init__(system, exe, color=color, **kwargs)
 
     def __call__(self, srcs,
             includes=[],
@@ -69,11 +68,14 @@ class Compiler(Gcc):
 class Linker(Gcc):
     yaml_state = ('lib_prefix', 'lib_suffix')
 
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('color', 'cyan')
-        self.lib_prefix = kwargs.pop('lib_prefix', '')
-        self.lib_suffix = kwargs.pop('lib_suffix', '')
-        super().__init__(*args, **kwargs)
+    def __init__(self, system, exe, *,
+            lib_prefix='',
+            lib_suffix='',
+            color='green',
+            **kwargs):
+        self.lib_prefix = lib_prefix
+        self.lib_suffix = lib_suffix
+        super().__init__(system, exe, color=color, **kwargs)
 
     def __call__(self, dst, srcs,
             libpaths=[],
@@ -151,11 +153,21 @@ def make_shared(system, *,
 
 # -----------------------------------------------------------------------------
 
+def config_builder(conf, make_builder, *, **kwargs):
+    builder = c.config_builder(conf, make_builder, **kwargs)
+
+    conf.configure('debug',    c.config_compile_flags, builder, ['-g'])
+    conf.configure('optimize', c.config_compile_flags, builder, ['-O2'])
+
+    return builder
+
+# -----------------------------------------------------------------------------
+
 def config_static(conf, *, **kwargs):
-    conf.subconfigure('static', c.config_builder, make_static, **kwargs)
+    conf.subconfigure('static', config_builder, make_static, **kwargs)
 
 def config_shared(conf, *, **kwargs):
-    conf.subconfigure('shared', c.config_builder, make_shared, **kwargs)
+    conf.subconfigure('shared', config_builder, make_shared, **kwargs)
 
 def config(conf, *, **kwargs):
     config_static(conf, **kwargs)

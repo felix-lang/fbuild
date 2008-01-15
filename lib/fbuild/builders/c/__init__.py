@@ -36,10 +36,8 @@ class Builder(fbuild.builders.Builder):
     # -------------------------------------------------------------------------
 
     @contextlib.contextmanager
-    def tempfile(self,
-            code='int main(int argc, char** argv) { return 0; }',
-            headers=[],
-            name='temp'):
+    def tempfile(self, code=None, headers=[], name='temp'):
+        code = code or 'int main(int argc, char** argv) { return 0; }'
         src = io.StringIO()
 
         for header in headers: print('#include <%s>' % header, file=src)
@@ -83,23 +81,23 @@ class Builder(fbuild.builders.Builder):
             #endif
         ''' % (macro, macro)
 
-        self.check(0, 'checking if %s is defined' % macro)
+        self.check('checking if "%s" is defined' % macro)
         try:
             with self.tempfile(code, headers=headers) as src:
                 self.compile([src], quieter=quieter, **kwargs)
         except fbuild.ExecutionError:
-            self.log(0, 'yes', color='green')
+            self.log('yes', color='green')
             return False
         else:
-            self.log(0, 'no', color='yellow')
+            self.log('no', color='yellow')
             return True
 
     # -------------------------------------------------------------------------
 
-    def try_tempfile_compile(self, code, headers=[], quieter=1, **kwargs):
+    def try_tempfile_compile(self, code=None, headers=[], quieter=1, **kwargs):
         with self.tempfile(code, headers=headers) as src:
             try:
-                self.compile([src], quieter=quieter)
+                self.compile([src], quieter=quieter, **kwargs)
             except fbuild.ExecutionError:
                 return False
             else:
@@ -167,63 +165,62 @@ class Builder(fbuild.builders.Builder):
 # -----------------------------------------------------------------------------
 
 def check_builder(builder):
+    builder.check('checking if "%s" can make objects' % builder.compiler)
     code = 'int main(int argc, char** argv) { return 0; }'
-    builder.check(0, 'checking if compiler works')
     if builder.try_tempfile_compile(code):
-        builder.log(0, 'ok', color='green')
+        builder.log('ok', color='green')
     else:
         raise fbuild.ConfigFailed('compiler failed')
 
 
+    builder.check('checking if "%s" can make libraries' % builder.lib_linker)
     code = 'int foo() { return 5; }'
-    builder.check(0, 'checking if lib linker works')
     if builder.try_tempfile_link_lib(code):
-        builder.log(0, 'ok', color='green')
+        builder.log('ok', color='green')
     else:
         raise fbuild.ConfigFailed('lib linker failed')
 
 
+    builder.check('checking if "%s" can make exes' % builder.exe_linker)
     code = 'int main(int argc, char** argv) { return 0; }'
-    builder.check(0, 'checking if exe linker works')
     if builder.try_tempfile_run(code):
-        builder.log(0, 'ok', color='green')
+        builder.log('ok', color='green')
     else:
         raise fbuild.ConfigFailed('exe linker failed')
 
 
+    builder.check('Checking linking lib to exe')
+    with fbuild.temp.tempdir() as dirname:
+        src_lib = os.path.join(dirname, 'templib' + builder.src_suffix)
+        with open(src_lib, 'w') as f:
+            print('int foo() { return 5; }', file=f)
+
+        src_exe = os.path.join(dirname, 'tempexe' + builder.src_suffix)
+        with open(src_exe, 'w') as f:
+            print('#include <stdio.h>', file=f)
+            print('extern int foo();', file=f)
+            print('int main(int argc, char** argv) {', file=f)
+            print('  printf("%d\\n", foo());', file=f)
+            print('  return 0;', file=f)
+            print('}', file=f)
 
 
-def check_link_lib(builder):
-    dirname = tempfile.mkdtemp()
-    try:
-        src_lib = _write_src(dirname, 'templib' + self.src_suffix,
-            'void foo() { return; }'
-        )
+        objs = builder.compile([src_lib], quieter=1)
+        lib = builder.link_lib(os.path.join(dirname, 'temp'), objs, quieter=1)
 
-        src_exe = _write_src(dirname, 'tempexe' + self.src_suffix,
-            'extern void foo();'
-            'int main(int argc, char** argv) { foo(); return 0; }'
-        )
-        lib_obj = compiler(system, [src_lib], **kwargs)
-        exe_obj = compiler(system, [src_exe], **kwargs)
+        objs = builder.compile([src_exe], quieter=1)
+        exe = builder.link_exe(os.path.join(dirname, 'temp'), objs,
+            libs=[lib],
+            quieter=1)
 
-        lib = link_lib(system, os.path.join(dirname, 'temp'), lib_obj, **kwargs)
-
-        exe_kwargs = kwargs.copy()
-        exe_kwargs.setdefault('libs', []).append(lib)
-
-        exe = link_exe(system,
-            os.path.join(dirname, 'temp'), exe_obj, **exe_kwargs)
-
-        system.log.check(0, 'Checking lib linking')
         try:
-            system.execute([exe])
+            stdout, stderr = builder.system.execute([exe], quieter=1)
         except fbuild.system.ExecutionError:
-            system.log(0, 'failed', color='yellow')
+            raise fbuild.ConfigFailed('failed to link lib to exe')
         else:
-            system.log(0, 'ok', color='green')
-    finally:
-        shutil.rmtree(dirname)
+            if stdout != b'5\n':
+                raise fbuild.ConfigFailed('failed to link lib to exe')
+            builder.log('ok', color='green')
 
 # -----------------------------------------------------------------------------
 
@@ -257,10 +254,31 @@ def make_builder(system, Compiler, LibLinker, ExeLinker,
 
 # -----------------------------------------------------------------------------
 
-def config_builder(conf, make_builder, *, tests=[], **kwargs):
+def config_builder(conf, make_builder, *,
+        tests=[],
+        optional_tests=[],
+        **kwargs):
     builder = conf.configure('builder', make_builder, conf.system, **kwargs)
 
     for test in tests:
         conf.subconfigure('', test, builder)
 
+    for test in optional_tests:
+        try:
+            conf.subconfigure('', test, builder)
+        except fbuild.ConfigFailed as e:
+            pass
+
     return builder
+
+# -----------------------------------------------------------------------------
+
+def config_compile_flags(builder, flags):
+    builder.check('checking if "%s" supports %s' % (builder, flags))
+
+    if builder.try_tempfile_compile(flags=flags):
+        builder.log('ok', color='green')
+        return True
+
+    builder.log('failed', color='yellow')
+    return False

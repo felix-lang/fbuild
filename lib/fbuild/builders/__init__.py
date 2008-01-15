@@ -48,13 +48,13 @@ def test(msg, failed, color='green'):
     def decorator(func):
         @functools.wraps(func)
         def aux(system, *args, **kwds):
-            system.log.check(0, msg)
+            system.log.check(msg)
 
             res =  func(system, *args, **kwds)
             if res:
-                system.log(0, 'ok ' + str(res), color=color)
+                system.log('ok ' + str(res), color=color)
             else:
-                system.log(0, failed, color='yellow')
+                system.log(failed, color='yellow')
 
             return res
         return aux
@@ -63,14 +63,14 @@ def test(msg, failed, color='green'):
 
 def find_program(system, *names):
     for name in names:
-        system.log.check(0, 'checking for program ' + name)
+        system.log.check('checking for program ' + name)
 
         program = fbuild.path.find_in_paths(name)
         if program:
-            system.log(0, 'ok %s' % program, color='green')
+            system.log('ok %s' % program, color='green')
             return program
         else:
-            system.log(0, 'not found', color='yellow')
+            system.log('not found', color='yellow')
 
     raise fbuild.ConfigFailed('failed to find any of ' + str(names))
 

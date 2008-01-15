@@ -2,12 +2,12 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config_mmap(group, builder):
-    if not group.configure('have_mmap',
+def config_mmap(conf, builder):
+    if not conf.configure('have_mmap',
             builder.check_header_exists, 'sys/mman.h'):
         raise ConfigFailed('missing sys/mman.h')
 
-    group.configure('mmap_macros', detect_mmap_macros, builder)
+    conf.configure('mmap_macros', detect_mmap_macros, builder)
 
 
 def detect_mmap_macros(builder):
@@ -32,12 +32,12 @@ def detect_mmap_macros(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_pthreads(group, builder):
-    if not group.configure('have_pthreads',
+def config_pthreads(conf, builder):
+    if not conf.configure('have_pthreads',
             builder.check_header_exists, 'pthread.h'):
         raise ConfigFailed('missing pthread.h')
 
-    group.configure('pthread_flags', detect_pthread_flags, builder)
+    conf.configure('pthread_flags', detect_pthread_flags, builder)
 
 
 def detect_pthread_flags(builder):
@@ -55,43 +55,43 @@ def detect_pthread_flags(builder):
         }
     '''
 
-    builder.check(0, 'detecting pthread link flags')
+    builder.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
         if builder.try_tempfile_run(code,
                 headers=['pthread.h'],
                 lflags={'flags': flags}):
-            builder.log(0, 'ok %r' % ' '.join(flags), color='green')
+            builder.log('ok %r' % ' '.join(flags), color='green')
             return flags
 
-    builder.log(0, 'failed', color='yellow')
+    builder.log('failed', color='yellow')
     raise ConfigFailed('failed to link pthread program')
 
 # -----------------------------------------------------------------------------
 
-def config_sockets(group, builder):
-    if not group.configure('have_sockets',
+def config_sockets(conf, builder):
+    if not conf.configure('have_sockets',
             builder.check_header_exists, 'sys/socket.h'):
         raise ConfigFailed('missing sys/socket.h')
 
-    group.configure('socklen_t', detect_socklen_t, builder)
+    conf.configure('socklen_t', detect_socklen_t, builder)
 
 
 def detect_socklen_t(builder):
     code = 'extern int accept(int s, struct sockaddr* addr, %s* addrlen);'
 
-    builder.check(0, 'determing type of socklen_t')
+    builder.check('determing type of socklen_t')
     for t in 'socklen_t', 'unsigned int', 'int':
         if builder.try_tempfile_compile(code %t,
                 headers=['sys/types.h', 'sys/socket.h']):
-            builder.log(0, 'ok ' + t, color='green')
+            builder.log('ok ' + t, color='green')
             return t
 
-    builder.log(0, 'failed', color='yellow')
+    builder.log('failed', color='yellow')
     raise ConfigFailed('failed to detect type of socklen_t')
 
 # -----------------------------------------------------------------------------
 
-def config_posix_support(group, builder):
-    config_mmap(group, builder)
-    config_pthreads(group, builder)
-    config_sockets(group, builder)
+def config_posix_support(conf, builder):
+    config_mmap(conf, builder)
+    config_pthreads(conf, builder)
+    config_sockets(conf, builder)

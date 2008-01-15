@@ -39,27 +39,27 @@ class Log:
 
         self._lock.acquire()
         try:
-            for msg, verbose, color in msgs:
-                self._write(msg, verbose, color)
+            for msg, kwargs in msgs:
+                self._write(msg, **kwargs)
         finally:
             self._lock.release()
 
-    def write(self, msg, verbose=0, color=None, buffer=True):
+    def write(self, msg, *, buffer=True, **kwargs):
         if not buffer:
             self._lock.acquire()
             try:
-                self._write(msg, verbose, color)
+                self._write(msg, **kwargs)
             finally:
                 self._lock.release()
         else:
             stack = self._thread_stacks.setdefault(threading.currentThread(), [])
 
             if buffer and stack:
-                stack[-1].append((msg, verbose, color))
+                stack[-1].append((msg, kwargs))
             else:
-                self._write(msg, verbose, color)
+                self._write(msg, **kwargs)
 
-    def _write(self, msg, verbose, color):
+    def _write(self, msg, color=None, verbose=0):
         # make sure message is a string
         msg = str(msg)
         self.logfile.write(msg)
@@ -74,11 +74,11 @@ class Log:
         self.logfile.flush()
         sys.stdout.flush()
 
-    def __call__(self, verbose, msg, color=None):
-        self.write(msg, verbose, color)
-        self.write('\n', verbose)
+    def __call__(self, msg, color=None, verbose=0):
+        self.write(msg, verbose=verbose, color=color)
+        self.write('\n', verbose=verbose)
 
-    def check(self, verbose, msg, result=None, color=None):
+    def check(self, msg, result=None, color=None, verbose=0):
         if self.system.show_threads and self.system.threadcount > 1:
             msg = '%-10s: %s' % (
                 threading.currentThread().getName(),
@@ -92,10 +92,10 @@ class Log:
         msg = msg.ljust(self.maxlen) + ': '
 
         if result is None:
-            self.write(msg, verbose, color)
-            self.write('\n', verbose + 1)
+            self.write(msg, color=color, verbose=verbose)
+            self.write('\n', verbose=verbose + 1)
         else:
-            self.write(msg, verbose)
-            self.write(result, verbose, color)
-            self.write('\n', verbose)
+            self.write(msg, verbose=verbose)
+            self.write(result, color=color, verbose=verbose)
+            self.write('\n', verbose=verbose)
         self.flush()

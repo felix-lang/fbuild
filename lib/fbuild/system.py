@@ -196,22 +196,21 @@ class System(yaml.YAMLObject):
             try:
                 msg1, msg2 = msg
             except TypeError:
-                self.log.check(quieter, ' * ' + msg, color=color)
+                self.log.check(' * ' + msg, color=color, verbose=quieter)
             else:
-                self.log.check(quieter, ' * ' + msg1, msg2, color=color)
+                self.log.check(' * ' + msg1, msg2, color=color, verbose=quieter)
 
         if returncode:
-            self.log(0 + quieter, ' + ' + cmd_string)
+            self.log(' + ' + cmd_string, verbose=quieter)
         else:
-            self.log(1, ' + ' + cmd_string)
+            self.log(' + ' + cmd_string, verbose=1)
 
-        if stdout: self.log(0 + quieter, stdout.rstrip().decode('utf-8'))
-        if stderr: self.log(0 + quieter, stderr.rstrip().decode('utf-8'))
+        if stdout: self.log(stdout.rstrip().decode('utf-8'), verbose=quieter)
+        if stderr: self.log(stderr.rstrip().decode('utf-8'), verbose=quieter)
 
-        self.log(2, ' - exit %d, %.2f sec' % (
-            returncode,
-            endtime - starttime,
-        ))
+        self.log(' - exit %d, %.2f sec' % (returncode, endtime - starttime),
+            verbose=2,
+        )
 
         if returncode:
             raise ExecutionError(cmd, stdout, stderr, returncode)
@@ -224,15 +223,15 @@ class System(yaml.YAMLObject):
         try:
             package.configure(self, *args, **kwargs)
         except ConfigFailed as e:
-            self.log(0, e, color='red')
+            self.log(e, color='red')
             raise e from e
 
         if self.config_dirty:
-            self.log(0, 'saving config')
+            self.log('saving config')
             with open(self.configfile, 'w') as f:
                 yaml.dump(self, f)
 
-            self.log(0, '-' * 79, color='blue')
+            self.log('-' * 79, color='blue')
 
 
     def run_package(self, package, *args, **kwargs):
