@@ -1,21 +1,30 @@
-from fbuild.builders import find_program
-from ...c import gcc
+from functools import partial
+
+import fbuild.builders
+from ...c import gcc as Gcc
 
 # -----------------------------------------------------------------------------
 
-def config_static(conf, *, exe=None, **kwargs):
-    return gcc.config_static(conf,
-        src_suffix='.cc',
-        exe=exe or find_program(conf, 'g++', 'c++'),
+def make_gxx(system, exe=None, default_exes=['g++', 'c++']):
+    exe = exe or fbuild.builders.find_program(system, default_exes)
+
+    if not exe:
+        raise ConfigFailed('cannot find g++')
+
+    gxx = Gcc.Gcc(system, exe)
+
+    if not gxx.check_flags([]):
+        raise ConfigFailed('g++ failed to compile an exe')
+
+    return gxx
+
+# -----------------------------------------------------------------------------
+
+def config(conf, exe, *args, **kwargs):
+    from ... import ar
+
+    return conf.subconfigure('cxx', Gcc.config_builder,
+        make_gxx(conf.system, exe),
+        partial(ar.config, conf),
+        *args,
         **kwargs)
-
-
-def config_shared(conf, *, exe=None, **kwargs):
-    return gcc.config_shared(conf,
-        src_suffix='.cc',
-        exe=exe or find_program(conf, 'g++', 'c++'),
-        **kwargs)
-
-def config(conf, *args, **kwargs):
-    config_static(conf, *args, **kwargs)
-    config_shared(conf, *args, **kwargs)

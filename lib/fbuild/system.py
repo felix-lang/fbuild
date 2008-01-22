@@ -25,6 +25,9 @@ class ConfigGroup(yaml.YAMLObject):
     def subconfigure(self, *args, **kwargs):
         return self.system._subconfigure(self, *args, **kwargs)
 
+    def config_group(self, *args, **kwargs):
+        return self.system._config_group(self, *args, **kwargs)
+
     def __getitem__(self, key):
         return self.config[key]
 
@@ -32,13 +35,22 @@ class ConfigGroup(yaml.YAMLObject):
         self.config[key] = value
 
     def __getattr__(self, *args, **kwargs):
-        return getattr(self.system, *args, **kwargs)
+        try:
+            return self.config.__getitem__(*args, **kwargs)
+        except KeyError as e:
+            raise AttributeError(e)
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.config)
 
     def __bool__(self):
         return bool(self.config)
+
+    def log(self, *args, **kwargs):
+        return self.system.log(*args, **kwargs)
+
+    def check(self, *args, **kwargs):
+        return self.system.check(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -61,12 +73,17 @@ class System(yaml.YAMLObject):
         self.configfile = configfile
         self.threadcount = threadcount
         self.verbose = verbose
-        self.log = console.Log(self, logfile)
+        self.logger = console.Log(self, logfile)
         self.nocolor = nocolor
         self.show_threads = show_threads
 
         self.scheduler = scheduler.Scheduler(threadcount)
 
+    def check(self, *args, **kwargs):
+        return self.logger.check(*args, **kwargs)
+
+    def log(self, *args, **kwargs):
+        return self.logger.log(*args, **kwargs)
 
     def load_yaml_config(self, file):
         def system(loader, node):
@@ -94,6 +111,10 @@ class System(yaml.YAMLObject):
 
     def subconfigure(self, *args, **kwargs):
         return self._subconfigure(self.config, *args, **kwargs)
+
+
+    def config_group(self, *args, **kwargs):
+        return self._config_group(self.config, *args, **kwargs)
 
     # -------------------------------------------------------------------------
 
@@ -129,16 +150,21 @@ class System(yaml.YAMLObject):
 
     def _subconfigure(self, conf, name, function, *args, **kwargs):
         if name:
-            for n in name.split('.'):
-                c = conf
-                try:
-                    conf = conf[n]
-                except KeyError:
-                    conf[n] = ConfigGroup(self)
-                    conf = conf[n]
+            conf = self._config_group(conf, name)
 
         self.config_dirty = True
         self._import(function)(conf, *args, **kwargs)
+
+        return conf
+
+    def _config_group(self, conf, name):
+        for n in name.split('.'):
+            c = conf
+            try:
+                conf = conf[n]
+            except KeyError:
+                conf[n] = ConfigGroup(self)
+                conf = conf[n]
 
         return conf
 
@@ -151,18 +177,18 @@ class System(yaml.YAMLObject):
     def future(self, f, *args, **kwargs):
         @functools.wraps(f)
         def wrapper():
-            self.log.push_thread()
+            self.logger.push_thread()
             try:
                 return f(*args, **kwargs)
             finally:
-                self.log.pop_thread()
+                self.logger.pop_thread()
 
         return self.scheduler.future(wrapper)
 
     # -------------------------------------------------------------------------
 
     def execute(self, cmd,
-            msg=None,
+            msg1=None,
             msg2=None,
             color=None,
             quieter=0,
@@ -175,12 +201,12 @@ class System(yaml.YAMLObject):
             cmd_string = ' '.join(cmd)
 
         if self.threadcount <= 1:
-            self.log.write('starting %r\n' % cmd_string,
+            self.logger.write('starting %r\n' % cmd_string,
                 verbose=4,
                 buffer=False,
             )
         else:
-            self.log.write('%-10s: starting %r\n' %
+            self.logger.write('%-10s: starting %r\n' %
                 (threading.currentThread().getName(), cmd_string),
                 verbose=4,
                 buffer=False,
@@ -192,13 +218,13 @@ class System(yaml.YAMLObject):
         returncode = p.wait()
         endtime = time.time()
 
-        if msg:
-            try:
-                msg1, msg2 = msg
-            except TypeError:
-                self.log.check(' * ' + msg, color=color, verbose=quieter)
+        if msg1:
+            if msg2:
+                self.check(' * ' + str(msg1), str(msg2),
+                    color=color,
+                    verbose=quieter)
             else:
-                self.log.check(' * ' + msg1, msg2, color=color, verbose=quieter)
+                self.check(' * ' + str(msg1), color=color, verbose=quieter)
 
         if returncode:
             self.log(' + ' + cmd_string, verbose=quieter)

@@ -1,4 +1,5 @@
 import os
+import shutil
 from optparse import make_option
 
 # -----------------------------------------------------------------------------
@@ -21,45 +22,39 @@ def pre_options(parser):
 # -----------------------------------------------------------------------------
 
 c_tests = [
-    'fbuild.builders.c.std.detect_std_types',
-    'fbuild.builders.c.posix.config_posix_support',
+    'fbuild.builders.c.config_little_endian',
+    'fbuild.builders.c.std.config',
+    'fbuild.builders.c.c99.config',
+    'fbuild.builders.c.posix.config',
 ]
 
-def config_build(config, options, model):
-    config.log('configuring build phase', color='green')
-    config['model'] = model
+def config_build(conf, options, model):
+    conf.log('configuring build phase', color='green')
+    conf['model'] = model
 
-    config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
-        exe=options.build_cc,
-        optional_tests=c_tests,
-    )
+    from fbuild.builders.c.gcc.darwin import config
+    config(conf, exe=options.build_cc, tests=c_tests)
 
-    config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
-        exe=options.build_cxx,
-        optional_tests=c_tests,
-    )
+    from fbuild.builders.cxx.gxx.darwin import config
+    config(conf, exe=options.build_cxx, tests=c_tests)
 
 
-def config_host(config, options, model, build):
-    config.log('configuring host phase')
-    config['model'] = model
+def config_host(conf, options, model, build):
+    conf.log('configuring host phase')
+    conf['model'] = model
 
     if model == build['model']:
-        config.log("using build's c and cxx compiler")
-        config['c']   = build['c']
-        config['cxx'] = build['cxx']
+        conf.log("using build's c and cxx compiler")
+        conf['c']   = build['c']
+        conf['cxx'] = build['cxx']
     else:
-        config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
-            exe=options.build_cc,
-            tests=c_tests,
-        )
+        from fbuild.builders.c.gcc.darwin import config
+        config(conf, exe=options.host_cc, tests=c_tests)
 
-        config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
-            exe=options.build_cxx,
-            tests=c_tests,
-        )
+        from fbuild.builders.cxx.gxx.darwin import config
+        config(conf, exe=options.host_cxx, tests=c_tests)
 
-    config.configure('ocaml', 'fbuild.builders.ocaml.config',
+    conf.configure('ocaml', 'fbuild.builders.ocaml.config',
         ocamlc=options.ocamlc,
         ocamlopt=options.ocamlopt,
         ocamllex=options.ocamllex,
@@ -67,24 +62,20 @@ def config_host(config, options, model, build):
     )
 
 
-def config_target(config, options, model, host):
-    config.log('configuring target phase')
-    config['model'] = model
+def config_target(conf, options, model, host):
+    conf.log('configuring target phase')
+    conf['model'] = model
 
     if model == host['model']:
-        config.log("using host's c and cxx compiler")
-        config['c']   = host['c']
-        config['cxx'] = host['cxx']
+        conf.log("using host's c and cxx compiler")
+        conf['c']   = host['c']
+        conf['cxx'] = host['cxx']
     else:
-        config.subconfigure('c', 'fbuild.builders.c.gcc.darwin.config',
-            exe=options.build_cc,
-            tests=c_tests,
-        )
+        from fbuild.builders.c.gcc.darwin import config
+        config(conf, exe=options.target_cc, tests=c_tests)
 
-        config.subconfigure('cxx', 'fbuild.builders.cxx.gxx.darwin.config',
-            exe=options.build_cxx,
-            tests=c_tests,
-        )
+        from fbuild.builders.cxx.gxx.darwin import config
+        config(conf, exe=options.target_cxx, tests=c_tests)
 
 # -----------------------------------------------------------------------------
 
@@ -97,11 +88,14 @@ def configure(system, options):
 
 
 def build(system, options):
-    import shutil
+    conf = system.config['target']
+    import fbuild.builders.c.c99 as c99
+    import pprint
+    pprint.pprint(c99.fake_stdint_types(conf.c))
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':
-            builder = system.config['build'][lang][mode]['builder']
+            builder = conf[lang][mode]
 
             d = os.path.join(lang, mode)
             try:
@@ -117,5 +111,5 @@ def build(system, options):
             lib = builder.link_lib((d, 'bar'), objects)
 
             objects = builder.compile([(d, 'foo.c')])
-            exe = builder.link_exe(os.path.join(d, 'foo'), objects, libs=[lib])
-            system.execute([exe], ('running', exe))
+            exe = builder.link_exe((d, 'foo'), objects, libs=[lib])
+            system.execute([exe], 'running', exe)

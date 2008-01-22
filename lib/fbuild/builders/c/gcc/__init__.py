@@ -1,139 +1,226 @@
 import os
 from functools import partial
 
+from fbuild import ExecutionError, ConfigFailed
 import fbuild.path
 import fbuild.builders
 from ... import c
 
 # -----------------------------------------------------------------------------
 
-class Gcc(fbuild.builders.Builder):
-    yaml_state = ('exe', 'prefix', 'suffix', 'color')
-
-    def __init__(self, system, exe, *, prefix='', suffix='', color=None):
-        super().__init__(system)
-
+class Gcc:
+    def __init__(self, system, exe):
+        self.system = system
         self.exe = exe
-        self.prefix = prefix
-        self.suffix = suffix
-        self.color = color
-
-        self._gcc_cmd = None
 
     def __str__(self):
-        return ' '.join(self.exe)
+        return self.exe
 
-    def __repr__(self):
-        return '%s(exe=%r, prefix=%r, suffix=%r, color=%r)' % (
-            self.__class__.__name__,
-            self.exe,
-            self.prefix,
-            self.suffix,
-            self.color,
-        )
+    def __call__(self, srcs, dst=None, flags=[], *, pre_flags=[], **kwargs):
+        cmd = [self.exe]
+        cmd.extend(pre_flags)
 
-    def _get_cmd(self):
-        self._gcc_cmd = fbuild.builders.SimpleCommand(
-            self.system, self.exe, self.prefix, self.suffix, '-o',
-            color=self.color,
-        )
+        if dst is not None:
+            cmd.extend(('-o', dst))
+            msg2 = '%s -> %s' % (' '.join(srcs), dst)
+        else:
+            msg2 = ' '.join(srcs)
 
-        return self._gcc_cmd
+        cmd.extend(flags)
+        cmd.extend(srcs)
 
+        return self.system.execute(cmd, msg1=self.exe, msg2=msg2, **kwargs)
 
-class Compiler(Gcc):
-    def __init__(self, system, exe, *, color='green', **kwargs):
-        super().__init__(system, exe, color=color, **kwargs)
+    def check_flags(self, flags=[]):
+        if flags:
+            self.system.check('checking %s with %s' % (self, ' '.join(flags)))
+        else:
+            self.system.check('checking %s' % self)
 
-    def __call__(self, srcs,
+        with c.tempfile() as src:
+            try:
+                self(flags + [src], quieter=1, cwd=os.path.dirname(src))
+            except ExecutionError:
+                self.system.log('failed', color='yellow')
+                return False
+
+        self.system.log('ok', color='green')
+        return True
+
+# -----------------------------------------------------------------------------
+
+class Compiler:
+    def __init__(self, gcc, flags, *, suffix,
+            debug_flags=[],
+            optimize_flags=[]):
+        self.gcc = gcc
+        self.flags = flags
+        self.suffix = suffix
+        self.debug_flags = debug_flags
+        self.optimize_flags = optimize_flags
+
+    def __str__(self):
+        return ' '.join([str(self.gcc)] + self.flags)
+
+    def __call__(self, srcs, *,
             includes=[],
+            warnings=[],
             macros=[],
             flags=[],
+            debug=False,
+            optimize=False,
             **kwargs):
-        cmd = self._gcc_cmd or self._get_cmd()
         cmd_flags = []
-        cmd_flags.extend(['-I' + i for i in includes])
-        cmd_flags.extend(['-D' + d for d in macros])
+
+        if debug:
+            cmd_flags.extend(self.debug_flags)
+
+        if optimize:
+            cmd_flags.extend(self.optimize_flags)
+
+        cmd_flags.extend('-I' + i for i in includes)
+        cmd_flags.extend('-D' + d for d in macros)
+        cmd_flags.extend('-W' + w for w in warnings)
         cmd_flags.extend(flags)
 
         objects = []
         for src in fbuild.path.glob_paths(srcs):
-            dst = os.path.splitext(src)[0]
-            obj = cmd(dst, [src], cmd_flags, **kwargs)
-            objects.append(obj)
+            dst = os.path.splitext(src)[0] + self.suffix
+            self.gcc([src], dst, cmd_flags,
+                pre_flags=self.flags,
+                color='green',
+                **kwargs)
+
+            objects.append(dst)
 
         return objects
 
+# -----------------------------------------------------------------------------
 
-class Linker(Gcc):
-    yaml_state = ('lib_prefix', 'lib_suffix')
+class Linker:
+    def __init__(self, gcc, flags=[], *, prefix, suffix):
+        self.gcc = gcc
+        self.flags = flags
+        self.prefix = prefix
+        self.suffix = suffix
 
-    def __init__(self, system, exe, *,
-            lib_prefix='',
-            lib_suffix='',
-            color='green',
-            **kwargs):
-        self.lib_prefix = lib_prefix
-        self.lib_suffix = lib_suffix
-        super().__init__(system, exe, color=color, **kwargs)
-
-    def __call__(self, dst, srcs,
+    def __call__(self, dst, srcs, *,
             libpaths=[],
             libs=[],
             flags=[],
             **kwargs):
-        new_libpaths = []
-        new_libs = []
+        dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
+        srcs = fbuild.path.glob_paths(srcs)
 
-        for lib in libs:
-            dirname, basename = os.path.split(lib)
-            if dirname:
-                if dirname not in new_libpaths:
-                    new_libpaths.append(dirname)
-            elif '.' not in new_libpaths:
-                new_libpaths.append('.')
-
-            if basename.startswith(self.lib_prefix):
-                basename = basename[len(self.lib_prefix):]
-
-            if basename.endswith(self.lib_suffix):
-                basename = basename[:-len(self.lib_suffix)]
-
-            new_libs.append(basename)
-
-        cmd = self._gcc_cmd or self._get_cmd()
         cmd_flags = []
-        cmd_flags.extend(['-L' + p for p in new_libpaths])
-        cmd_flags.extend(['-l' + l for l in new_libs])
+        cmd_flags.extend('-L' + p for p in libpaths)
+
+        extra_srcs = []
+        for lib in libs:
+            if os.path.exists(lib):
+                extra_srcs.append(lib)
+            else:
+                cmd_flags.append('-l' + lib)
+
         cmd_flags.extend(flags)
 
-        return cmd(dst, srcs, post_flags=cmd_flags, **kwargs)
+        self.gcc(srcs + extra_srcs, dst, cmd_flags,
+            pre_flags=self.flags,
+            color='cyan',
+            **kwargs)
+
+        return dst
 
 # -----------------------------------------------------------------------------
 
-def make_static(system, *,
-        exe=None,
+class Builder(c.Builder):
+    def __init__(self, *args, compiler, lib_linker, exe_linker, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.compiler = compiler
+        self.lib_linker = lib_linker
+        self.exe_linker = exe_linker
+
+    def __str__(self):
+        return str(self.compiler)
+
+    def compile(self, *args, **kwargs):
+        return self.compiler(*args, **kwargs)
+
+    def link_lib(self, *args, **kwargs):
+        return self.lib_linker(*args, **kwargs)
+
+    def link_exe(self, *args, **kwargs):
+        return self.exe_linker(*args, **kwargs)
+
+# -----------------------------------------------------------------------------
+
+def make_gcc(system, exe=None, default_exes=['gcc', 'cc']):
+    exe = exe or fbuild.builders.find_program(system, default_exes)
+
+    if not exe:
+        raise ConfigFailed('cannot find gcc')
+
+    gcc = Gcc(system, exe)
+
+    if not gcc.check_flags([]):
+        raise ConfigFailed('gcc failed to compile an exe')
+
+    return gcc
+
+
+def make_compiler(gcc, compile_flags,
+        debug_flags=['-g'],
+        optimize_flags=['-O2'],
+        **kwargs):
+    if compile_flags and not gcc.check_flags(compile_flags):
+        raise ConfigFailed('%s does not support %s flags' %
+            (gcc, compile_flags))
+
+    if not gcc.check_flags(debug_flags):
+        debug_flags = []
+
+    if not gcc.check_flags(optimize_flags):
+        optimize_flags = []
+
+    return Compiler(gcc, compile_flags,
+        debug_flags=debug_flags,
+        optimize_flags=optimize_flags,
+        **kwargs)
+
+
+def make_linker(gcc, link_flags=[], **kwargs):
+    if link_flags and not gcc.check_flags(link_flags):
+        raise ConfigFailed('%s does not support %s' %
+            (gcc, ' '.join(link_flags)))
+
+    return Linker(gcc, link_flags, **kwargs)
+
+
+def make_static(gcc, ar, *,
         src_suffix='.c',
         obj_suffix='.o',
         lib_prefix='lib',
         lib_suffix='.a',
         exe_suffix='',
         compile_flags=['-c'],
-        lib_link_flags=[],
-        exe_link_flags=[]):
-    exe = exe or fbuild.builders.find_program(system, 'gcc', 'cc')
-
-    from ... import ar
-
-    return c.make_builder(system,
-        partial(Compiler, exe=[exe] + compile_flags),
-        ar.make,
-        partial(Linker, exe=[exe] + exe_link_flags),
-        src_suffix, obj_suffix, lib_prefix, lib_suffix, exe_suffix,
+        exe_link_flags=[],
+        **kwargs):
+    return Builder(gcc.system,
+            src_suffix=src_suffix,
+            compiler=make_compiler(gcc, compile_flags,
+                suffix=obj_suffix,
+                **kwargs),
+            lib_linker=ar(
+                prefix=lib_prefix,
+                suffix=lib_suffix),
+            exe_linker=make_linker(gcc, exe_link_flags,
+                prefix='',
+                suffix=exe_suffix),
     )
 
-def make_shared(system, *,
-        exe=None,
+
+def make_shared(gcc, *,
         src_suffix='.c',
         obj_suffix='.os',
         lib_prefix='lib',
@@ -141,34 +228,47 @@ def make_shared(system, *,
         exe_suffix='',
         compile_flags=['-c', '-fPIC'],
         lib_link_flags=['-shared'],
-        exe_link_flags=[]):
-    exe = exe or fbuild.builders.find_program(system, 'gcc', 'cc')
-
-    return c.make_builder(system,
-        partial(Compiler, exe=[exe] + compile_flags),
-        partial(Linker, exe=[exe] + lib_link_flags),
-        partial(Linker, exe=[exe] + exe_link_flags),
-        src_suffix, obj_suffix, lib_prefix, lib_suffix, exe_suffix,
+        exe_link_flags=[],
+        **kwargs):
+    return Builder(gcc.system,
+            src_suffix=src_suffix,
+            compiler=make_compiler(gcc, compile_flags,
+                suffix=obj_suffix,
+                **kwargs),
+            lib_linker = make_linker(gcc, lib_link_flags,
+                prefix=lib_prefix,
+                suffix=lib_suffix),
+            exe_linker=make_linker(gcc, exe_link_flags,
+                prefix='',
+                suffix=exe_suffix),
     )
 
 # -----------------------------------------------------------------------------
 
-def config_builder(conf, make_builder, *, **kwargs):
-    builder = c.config_builder(conf, make_builder, **kwargs)
+def config_builder(conf, gcc, ar, *,
+        make_shared=make_shared,
+        tests=[],
+        optional_tests=[],
+        **kwargs):
+    static = conf.configure('static', make_static, gcc, ar, **kwargs)
+    shared = conf.configure('shared', make_shared, gcc, **kwargs)
 
-    conf.configure('debug',    c.config_compile_flags, builder, ['-g'])
-    conf.configure('optimize', c.config_compile_flags, builder, ['-O2'])
+    for builder in static, shared:
+        for test in tests:
+            conf.subconfigure('', test, builder)
 
-    return builder
+        for test in optional_tests:
+            try:
+                conf.subconfigure('', test, builder)
+            except ConfigFailed:
+                pass
 
-# -----------------------------------------------------------------------------
+    return static, shared
 
-def config_static(conf, *, **kwargs):
-    conf.subconfigure('static', config_builder, make_static, **kwargs)
+def config(conf, exe, *args, **kwargs):
+    from ... import ar
 
-def config_shared(conf, *, **kwargs):
-    conf.subconfigure('shared', config_builder, make_shared, **kwargs)
-
-def config(conf, *, **kwargs):
-    config_static(conf, **kwargs)
-    config_shared(conf, **kwargs)
+    return conf.subconfigure('c', config_builder,
+        make_gcc(conf.system, exe),
+        partial(ar.config, conf),
+        *args, **kwargs)

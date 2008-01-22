@@ -1,19 +1,17 @@
-from .. import gcc
+from .. import gcc as Gcc
 
 # -----------------------------------------------------------------------------
 
-def config_static(conf, *, **kwargs):
-    return gcc.config_static(conf, **kwargs)
-
-def config_shared(conf, *,
+def make_shared(gcc,
         lib_suffix='.dylib',
         lib_link_flags=['-dynamiclib'],
         **kwargs):
-    return gcc.config_shared(conf,
+    return Gcc.make_shared(gcc,
         lib_suffix=lib_suffix,
         lib_link_flags=lib_link_flags,
         **kwargs)
 
-def config(conf, *, **kwargs):
-    config_static(conf, **kwargs)
-    config_shared(conf, **kwargs)
+# -----------------------------------------------------------------------------
+
+def config(conf, exe, make_shared=make_shared, **kwargs):
+    return Gcc.config(conf, exe, make_shared=make_shared, **kwargs)

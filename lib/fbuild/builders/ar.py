@@ -2,61 +2,62 @@ import fbuild.builders
 
 # -----------------------------------------------------------------------------
 
-class Linker(fbuild.builders.Builder):
-    yaml_state = ('ar', 'ranlib', 'prefix', 'suffix', 'color')
-
-    def __init__(self, system, ar, ranlib, *,
-            prefix='',
-            suffix='',
-            color='cyan'):
-        super().__init__(system)
-
+class Linker:
+    def __init__(self, system, ar, ranlib, flags, *, prefix, suffix):
+        self.system = system
         self.ar = ar
         self.ranlib = ranlib
+        self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
-        self.color = color
 
-        self._ar_cmd = None
+    def __call__(self, dst, srcs, *, flags=[], ranlib_flags=[]):
+        dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
+        srcs = fbuild.path.glob_paths(srcs)
 
-    def __str__(self):
-        return ' '.join(self.ar)
+        cmd = [self.ar]
+        cmd.extend(self.flags)
+        cmd.extend(flags)
+        cmd.append(dst)
+        cmd.extend(srcs)
 
-    def _get_ar_cmd(self):
-        self._ar_cmd = fbuild.builders.SimpleCommand(
-            self.system, self.ar, self.prefix, self.suffix,
-            color=self.color,
-        )
-
-        return self._ar_cmd
-
-    def __call__(self, *args, **kwargs):
-        ar_cmd = self._ar_cmd or self._get_ar_cmd()
-
-        lib = ar_cmd(*args, **kwargs)
+        self.system.execute(cmd,
+            msg1=self.ar,
+            msg2='%s -> %s' % (' '.join(srcs), dst),
+            color='cyan')
 
         if self.ranlib is not None:
-            self.system.execute(self.ranlib + [lib],
-                (' '.join(self.ranlib), lib),
-                color=self.color,
-                quieter=kwargs.get('quieter', 0),
-            )
+            cmd = [self.ranlib]
+            cmd.extend(ranlib_flags)
+            cmd.append(dst)
 
-        return lib
+            self.system.execute(cmd,
+                msg1=self.ranlib,
+                msg2=dst,
+                color='cyan')
+
+        return dst
 
 # -----------------------------------------------------------------------------
 
-def make(system, *,
-        ar=None,
-        ranlib=None,
-        lib_prefix='',
-        lib_suffix='',
+def make_linker(system, ar=None, ranlib=None, *,
+        prefix='lib',
+        suffix='.a',
+        link_flags=['-rc'],
         **kwargs):
-    ar = ar or fbuild.builders.find_program(system, 'ar')
-    ranlib = ranlib or fbuild.builders.find_program(system, 'ranlib')
+    ar = ar or fbuild.builders.find_program(system, ['ar'])
 
-    return Linker(system, [ar, 'rc'], [ranlib] if ranlib else None,
+    if not ar:
+        raise ConfigFailed('cannot find ar')
+
+    ranlib = ranlib or fbuild.builders.find_program(system, ['ranlib'])
+
+    return Linker(system, ar, ranlib, link_flags,
+        prefix=prefix,
+        suffix=suffix,
         **kwargs)
 
-def config(conf, *, **kwargs):
-    conf.configure('ar', make, conf.system, **kwargs)
+# -----------------------------------------------------------------------------
+
+def config(conf, *args, **kwargs):
+    return conf.configure('ar', make_linker, conf.system, *args, **kwargs)

@@ -74,7 +74,7 @@ class Log:
         self.logfile.flush()
         sys.stdout.flush()
 
-    def __call__(self, msg, color=None, verbose=0):
+    def log(self, msg, color=None, verbose=0):
         self.write(msg, verbose=verbose, color=color)
         self.write('\n', verbose=verbose)
 

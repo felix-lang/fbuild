@@ -61,10 +61,18 @@ def find_in_paths(filename, paths=None):
 
     return None
 
-def make_path(path):
+def make_path(path, prefix=None, suffix=None):
     # if the path is not a string, assume it's a list of path elements
     if not isinstance(path, str):
-        return os.path.join(*path)
+        path = os.path.join(*path)
+
+    if prefix:
+        dirname, basename = os.path.split(path)
+        path = os.path.join(dirname, prefix + basename)
+
+    if suffix:
+        path += suffix
+
     return path
 
 
