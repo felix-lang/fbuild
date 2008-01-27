@@ -76,7 +76,7 @@ def config_mmap(conf, builder):
     conf.configure('mmap', detect_mmap, builder)
 
 def config_pthreads(conf, builder):
-    conf.configure('pthread_flags', detect_pthread, builder)
+    conf.configure('pthread.flags', detect_pthread, builder)
 
 def config_sockets(conf, builder):
     conf.configure('posix.socklen_t', detect_socket, builder)
