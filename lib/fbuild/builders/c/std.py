@@ -5,25 +5,17 @@ from fbuild import ExecutionError, ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def get_int_types():
-    types = []
-    for prefix in ('', 'signed ', 'unsigned '):
-        for i in ('char', 'short', 'int', 'long', 'long long'):
-            types.append('%s%s' % (prefix, i))
+default_types_int = tuple('%s%s' % (prefix, typename)
+    for prefix in ('', 'signed ', 'unsigned ')
+    for typename in ('char', 'short', 'int', 'long', 'long long'))
 
-    return types
+default_types_float = ('float', 'double', 'long double')
 
-def get_float_types():
-    return ['float', 'double', 'long double']
+default_types_misc = ('void*',)
 
-def get_misc_types():
-    return ['void*']
+default_types = default_types_int + default_types_float + default_types_misc
 
-def get_types():
-    return get_int_types() + get_float_types() + get_misc_types()
-
-def get_stddef_types():
-    return ['size_t', 'wchar_t', 'ptrdiff_t']
+default_types_stddef_h = ('size_t', 'wchar_t', 'ptrdiff_t')
 
 # -----------------------------------------------------------------------------
 
@@ -61,8 +53,8 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
     s = 'alignment: %(alignment)s size: %(size)s'
 
     if int_type:
-        d['sign'] = int(data[2]) == 1
-        s += ' sign: %(sign)s'
+        d['signed'] = int(data[2]) == 1
+        s += ' signed: %(signed)s'
 
     builder.log(s % d, color='green')
 
@@ -118,24 +110,18 @@ def detect_types(builder):
         raise ConfigFailed('missing stddef.h')
 
     d = {}
-    for typename in get_int_types():
-        try:
-            d[typename] = get_type_data(builder, typename, int_type=True)
-        except ConfigFailed:
-            pass
-
-    for typename in get_float_types() + get_misc_types():
-        try:
-            d[typename] = get_type_data(builder, typename)
-        except ConfigFailed:
-            pass
+    d.update(get_types_data(builder, default_types_int, int_type=True))
+    d.update(get_types_data(builder, default_types_float))
+    d.update(get_types_data(builder, default_types_misc))
 
     return d
 
-def detect_int_type_conversions(builder):
+def detect_type_conversions_int(builder):
+    type_pairs = [(t1, t2)
+        for t1 in default_types_int
+        for t2 in default_types_int]
+
     builder.check('getting int type conversions')
-    types = get_int_types()
-    type_pairs = [(t1, t2) for t1 in types for t2 in types]
     try:
         d = get_type_conversions(builder, type_pairs)
     except ConfigFailed:
@@ -145,42 +131,48 @@ def detect_int_type_conversions(builder):
 
     return d
 
-
-def detect_stddef(builder):
-    return get_types_data(builder, get_stddef_types())
+def detect_stddef_h(builder):
+    return get_types_data(builder, default_types_stddef_h)
 
 # -----------------------------------------------------------------------------
 
 def config_types(conf, builder):
-    conf.configure('types', detect_types, builder)
-    conf.configure('int_conversions', detect_int_type_conversions, builder)
+    conf.configure('std.types', detect_types, builder)
+    conf.configure('std.int_type_conversions',
+        detect_type_conversions_int, builder)
 
-def config_stddef(conf, builder):
-    conf.configure('stddef.types', detect_stddef, builder)
+def config_stddef_h(conf, builder):
+    conf.configure('std.stddef_h.types', detect_stddef_h, builder)
 
 def config(conf, builder):
-    conf.subconfigure('std', config_types, builder)
-    conf.subconfigure('std', config_stddef, builder)
+    config_types(conf, builder)
+    config_stddef_h(conf, builder)
 
 # -----------------------------------------------------------------------------
 
-def get_int_aliases(conf):
+def types_int(conf):
+    return (t for t in default_types_int if t in conf.std.types)
+
+def types_float(conf):
+    return (t for t in default_types_float if t in conf.std.types)
+
+def type_aliases_int(conf):
     d = {}
-    for t in get_int_types():
-        try:
-            data = conf.std.types[t]
-        except KeyError:
-            pass
-        else:
-            d.setdefault((data['size'], data['sign']), t)
+    for t in types_int(conf):
+        data = conf.std.types[t]
+        d.setdefault((data['size'], data['signed']), t)
 
     return d
 
-
-def get_int_conversion_aliases(conf):
-    aliases = get_int_aliases(conf)
+def type_aliases_float(conf):
     d = {}
-    for type_pair, size_sign in conf.std.int_conversions.items():
-        print(type_pair, size_sign)
-        d[type_pair] = aliases[size_sign]
+    for t in types_float(conf):
+        data = conf.std.types[t]
+        d.setdefault(data['size'], t)
+
     return d
+
+def type_conversions_int(conf):
+    aliases = type_aliases_int(conf)
+    return {type_pair: aliases[size_signed]
+        for type_pair, size_signed in conf.std.int_type_conversions.items()}

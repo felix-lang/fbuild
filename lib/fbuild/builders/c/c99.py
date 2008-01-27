@@ -3,100 +3,91 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def get_types():
-    types = ['_Bool']
-    for float_type in std.get_float_types():
-        for attr in '_Complex', '_Imaginary':
-            types.append('%s %s' % (float_type, attr))
+default_types_complex = tuple('%s %s' % (typename, suffix)
+    for typename in std.default_types_float
+    for suffix in ('_Complex', '_Imaginary'))
 
-    return types
+default_types_bool = ('_Bool',)
 
+default_types = default_types_complex + default_types_bool
 
-def get_complex_types():
-    types = ['complex']
+default_types_complex_h = ('complex',) + tuple('%s %s' % (typename, suffix)
+    for typename in std.default_types_float
+    for suffix in ('complex', 'imaginary'))
 
-    for float_type in std.get_float_types():
-        types.append('%s complex' % float_type)
+default_types_stdbool_h = ('bool',)
 
-    return types
-
-
-def get_stdbool_types():
-    return ['bool']
-
-
-def get_stdint_types():
-    types = []
-    for sign in '', 'u':
-        for attr in '', '_least', '_fast':
-            for size in 8, 16, 32, 64:
-                types.append('%sint%s%s_t' % (sign, attr, size))
-
-    types.append('intptr_t')
-    types.append('uintptr_t')
-    types.append('intmax_t')
-    types.append('uintmax_t')
-
-    return types
+default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
+    for sign in ('', 'u')
+    for attr in ('', '_least', '_fast')
+    for size in (8, 16, 32, 64)) + \
+    ('intptr_t', 'uintptr_t', 'intmax_t', 'uintmax_t')
 
 # -----------------------------------------------------------------------------
 
 def detect_types(builder):
-    return std.get_types_data(builder, get_types())
+    return std.get_types_data(builder, default_types)
 
-def detect_complex(builder):
+def detect_complex_h(builder):
     if not builder.check_header_exists('complex.h'):
         raise ConfigFailed('missing complex.h')
 
-    return std.get_types_data(builder, get_complex_types(),
+    return std.get_types_data(builder, default_types_complex_h,
         headers=['complex.h'])
 
-def detect_stdbool(builder):
+def detect_stdbool_h(builder):
     if not builder.check_header_exists('stdbool.h'):
         raise ConfigFailed('missing stdbool.h')
 
-    return std.get_types_data(builder, get_stdbool_types(),
+    return std.get_types_data(builder, default_types_stdbool_h,
         headers=['stdbool.h'])
 
-def detect_stdint(builder):
+def detect_stdint_h(builder):
     if not builder.check_header_exists('stdint.h'):
         raise ConfigFailed('missing stdint.h')
 
-    return std.get_types_data(builder, get_stdint_types(),
-        headers=['stdint.h'],
-        int_type=True)
+    return std.get_types_data(builder, default_types_stdint_h,
+        headers=['stdint.h'], int_type=True)
 
 # -----------------------------------------------------------------------------
 
 def config_types(conf, builder):
-    conf.configure('types', detect_types, builder)
+    conf.configure('c99.types', detect_types, builder)
 
-def config_complex(conf, builder):
-    conf.configure('complex.types', detect_complex, builder)
+def config_complex_h(conf, builder):
+    conf.configure('c99.complex_h.types', detect_complex_h, builder)
 
-def config_stdbool(conf, builder):
-    conf.configure('stdbool.types', detect_stdbool, builder)
+def config_stdbool_h(conf, builder):
+    conf.configure('c99.stdbool_h.types', detect_stdbool_h, builder)
 
-def config_stdint(conf, builder):
-    conf.configure('stdint.types', detect_stdint, builder)
+def config_stdint_h(conf, builder):
+    conf.configure('c99.stdint_h.types', detect_stdint_h, builder)
 
 def config(conf, builder):
-    conf.subconfigure('c99', config_types, builder)
-    conf.subconfigure('c99', config_complex, builder)
-    conf.subconfigure('c99', config_stdbool, builder)
-    conf.subconfigure('c99', config_stdint, builder)
+    config_types(conf, builder)
+    config_complex_h(conf, builder)
+    config_stdbool_h(conf, builder)
+    config_stdint_h(conf, builder)
 
 # -----------------------------------------------------------------------------
 
-def get_fake_stdint_types(conf):
+def types(conf):
+    return (t for t in default_types if t in conf.c99.types)
+
+def types_stdbool_h(conf):
+    return (t for t in default_types_stdbool_h if t in conf.c99.stdbool_h.types)
+
+def types_stdint_h(conf):
+    return (t for t in default_types_stdint_h if t in conf.c99.stdint_h.types)
+
+def type_aliases_stdint_h(conf):
     try:
-        types = conf.c99.stdint.types
+        return {t:t for t in types_stdint_h(conf)}
     except AttributeError:
         pass
-    else:
-        return {t:t for t in get_stdint_types() if t in types}
 
-    aliases = std.get_int_aliases(conf)
+    # this compiler doesn't support stdint.h, so return some fake aliases
+    aliases = std.type_aliases_int(conf)
 
     d = {}
     for size in 1, 2, 4, 8:
