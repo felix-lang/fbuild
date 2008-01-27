@@ -4,22 +4,40 @@ from fbuild import ConfigFailed
 # -----------------------------------------------------------------------------
 
 def get_types():
+    types = ['_Bool']
     for float_type in std.get_float_types():
         for attr in '_Complex', '_Imaginary':
-            yield '%s %s' % (float_type, attr)
+            types.append('%s %s' % (float_type, attr))
 
-    yield '_Bool'
+    return types
+
+
+def get_complex_types():
+    types = ['complex']
+
+    for float_type in std.get_float_types():
+        types.append('%s complex' % float_type)
+
+    return types
+
+
+def get_stdbool_types():
+    return ['bool']
+
 
 def get_stdint_types():
+    types = []
     for sign in '', 'u':
         for attr in '', '_least', '_fast':
             for size in 8, 16, 32, 64:
-                yield '%sint%s%s_t' % (sign, attr, size)
+                types.append('%sint%s%s_t' % (sign, attr, size))
 
-    yield 'intptr_t'
-    yield 'uintptr_t'
-    yield 'intmax_t'
-    yield 'uintmax_t'
+    types.append('intptr_t')
+    types.append('uintptr_t')
+    types.append('intmax_t')
+    types.append('uintmax_t')
+
+    return types
 
 # -----------------------------------------------------------------------------
 

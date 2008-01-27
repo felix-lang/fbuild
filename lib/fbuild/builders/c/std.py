@@ -6,21 +6,24 @@ from fbuild import ExecutionError, ConfigFailed
 # -----------------------------------------------------------------------------
 
 def get_int_types():
+    types = []
     for prefix in ('', 'signed ', 'unsigned '):
         for i in ('char', 'short', 'int', 'long', 'long long'):
-            yield '%s%s' % (prefix, i)
+            types.append('%s%s' % (prefix, i))
+
+    return types
 
 def get_float_types():
-    yield 'float'
-    yield 'double'
-    yield 'long double'
+    return ['float', 'double', 'long double']
 
 def get_misc_types():
-    yield 'void'
+    return ['void*']
 
 def get_types():
-    for t in chain(get_int_types(), get_float_types(), get_misc_types()):
-        yield t
+    return get_int_types() + get_float_types() + get_misc_types()
+
+def get_stddef_types():
+    return ['size_t', 'wchar_t', 'ptrdiff_t']
 
 # -----------------------------------------------------------------------------
 
