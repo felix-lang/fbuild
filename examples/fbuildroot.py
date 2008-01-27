@@ -91,7 +91,7 @@ def build(system, options):
     conf = system.config['target']
     import fbuild.builders.c.c99 as c99
     import pprint
-    pprint.pprint(c99.fake_stdint_types(conf.c))
+    pprint.pprint(c99.get_fake_stdint_types(conf.c))
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':

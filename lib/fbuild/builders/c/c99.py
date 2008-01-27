@@ -42,77 +42,67 @@ def get_stdint_types():
 # -----------------------------------------------------------------------------
 
 def detect_types(builder):
-    d = {}
+    return std.get_types_data(builder, get_types())
 
-    for t in get_types():
-        try:
-            d[t] = std.detect_type_data(builder, t)
-        except ConfigFailed:
-            pass
+def detect_complex(builder):
+    if not builder.check_header_exists('complex.h'):
+        raise ConfigFailed('missing complex.h')
 
-    return d
-
+    return std.get_types_data(builder, get_complex_types(),
+        headers=['complex.h'])
 
 def detect_stdbool(builder):
     if not builder.check_header_exists('stdbool.h'):
         raise ConfigFailed('missing stdbool.h')
 
-    d = {}
-    try:
-        d['bool'] = std.detect_type_data(builder, 'bool',
-            headers=['stdbool.h'])
-    except ConfigFailed:
-        pass
-
-    return d
+    return std.get_types_data(builder, get_stdbool_types(),
+        headers=['stdbool.h'])
 
 def detect_stdint(builder):
     if not builder.check_header_exists('stdint.h'):
         raise ConfigFailed('missing stdint.h')
 
-    d = {}
-    for t in get_stdint_types():
-        try:
-            d[t] = std.detect_type_data(builder, t,
-                headers=['stdint.h'],
-                int_type=True,
-            )
-        except ConfigFailed:
-            pass
-
-    return d
+    return std.get_types_data(builder, get_stdint_types(),
+        headers=['stdint.h'],
+        int_type=True)
 
 # -----------------------------------------------------------------------------
 
 def config_types(conf, builder):
     conf.configure('types', detect_types, builder)
 
+def config_complex(conf, builder):
+    conf.configure('complex.types', detect_complex, builder)
+
 def config_stdbool(conf, builder):
-    conf.configure('stdbool', detect_stdbool, builder)
+    conf.configure('stdbool.types', detect_stdbool, builder)
 
 def config_stdint(conf, builder):
-    conf.configure('stdint', detect_stdint, builder)
+    conf.configure('stdint.types', detect_stdint, builder)
 
 def config(conf, builder):
     conf.subconfigure('c99', config_types, builder)
+    conf.subconfigure('c99', config_complex, builder)
     conf.subconfigure('c99', config_stdbool, builder)
     conf.subconfigure('c99', config_stdint, builder)
 
 # -----------------------------------------------------------------------------
 
-def fake_stdint_types(conf):
-    #try:
-    #    return {t:t for t in get_stdint_types() if t in conf.c99.stdint}
-    #except AttributeError:
-    #    pass
+def get_fake_stdint_types(conf):
+    try:
+        types = conf.c99.stdint.types
+    except AttributeError:
+        pass
+    else:
+        return {t:t for t in get_stdint_types() if t in types}
 
     aliases = std.get_int_aliases(conf)
 
     d = {}
-    for size in 8, 16, 32, 64:
+    for size in 1, 2, 4, 8:
         for sign in '', 'u':
             for attr in '', '_least', '_fast':
-                t = '%sint%s%s_t' % (sign, attr, size)
+                t = '%sint%s%s_t' % (sign, attr, size * 8)
                 try:
                     d[t] = aliases[(size, sign == '')]
                 except KeyError:
