@@ -106,9 +106,6 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 # -----------------------------------------------------------------------------
 
 def detect_types(builder):
-    if not builder.check_header_exists('stddef.h'):
-        raise ConfigFailed('missing stddef.h')
-
     d = {}
     d.update(get_types_data(builder, default_types_int, int_type=True))
     d.update(get_types_data(builder, default_types_float))
@@ -142,6 +139,9 @@ def config_types(conf, builder):
         detect_type_conversions_int, builder)
 
 def config_stddef_h(conf, builder):
+    if not builder.check_header_exists('stddef.h'):
+        raise ConfigFailed('missing stddef.h')
+
     conf.configure('std.stddef_h.types', detect_stddef_h, builder)
 
 def config(conf, builder):

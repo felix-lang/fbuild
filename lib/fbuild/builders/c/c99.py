@@ -28,24 +28,15 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 def detect_types(builder):
     return std.get_types_data(builder, default_types)
 
-def detect_complex_h(builder):
-    if not builder.check_header_exists('complex.h'):
-        raise ConfigFailed('missing complex.h')
-
+def detect_complex_h_types(builder):
     return std.get_types_data(builder, default_types_complex_h,
         headers=['complex.h'])
 
-def detect_stdbool_h(builder):
-    if not builder.check_header_exists('stdbool.h'):
-        raise ConfigFailed('missing stdbool.h')
-
+def detect_stdbool_h_types(builder):
     return std.get_types_data(builder, default_types_stdbool_h,
         headers=['stdbool.h'])
 
-def detect_stdint_h(builder):
-    if not builder.check_header_exists('stdint.h'):
-        raise ConfigFailed('missing stdint.h')
-
+def detect_stdint_h_types(builder):
     return std.get_types_data(builder, default_types_stdint_h,
         headers=['stdint.h'], int_type=True)
 
@@ -55,13 +46,22 @@ def config_types(conf, builder):
     conf.configure('c99.types', detect_types, builder)
 
 def config_complex_h(conf, builder):
-    conf.configure('c99.complex_h.types', detect_complex_h, builder)
+    if not builder.check_header_exists('complex.h'):
+        raise ConfigFailed('missing complex.h')
+
+    conf.configure('c99.complex_h.types', detect_complex_h_types, builder)
 
 def config_stdbool_h(conf, builder):
-    conf.configure('c99.stdbool_h.types', detect_stdbool_h, builder)
+    if not builder.check_header_exists('stdbool.h'):
+        raise ConfigFailed('missing stdbool.h')
+
+    conf.configure('c99.stdbool_h.types', detect_stdbool_h_types, builder)
 
 def config_stdint_h(conf, builder):
-    conf.configure('c99.stdint_h.types', detect_stdint_h, builder)
+    if not builder.check_header_exists('stdint.h'):
+        raise ConfigFailed('missing stdint.h')
+
+    conf.configure('c99.stdint_h.types', detect_stdint_h_types, builder)
 
 def config(conf, builder):
     config_types(conf, builder)
