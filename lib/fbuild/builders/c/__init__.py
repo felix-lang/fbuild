@@ -163,6 +163,26 @@ class Builder:
         else:
             return True
 
+
+    def check_compile(self, code, msg, *args, **kwargs):
+        self.check(msg)
+        if self.try_compile(code, *args, **kwargs):
+            self.log('yes', color='green')
+            return True
+        else:
+            self.log('no', color='yellow')
+            return False
+
+
+    def check_run(self, code, msg, *args, **kwargs):
+        self.check(msg)
+        if self.try_run(code, *args, **kwargs):
+            self.log('yes', color='green')
+            return True
+        else:
+            self.log('no', color='yellow')
+            return False
+
 # -----------------------------------------------------------------------------
 
 def check_builder(builder):

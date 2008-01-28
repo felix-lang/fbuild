@@ -168,7 +168,6 @@ def make_gcc(system, exe=None, default_exes=['gcc', 'cc']):
 
     return gcc
 
-
 def make_compiler(gcc, compile_flags,
         debug_flags=['-g'],
         optimize_flags=['-O2'],
@@ -188,14 +187,12 @@ def make_compiler(gcc, compile_flags,
         optimize_flags=optimize_flags,
         **kwargs)
 
-
 def make_linker(gcc, link_flags=[], **kwargs):
     if link_flags and not gcc.check_flags(link_flags):
         raise ConfigFailed('%s does not support %s' %
             (gcc, ' '.join(link_flags)))
 
     return Linker(gcc, link_flags, **kwargs)
-
 
 def make_static(gcc, ar, *,
         src_suffix='.c',
@@ -218,7 +215,6 @@ def make_static(gcc, ar, *,
                 prefix='',
                 suffix=exe_suffix),
     )
-
 
 def make_shared(gcc, *,
         src_suffix='.c',
@@ -272,3 +268,88 @@ def config(conf, exe, *args, **kwargs):
         make_gcc(conf.system, exe),
         partial(ar.config, conf),
         *args, **kwargs)
+
+# -----------------------------------------------------------------------------
+
+def detect_builtin_expect(builder):
+    return builder.check_compile('''
+        int main(int argc, char** argv) {
+            if(__builtin_expect(1,1));
+            return 0;
+        }
+    ''', 'checking if supports builtin expect')
+
+def detect_named_registers_x86(builder):
+    return builder.check_compile('''
+        #include <stdio.h>
+        register void *sp __asm__ ("esp");
+
+        int main(int argc, char** argv) {
+            printf("Sp = %p\\n",sp);
+            return 0;
+        }
+    ''', 'checking if supports x86 named registers')
+
+def detect_named_registers_x86_64(builder):
+    return builder.check_compile('''
+        #include <stdio.h>
+        register void *sp __asm__ ("rsp");
+
+        int main(int argc, char** argv) {
+            printf("Sp = %p\\n",sp);
+            return 0;
+        }
+    ''', 'checking if supports x86_64 named registers')
+
+def detect_computed_gotos(builder):
+    return builder.check_compile('''
+        int main(int argc, char** argv) {
+            void *label = &&label2;
+            goto *label;
+        label1:
+            return 1;
+        label2:
+            return 0;
+        }
+    ''', 'checking if supports computed gotos')
+
+def detect_asm_labels(builder):
+    return builder.check_compile('''
+        int main(int argc, char** argv) {
+            void *label = &&label2;
+            __asm__(".global fred");
+            __asm__("fred:");
+            __asm__(""::"g"(&&label1));
+            goto *label;
+        label1:
+            return 1;
+        label2:
+            return 0;
+        }
+    ''', 'checking if supports asm labels')
+
+# -----------------------------------------------------------------------------
+
+def config_builtin_expect(conf, builder):
+    conf.configure('gcc.builtin_expect', detect_builtin_expect, builder)
+
+def config_named_registers_x86(conf, builder):
+    conf.configure('gcc.named_registers_x86',
+        detect_named_registers_x86, builder)
+
+def config_named_registers_x86_64(conf, builder):
+    conf.configure('gcc.named_registers_x86_64',
+        detect_named_registers_x86_64, builder)
+
+def config_computed_gotos(conf, builder):
+    conf.configure('gcc.computed_gotos', detect_computed_gotos, builder)
+
+def config_asm_labels(conf, builder):
+    conf.configure('gcc.asm_labels', detect_asm_labels, builder)
+
+def config_extensions(conf, builder):
+    config_builtin_expect(conf, builder)
+    config_named_registers_x86(conf, builder)
+    config_named_registers_x86_64(conf, builder)
+    config_computed_gotos(conf, builder)
+    config_asm_labels(conf, builder)

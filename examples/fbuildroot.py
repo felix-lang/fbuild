@@ -22,6 +22,7 @@ def pre_options(parser):
 # -----------------------------------------------------------------------------
 
 c_tests = [
+    'fbuild.builders.c.gcc.config_extensions',
     'fbuild.builders.c.config_little_endian',
     'fbuild.builders.c.std.config',
     'fbuild.builders.c.c99.config',
