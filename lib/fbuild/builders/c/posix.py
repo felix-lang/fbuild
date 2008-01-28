@@ -1,4 +1,6 @@
-from fbuild import ConfigFailed
+import os
+
+from fbuild import ConfigFailed, ExecutionError
 from . import std
 
 # -----------------------------------------------------------------------------
@@ -14,6 +16,23 @@ default_types_unistd_h = (
     'useconds_t',
     'uuid_t',
 )
+
+# -----------------------------------------------------------------------------
+
+def detect_dlopen(builder):
+    return builder.check_compile('''
+        #include <dlfcn.h>
+        #include <stdlib.h>
+
+        int main(int argc, char** argv) {
+            void* lib = dlopen("foo", RTLD_NOW);
+            void* fred = 0;
+            if(!lib) exit(1);
+            fred = dlsym(lib,"fred");
+            if(!fred) exit(1);
+            return 0;
+        }
+    ''', 'check if supports dlopen')
 
 # -----------------------------------------------------------------------------
 
@@ -72,6 +91,12 @@ def detect_socklen_t(builder):
 
 # -----------------------------------------------------------------------------
 
+def config_dlfcn_h(conf, builder):
+    if not builder.check_header_exists('dlfcn.h'):
+        raise ConfigFailed('missing dlfcn.h')
+
+    conf.configure('dlfcn_h.dlopen', detect_dlopen, builder)
+
 def config_pthread_h(conf, builder):
     if not builder.check_header_exists('pthread.h'):
         raise ConfigFailed('missing pthread.h')
@@ -99,6 +124,7 @@ def config_unistd_h(conf, builder):
         headers=['unistd.h'])
 
 def config(conf, builder):
+    config_dlfcn_h(conf, builder)
     config_pthread_h(conf, builder)
     config_sys_mman_h(conf, builder)
     config_sys_socket_h(conf, builder)
