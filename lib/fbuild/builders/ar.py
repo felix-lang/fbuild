@@ -11,7 +11,7 @@ class Linker:
         self.prefix = prefix
         self.suffix = suffix
 
-    def __call__(self, dst, srcs, *, flags=[], ranlib_flags=[]):
+    def __call__(self, dst, srcs, *, flags=[], ranlib_flags=[], **kwargs):
         dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
         srcs = fbuild.path.glob_paths(srcs)
 
@@ -24,7 +24,8 @@ class Linker:
         self.system.execute(cmd,
             msg1=self.ar,
             msg2='%s -> %s' % (' '.join(srcs), dst),
-            color='cyan')
+            color='cyan',
+            **kwargs)
 
         if self.ranlib is not None:
             cmd = [self.ranlib]
@@ -34,7 +35,8 @@ class Linker:
             self.system.execute(cmd,
                 msg1=self.ranlib,
                 msg2=dst,
-                color='cyan')
+                color='cyan',
+                **kwargs)
 
         return dst
 
