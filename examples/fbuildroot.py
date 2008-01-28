@@ -22,12 +22,18 @@ def pre_options(parser):
 # -----------------------------------------------------------------------------
 
 c_tests = [
-    'fbuild.builders.c.gcc.config_extensions',
-    'fbuild.builders.c.config_little_endian',
     'fbuild.builders.c.std.config',
+    'fbuild.builders.c.config_little_endian',
+]
+
+c_optional_tests = [
     'fbuild.builders.c.c99.config',
-    'fbuild.builders.c.posix.config',
     'fbuild.builders.c.math.config',
+    'fbuild.builders.c.posix.config',
+    'fbuild.builders.c.gcc.config_extensions',
+    'fbuild.builders.c.bsd.config',
+    'fbuild.builders.c.linux.config',
+    'fbuild.builders.c.sun.config',
 ]
 
 def config_build(conf, options, model):
@@ -35,10 +41,16 @@ def config_build(conf, options, model):
     conf['model'] = model
 
     from fbuild.builders.c.gcc.darwin import config
-    config(conf, exe=options.build_cc, tests=c_tests)
+    config(conf,
+        exe=options.build_cc,
+        tests=c_tests,
+        optional_tests=c_optional_tests)
 
     from fbuild.builders.cxx.gxx.darwin import config
-    config(conf, exe=options.build_cxx, tests=c_tests)
+    config(conf,
+        exe=options.build_cxx,
+        tests=c_tests,
+        optional_tests=c_optional_tests)
 
 
 def config_host(conf, options, model, build):
@@ -51,10 +63,16 @@ def config_host(conf, options, model, build):
         conf['cxx'] = build['cxx']
     else:
         from fbuild.builders.c.gcc.darwin import config
-        config(conf, exe=options.host_cc, tests=c_tests)
+        config(conf,
+            exe=options.host_cc,
+            tests=c_tests,
+            optional_tests=c_optional_tests)
 
         from fbuild.builders.cxx.gxx.darwin import config
-        config(conf, exe=options.host_cxx, tests=c_tests)
+        config(conf,
+            exe=options.host_cxx,
+            tests=c_tests,
+            optional_tests=c_optional_tests)
 
     conf.configure('ocaml', 'fbuild.builders.ocaml.config',
         ocamlc=options.ocamlc,
@@ -74,10 +92,16 @@ def config_target(conf, options, model, host):
         conf['cxx'] = host['cxx']
     else:
         from fbuild.builders.c.gcc.darwin import config
-        config(conf, exe=options.target_cc, tests=c_tests)
+        config(conf,
+            exe=options.target_cc,
+            tests=c_tests,
+            optional_tests=c_optional_tests)
 
         from fbuild.builders.cxx.gxx.darwin import config
-        config(conf, exe=options.target_cxx, tests=c_tests)
+        config(conf,
+            exe=options.target_cxx,
+            tests=c_tests,
+            optional_tests=c_optional_tests)
 
 # -----------------------------------------------------------------------------
 
