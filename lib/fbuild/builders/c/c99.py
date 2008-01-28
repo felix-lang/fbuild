@@ -26,7 +26,7 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 # -----------------------------------------------------------------------------
 
 def detect_snprintf(builder):
-    code = '''
+    return builder.check_run('''
         #include <stdio.h>
 
         int main(int argc,char** argv) {
@@ -34,19 +34,11 @@ def detect_snprintf(builder):
             int n = snprintf(s, 50, "%d %s\\n", 12345, "hello!");
             return n!=13;
         }
-    '''
-
-    builder.check('determing if snprintf is in stdio.h')
-    if builder.try_run(code):
-        builder.log('ok', color='green')
-        return True
-    else:
-        builder.log('failed', color='yellow')
-        return False
+    ''', 'checking if snprintf is in stdio.h')
 
 
 def detect_vsnprintf(builder):
-    code = '''
+    return builder.check_run('''
         #include <stdio.h>
         #include <stdarg.h>
 
@@ -62,15 +54,7 @@ def detect_vsnprintf(builder):
         int main(int argc,char** argv) {
             return check("%s","XXX"); // 0 means pass
         }
-    '''
-
-    builder.check('determing if vsnprintf is in stdio.h')
-    if builder.try_run(code):
-        builder.log('ok', color='green')
-        return True
-    else:
-        builder.log('failed', color='yellow')
-        return False
+    ''', 'checking if vsnprintf is in stdio.h')
 
 # -----------------------------------------------------------------------------
 

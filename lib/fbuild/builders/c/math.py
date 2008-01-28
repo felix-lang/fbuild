@@ -3,21 +3,13 @@ from fbuild import ConfigFailed
 # -----------------------------------------------------------------------------
 
 def _check(builder, function):
-    code = '''
+    return builder.check_compile('''
         #include <math.h>
         int main(int argc, char** argv) {
             %s(0.0);
             return 0;
         }
-    ''' % function
-
-    builder.check('determing if %s is in math.h' % function)
-    if builder.try_compile(code):
-        builder.log('ok', color='green')
-        return True
-    else:
-        builder.log('failed', color='yellow')
-        return False
+    ''' % function, 'checking if %s is in math.h' % function)
 
 # -----------------------------------------------------------------------------
 # bsd functions
