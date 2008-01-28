@@ -250,6 +250,7 @@ def config_builder(conf, gcc, ar, *,
     shared = conf.configure('shared', make_shared, gcc, **kwargs)
 
     for builder in static, shared:
+        conf.log('checking %s' % builder, color='blue')
         for test in tests:
             conf.subconfigure('', test, builder)
 
