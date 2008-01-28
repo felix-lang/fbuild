@@ -275,25 +275,6 @@ def make_builder(system, Compiler, LibLinker, ExeLinker,
 
 # -----------------------------------------------------------------------------
 
-def config_builder(conf, make_builder, *,
-        tests=[],
-        optional_tests=[],
-        **kwargs):
-    builder = conf.configure('builder', make_builder, conf.system, **kwargs)
-
-    for test in tests:
-        conf.subconfigure('', test, builder)
-
-    for test in optional_tests:
-        try:
-            conf.subconfigure('', test, builder)
-        except fbuild.ConfigFailed as e:
-            pass
-
-    return builder
-
-# -----------------------------------------------------------------------------
-
 def config_compile_flags(builder, flags):
     builder.check('checking if "%s" supports %s' % (builder.compiler, flags))
 

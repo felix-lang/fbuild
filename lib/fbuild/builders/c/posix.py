@@ -17,7 +17,7 @@ default_types_unistd_h = (
 
 # -----------------------------------------------------------------------------
 
-def detect_mman_h_macros(builder):
+def detect_mmap_macros(builder):
     return {m: builder.check_macro_exists(m, headers=['sys/mman.h'])
         for m in (
             'PROT_EXEC', 'PROT_READ', 'PROT_WRITE', 'MAP_DENYWRITE',
@@ -29,7 +29,7 @@ def detect_mman_h_macros(builder):
 
 # -----------------------------------------------------------------------------
 
-def detect_pthread_h_flags(builder):
+def detect_pthread_flags(builder):
     code = '''
         void* start(void* data) { return NULL; }
 
@@ -57,7 +57,7 @@ def detect_pthread_h_flags(builder):
 
 # -----------------------------------------------------------------------------
 
-def detect_socket_h_socklen_t(builder):
+def detect_socklen_t(builder):
     code = 'extern int accept(int s, struct sockaddr* addr, %s* addrlen);'
 
     builder.check('determing type of socklen_t')
@@ -72,38 +72,37 @@ def detect_socket_h_socklen_t(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_unistd_h(conf, builder):
-    if not builder.check_header_exists('unistd.h'):
-        raise ConfigFailed('missing unistd.h')
-
-    conf.configure('posix.unistd_h.types',
-        std.get_types_data, builder, default_types_unistd_h,
-        headers=['unistd.h'])
-
-def config_mman_h(conf, builder):
-    if not builder.check_header_exists('sys/mman.h'):
-        raise ConfigFailed('missing sys/mman.h')
-
-    conf.configure('posix.mman_h.macros', detect_mman_h_macros, builder)
-
 def config_pthread_h(conf, builder):
     if not builder.check_header_exists('pthread.h'):
         raise ConfigFailed('missing pthread.h')
 
-    conf.configure('posix.pthread_h.flags', detect_pthread_h_flags, builder)
+    conf.configure('pthread_h.flags', detect_pthread_flags, builder)
 
-def config_socket_h(conf, builder):
+def config_sys_mman_h(conf, builder):
+    if not builder.check_header_exists('sys/mman.h'):
+        raise ConfigFailed('missing sys/mman.h')
+
+    conf.configure('sys.mman_h.macros', detect_mmap_macros, builder)
+
+def config_sys_socket_h(conf, builder):
     if not builder.check_header_exists('sys/socket.h'):
         raise ConfigFailed('missing sys/socket.h')
 
-    conf.configure('posix.socket_h.socklen_t',
-        detect_socket_h_socklen_t, builder)
+    conf.configure('sys.socket_h.socklen_t', detect_socklen_t, builder)
+
+def config_unistd_h(conf, builder):
+    if not builder.check_header_exists('unistd.h'):
+        raise ConfigFailed('missing unistd.h')
+
+    conf.configure('unistd_h.types',
+        std.get_types_data, builder, default_types_unistd_h,
+        headers=['unistd.h'])
 
 def config(conf, builder):
-    config_unistd_h(conf, builder)
-    config_mman_h(conf, builder)
     config_pthread_h(conf, builder)
-    config_socket_h(conf, builder)
+    config_sys_mman_h(conf, builder)
+    config_sys_socket_h(conf, builder)
+    config_unistd_h(conf, builder)
 
 # -----------------------------------------------------------------------------
 
