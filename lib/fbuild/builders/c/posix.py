@@ -1,4 +1,19 @@
 from fbuild import ConfigFailed
+from . import std
+
+# -----------------------------------------------------------------------------
+
+default_types_unistd_h = (
+    'pid_t',
+    'gid_t',
+    'intptr_t',
+    'off_t',
+    'size_t',
+    'ssize_t',
+    'uid_t',
+    'useconds_t',
+    'uuid_t',
+)
 
 # -----------------------------------------------------------------------------
 
@@ -47,7 +62,7 @@ def detect_socket_h_socklen_t(builder):
 
     builder.check('determing type of socklen_t')
     for t in 'socklen_t', 'unsigned int', 'int':
-        if builder.try_compile(code %t,
+        if builder.try_compile(code % t,
                 headers=['sys/types.h', 'sys/socket.h']):
             builder.log('ok ' + t, color='green')
             return t
@@ -56,6 +71,14 @@ def detect_socket_h_socklen_t(builder):
         raise ConfigFailed('failed to detect type of socklen_t')
 
 # -----------------------------------------------------------------------------
+
+def config_unistd_h(conf, builder):
+    if not builder.check_header_exists('unistd.h'):
+        raise ConfigFailed('missing unistd.h')
+
+    conf.configure('posix.unistd_h.types',
+        std.get_types_data, builder, default_types_unistd_h,
+        headers=['unistd.h'])
 
 def config_mman_h(conf, builder):
     if not builder.check_header_exists('sys/mman.h'):
@@ -77,6 +100,12 @@ def config_socket_h(conf, builder):
         detect_socket_h_socklen_t, builder)
 
 def config(conf, builder):
+    config_unistd_h(conf, builder)
     config_mman_h(conf, builder)
     config_pthread_h(conf, builder)
     config_socket_h(conf, builder)
+
+# -----------------------------------------------------------------------------
+
+def types_unistd_h(conf):
+    return (t for t in default_types_unistd_h if t in conf.posix.unistd.types)
