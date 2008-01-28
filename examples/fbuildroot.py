@@ -26,6 +26,7 @@ c_tests = [
     'fbuild.builders.c.std.config',
     'fbuild.builders.c.c99.config',
     'fbuild.builders.c.posix.config',
+    'fbuild.builders.c.math.config',
 ]
 
 def config_build(conf, options, model):
