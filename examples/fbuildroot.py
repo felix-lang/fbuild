@@ -30,27 +30,41 @@ c_optional_tests = [
     'fbuild.builders.c.c99.config',
     'fbuild.builders.c.math.config',
     'fbuild.builders.c.posix.config',
-    'fbuild.builders.c.gcc.config_extensions',
     'fbuild.builders.c.bsd.config',
     'fbuild.builders.c.linux.config',
     'fbuild.builders.c.sun.config',
+    'fbuild.builders.c.win32.config',
+    'fbuild.builders.c.gcc.config_extensions',
 ]
+
+cxx_tests = []
+
+cxx_optional_tests = [
+    'fbuild.builders.cxx.gxx.config_extensions',
+]
+
+
+def make_c_builder(conf, **kwargs):
+    from fbuild.builders.c.gcc.darwin import config
+    return config(conf,
+        tests=c_tests,
+        optional_tests=c_optional_tests,
+        **kwargs)
+
+
+def make_cxx_builder(conf, **kwargs):
+    from fbuild.builders.cxx.gxx.darwin import config
+    return config(conf,
+        tests=c_tests + cxx_tests,
+        optional_tests=c_optional_tests + cxx_optional_tests,
+        **kwargs)
+
 
 def config_build(conf, options, model):
     conf.log('configuring build phase', color='green')
     conf['model'] = model
-
-    from fbuild.builders.c.gcc.darwin import config
-    config(conf,
-        exe=options.build_cc,
-        tests=c_tests,
-        optional_tests=c_optional_tests)
-
-    from fbuild.builders.cxx.gxx.darwin import config
-    config(conf,
-        exe=options.build_cxx,
-        tests=c_tests,
-        optional_tests=c_optional_tests)
+    make_c_builder(conf, exe=options.build_cc)
+    make_cxx_builder(conf, exe=options.build_cxx)
 
 
 def config_host(conf, options, model, build):
@@ -62,17 +76,8 @@ def config_host(conf, options, model, build):
         conf['c']   = build['c']
         conf['cxx'] = build['cxx']
     else:
-        from fbuild.builders.c.gcc.darwin import config
-        config(conf,
-            exe=options.host_cc,
-            tests=c_tests,
-            optional_tests=c_optional_tests)
-
-        from fbuild.builders.cxx.gxx.darwin import config
-        config(conf,
-            exe=options.host_cxx,
-            tests=c_tests,
-            optional_tests=c_optional_tests)
+        make_c_builder(conf, exe=options.host_cc)
+        make_cxx_builder(conf, exe=options.host_cxx)
 
     conf.configure('ocaml', 'fbuild.builders.ocaml.config',
         ocamlc=options.ocamlc,
@@ -91,17 +96,8 @@ def config_target(conf, options, model, host):
         conf['c']   = host['c']
         conf['cxx'] = host['cxx']
     else:
-        from fbuild.builders.c.gcc.darwin import config
-        config(conf,
-            exe=options.target_cc,
-            tests=c_tests,
-            optional_tests=c_optional_tests)
-
-        from fbuild.builders.cxx.gxx.darwin import config
-        config(conf,
-            exe=options.target_cxx,
-            tests=c_tests,
-            optional_tests=c_optional_tests)
+        make_c_builder(conf, exe=options.target_cc)
+        make_cxx_builder(conf, exe=options.target_cxx)
 
 # -----------------------------------------------------------------------------
 
