@@ -40,6 +40,7 @@ c_optional_tests = [
 cxx_tests = []
 
 cxx_optional_tests = [
+    'fbuild.builders.cxx.cmath.config',
     'fbuild.builders.cxx.gxx.config_extensions',
 ]
 

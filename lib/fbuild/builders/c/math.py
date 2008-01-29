@@ -24,6 +24,9 @@ def config_bsd(conf, builder):
 # -----------------------------------------------------------------------------
 # c99 classification macros
 
+def config_fpclassify(conf, builder):
+    conf.configure('math_h.fpclassify', _check, builder, 'fpclassify')
+
 def config_isfinite(conf, builder):
     for f in 'isfinite', 'isfinitef', 'isfinitel':
         conf.configure('math_h.' + f, _check, builder, f)
@@ -40,20 +43,16 @@ def config_isnormal(conf, builder):
     for f in 'isnormal', 'isnormalf', 'isnormall':
         conf.configure('math_h.' + f, _check, builder, f)
 
-def config_fpclassify(conf, builder):
-    conf.configure('math_h.fpclassify', _check, builder, 'fpclassify')
-
-def config_signbit(conf, builder):
-    conf.configure('math_h.signbit', _check, builder, 'signbit')
-
 def config_signbit(conf, builder):
     conf.configure('math_h.signbit', _check, builder, 'signbit')
 
 def config_c99(conf, builder):
+    config_fpclassify(conf, builder)
     config_isfinite(conf, builder)
     config_isinf(conf, builder)
     config_isnan(conf, builder)
-    config_fpclassify(conf, builder)
+    config_isnormal(conf, builder)
+    config_signbit(conf, builder)
 
 # -----------------------------------------------------------------------------
 
