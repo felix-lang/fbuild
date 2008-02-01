@@ -4,42 +4,42 @@ from fbuild import ConfigFailed
 
 def _check(builder, function):
     return builder.check_compile('''
-        #include <math.h>
+        #include <cmath>
         int main(int argc, char** argv) {
-            %s(0.0);
+            std::%s(0.0);
             return 0;
         }
     ''' % function, 'checking if %s is in cmath' % function)
 
 # -----------------------------------------------------------------------------
 
-def config_fpclassify(conf, builder):
-    conf.configure('cmath.fpclassify', _check, builder, 'fpclassify')
+def config_fpclassify(conf):
+    conf.configure('cmath.fpclassify', _check, conf.static, 'fpclassify')
 
-def config_isfinite(conf, builder):
-    conf.configure('cmath.isfinite', _check, builder, 'isfinite')
+def config_isfinite(conf):
+    conf.configure('cmath.isfinite', _check, conf.static, 'isfinite')
 
-def config_isinf(conf, builder):
-    conf.configure('cmath.isinf', _check, builder, 'isinf')
+def config_isinf(conf):
+    conf.configure('cmath.isinf', _check, conf.static, 'isinf')
 
-def config_isnan(conf, builder):
-    conf.configure('cmath.isnan', _check, builder, 'isnan')
+def config_isnan(conf):
+    conf.configure('cmath.isnan', _check, conf.static, 'isnan')
 
-def config_isnormal(conf, builder):
-    conf.configure('cmath.isnormal', _check, builder, 'isnormal')
+def config_isnormal(conf):
+    conf.configure('cmath.isnormal', _check, conf.static, 'isnormal')
 
-def config_signbit(conf, builder):
-    conf.configure('cmath.signbit', _check, builder, 'signbit')
+def config_signbit(conf):
+    conf.configure('cmath.signbit', _check, conf.static, 'signbit')
 
 # -----------------------------------------------------------------------------
 
-def config(conf, builder):
-    if not builder.check_header_exists('cmath'):
+def config(conf):
+    if not conf.static.check_header_exists('cmath'):
         raise ConfigFailed('missing cmath')
 
-    config_fpclassify(conf, builder)
-    config_isfinite(conf, builder)
-    config_isinf(conf, builder)
-    config_isnan(conf, builder)
-    config_isnormal(conf, builder)
-    config_signbit(conf, builder)
+    config_fpclassify(conf)
+    config_isfinite(conf)
+    config_isinf(conf)
+    config_isnan(conf)
+    config_isnormal(conf)
+    config_signbit(conf)

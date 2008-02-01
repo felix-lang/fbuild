@@ -20,19 +20,27 @@ default_types_unistd_h = (
 # -----------------------------------------------------------------------------
 
 def detect_dlopen(builder):
-    return builder.check_compile('''
+    lib_code = 'int fred(int argc, char** argv) { return 0; }'
+    exe_code = '''
         #include <dlfcn.h>
         #include <stdlib.h>
 
         int main(int argc, char** argv) {
-            void* lib = dlopen("foo", RTLD_NOW);
+            void* lib = dlopen("%s", RTLD_NOW);
             void* fred = 0;
             if(!lib) exit(1);
             fred = dlsym(lib,"fred");
             if(!fred) exit(1);
             return 0;
         }
-    ''', 'check if supports dlopen')
+    '''
+
+    with builder.tempfile(lib_code) as lib_src:
+        obj = builder.compile([lib_src], quieter=1)
+        lib = builder.link_lib((os.path.dirname(lib_src), 'temp'), obj,
+            quieter=1)
+
+        return builder.check_run(exe_code % lib, 'check if supports dlopen')
 
 # -----------------------------------------------------------------------------
 
@@ -91,44 +99,44 @@ def detect_socklen_t(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_dlfcn_h(conf, builder):
-    if not builder.check_header_exists('dlfcn.h'):
+def config_dlfcn_h(conf):
+    if not conf.static.check_header_exists('dlfcn.h'):
         raise ConfigFailed('missing dlfcn.h')
 
-    conf.configure('dlfcn_h.dlopen', detect_dlopen, builder)
+    conf.configure('dlfcn_h.dlopen', detect_dlopen, conf.shared)
 
-def config_pthread_h(conf, builder):
-    if not builder.check_header_exists('pthread.h'):
+def config_pthread_h(conf):
+    if not conf.static.check_header_exists('pthread.h'):
         raise ConfigFailed('missing pthread.h')
 
-    conf.configure('pthread_h.flags', detect_pthread_flags, builder)
+    conf.configure('pthread_h.flags', detect_pthread_flags, conf.static)
 
-def config_sys_mman_h(conf, builder):
-    if not builder.check_header_exists('sys/mman.h'):
+def config_sys_mman_h(conf):
+    if not conf.static.check_header_exists('sys/mman.h'):
         raise ConfigFailed('missing sys/mman.h')
 
-    conf.configure('sys.mman_h.macros', detect_mmap_macros, builder)
+    conf.configure('sys.mman_h.macros', detect_mmap_macros, conf.static)
 
-def config_sys_socket_h(conf, builder):
-    if not builder.check_header_exists('sys/socket.h'):
+def config_sys_socket_h(conf):
+    if not conf.static.check_header_exists('sys/socket.h'):
         raise ConfigFailed('missing sys/socket.h')
 
-    conf.configure('sys.socket_h.socklen_t', detect_socklen_t, builder)
+    conf.configure('sys.socket_h.socklen_t', detect_socklen_t, conf.static)
 
-def config_unistd_h(conf, builder):
-    if not builder.check_header_exists('unistd.h'):
+def config_unistd_h(conf):
+    if not conf.static.check_header_exists('unistd.h'):
         raise ConfigFailed('missing unistd.h')
 
     conf.configure('unistd_h.types',
-        std.get_types_data, builder, default_types_unistd_h,
+        std.get_types_data, conf.static, default_types_unistd_h,
         headers=['unistd.h'])
 
-def config(conf, builder):
-    config_dlfcn_h(conf, builder)
-    config_pthread_h(conf, builder)
-    config_sys_mman_h(conf, builder)
-    config_sys_socket_h(conf, builder)
-    config_unistd_h(conf, builder)
+def config(conf):
+    config_dlfcn_h(conf)
+    config_pthread_h(conf)
+    config_sys_mman_h(conf)
+    config_sys_socket_h(conf)
+    config_unistd_h(conf)
 
 # -----------------------------------------------------------------------------
 

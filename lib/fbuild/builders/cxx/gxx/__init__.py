@@ -31,8 +31,9 @@ def config(conf, exe, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_ext_hash_map(conf, builder):
-    conf.configure('ext.hash_map', builder.check_header_exists, 'ext/hash_map')
+def config_ext_hash_map(conf):
+    conf.configure('ext.hash_map',
+        conf.static.check_header_exists, 'ext/hash_map')
 
-def config_extensions(conf, builder):
-    config_ext_hash_map(conf, builder)
+def config_extensions(conf):
+    config_ext_hash_map(conf)

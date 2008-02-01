@@ -2,8 +2,8 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config_LoadLibrary(conf, builder):
-    conf.configure('windows_h.LoadLibrary', builder.check_compile, '''
+def config_LoadLibrary(conf):
+    conf.configure('windows_h.LoadLibrary', conf.static.check_compile, '''
         #include <windows.h>
         #include <stdlib.h>
 
@@ -17,8 +17,8 @@ def config_LoadLibrary(conf, builder):
         }
     ''', 'checking if supports LoadLibrary')
 
-def config(conf, builder):
-    if not builder.check_header_exists('windows.h'):
+def config(conf):
+    if not conf.static.check_header_exists('windows.h'):
         raise ConfigFailed('cannot find windows.h')
 
-    config_LoadLibrary(conf, builder)
+    config_LoadLibrary(conf)

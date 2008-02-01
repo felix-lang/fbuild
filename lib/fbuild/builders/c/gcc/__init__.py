@@ -249,16 +249,14 @@ def config_builder(conf, gcc, ar, *,
     static = conf.configure('static', make_static, gcc, ar, **kwargs)
     shared = conf.configure('shared', make_shared, gcc, **kwargs)
 
-    for builder in static, shared:
-        conf.log('checking %s' % builder, color='blue')
-        for test in tests:
-            conf.subconfigure('', test, builder)
+    for test in tests:
+        conf.subconfigure('', test)
 
-        for test in optional_tests:
-            try:
-                conf.subconfigure('', test, builder)
-            except ConfigFailed:
-                pass
+    for test in optional_tests:
+        try:
+            conf.subconfigure('', test)
+        except ConfigFailed:
+            pass
 
     return static, shared
 
@@ -331,26 +329,26 @@ def detect_asm_labels(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_builtin_expect(conf, builder):
-    conf.configure('gcc.builtin_expect', detect_builtin_expect, builder)
+def config_builtin_expect(conf):
+    conf.configure('gcc.builtin_expect', detect_builtin_expect, conf.static)
 
-def config_named_registers_x86(conf, builder):
+def config_named_registers_x86(conf):
     conf.configure('gcc.named_registers_x86',
-        detect_named_registers_x86, builder)
+        detect_named_registers_x86, conf.static)
 
-def config_named_registers_x86_64(conf, builder):
+def config_named_registers_x86_64(conf):
     conf.configure('gcc.named_registers_x86_64',
-        detect_named_registers_x86_64, builder)
+        detect_named_registers_x86_64, conf.static)
 
-def config_computed_gotos(conf, builder):
-    conf.configure('gcc.computed_gotos', detect_computed_gotos, builder)
+def config_computed_gotos(conf):
+    conf.configure('gcc.computed_gotos', detect_computed_gotos, conf.static)
 
-def config_asm_labels(conf, builder):
-    conf.configure('gcc.asm_labels', detect_asm_labels, builder)
+def config_asm_labels(conf):
+    conf.configure('gcc.asm_labels', detect_asm_labels, conf.static)
 
-def config_extensions(conf, builder):
-    config_builtin_expect(conf, builder)
-    config_named_registers_x86(conf, builder)
-    config_named_registers_x86_64(conf, builder)
-    config_computed_gotos(conf, builder)
-    config_asm_labels(conf, builder)
+def config_extensions(conf):
+    config_builtin_expect(conf)
+    config_named_registers_x86(conf)
+    config_named_registers_x86_64(conf)
+    config_computed_gotos(conf)
+    config_asm_labels(conf)

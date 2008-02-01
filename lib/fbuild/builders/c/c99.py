@@ -58,44 +58,44 @@ def detect_vsnprintf(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_types(conf, builder):
+def config_types(conf):
     conf.configure('c99.types',
-        std.get_types_data, builder, default_types)
+        std.get_types_data, conf.static, default_types)
 
-def config_complex_h(conf, builder):
-    if not builder.check_header_exists('complex.h'):
+def config_complex_h(conf):
+    if not conf.static.check_header_exists('complex.h'):
         raise ConfigFailed('missing complex.h')
 
     conf.configure('c99.complex_h.types',
-        std.get_types_data, builder, default_types_complex_h,
+        std.get_types_data, conf.static, default_types_complex_h,
         headers=['complex.h'])
 
-def config_stdbool_h(conf, builder):
-    if not builder.check_header_exists('stdbool.h'):
+def config_stdbool_h(conf):
+    if not conf.static.check_header_exists('stdbool.h'):
         raise ConfigFailed('missing stdbool.h')
 
     conf.configure('c99.stdbool_h.types',
-        std.get_types_data, builder, default_types_stdbool_h,
+        std.get_types_data, conf.static, default_types_stdbool_h,
         headers=['stdbool.h'])
 
-def config_stdint_h(conf, builder):
-    if not builder.check_header_exists('stdint.h'):
+def config_stdint_h(conf):
+    if not conf.static.check_header_exists('stdint.h'):
         raise ConfigFailed('missing stdint.h')
 
     conf.configure('c99.stdint_h.types',
-        std.get_types_data, builder, default_types_stdint_h,
+        std.get_types_data, conf.static, default_types_stdint_h,
         headers=['stdint.h'], int_type=True)
 
-def config_stdio_h(conf, builder):
-    conf.configure('c99.stdio_h.snprintf', detect_snprintf, builder)
-    conf.configure('c99.stdio_h.vsnprintf', detect_vsnprintf, builder)
+def config_stdio_h(conf):
+    conf.configure('c99.stdio_h.snprintf', detect_snprintf, conf.static)
+    conf.configure('c99.stdio_h.vsnprintf', detect_vsnprintf, conf.static)
 
-def config(conf, builder):
-    config_stdio_h(conf, builder)
-    config_types(conf, builder)
-    config_complex_h(conf, builder)
-    config_stdbool_h(conf, builder)
-    config_stdint_h(conf, builder)
+def config(conf):
+    config_stdio_h(conf)
+    config_types(conf)
+    config_complex_h(conf)
+    config_stdbool_h(conf)
+    config_stdint_h(conf)
 
 # -----------------------------------------------------------------------------
 

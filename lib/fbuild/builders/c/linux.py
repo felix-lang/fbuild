@@ -2,11 +2,11 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config_sys_epoll_h(conf, builder):
-    if not builder.check_header_exists('sys/epoll.h'):
+def config_sys_epoll_h(conf):
+    if not conf.static.check_header_exists('sys/epoll.h'):
         raise ConfigFailed('missing sys/epoll.h')
 
-    conf.configure('sys.epoll_h', builder.check_run, '''
+    conf.configure('sys.epoll_h', conf.static.check_run, '''
         #include <sys/epoll.h>
 
         int main(int argc, char** argv) {
@@ -15,5 +15,5 @@ def config_sys_epoll_h(conf, builder):
         }
     ''', 'checking if epoll is supported')
 
-def config(conf, builder):
-    config_sys_epoll_h(conf, builder)
+def config(conf):
+    config_sys_epoll_h(conf)

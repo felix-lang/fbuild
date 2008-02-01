@@ -2,11 +2,11 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config_port_h(conf, builder):
-    if not builder.check_header_exists('port.h'):
+def config_port_h(conf):
+    if not conf.static.check_header_exists('port.h'):
         raise ConfigFailed('missing port.h')
 
-    conf.configure('port_h', builder.check_run, '''
+    conf.configure('port_h', conf.static.check_run, '''
         #include <port.h>
         int main(int argc, char** argv) {
             int port = port_create();
@@ -16,5 +16,5 @@ def config_port_h(conf, builder):
         }
     ''', 'checking if evtports is supported')
 
-def config(conf, builder):
-    config_port_h(conf, builder)
+def config(conf):
+    config_port_h(conf)

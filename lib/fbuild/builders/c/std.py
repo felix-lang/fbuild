@@ -130,21 +130,21 @@ def detect_type_conversions_int(builder):
 
 # -----------------------------------------------------------------------------
 
-def config_types(conf, builder):
-    conf.configure('std.types', detect_types, builder)
+def config_types(conf):
+    conf.configure('std.types', detect_types, conf.static)
     conf.configure('std.int_type_conversions',
-        detect_type_conversions_int, builder)
+        detect_type_conversions_int, conf.static)
 
-def config_stddef_h(conf, builder):
-    if not builder.check_header_exists('stddef.h'):
+def config_stddef_h(conf):
+    if not conf.static.check_header_exists('stddef.h'):
         raise ConfigFailed('missing stddef.h')
 
     conf.configure('std.stddef_h.types',
-        get_types_data, builder, default_types_stddef_h)
+        get_types_data, conf.static, default_types_stddef_h)
 
-def config(conf, builder):
-    config_types(conf, builder)
-    config_stddef_h(conf, builder)
+def config(conf):
+    config_types(conf)
+    config_stddef_h(conf)
 
 # -----------------------------------------------------------------------------
 

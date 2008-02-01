@@ -100,8 +100,12 @@ class Builder:
 
     # -------------------------------------------------------------------------
 
+    def tempfile(self, *args, **kwargs):
+        return tempfile(suffix=self.src_suffix, *args, **kwargs)
+
+
     def try_compile(self, code=None, headers=[], quieter=1, **kwargs):
-        with tempfile(code, headers, suffix=self.src_suffix) as src:
+        with self.tempfile(code, headers) as src:
             try:
                 self.compile([src], quieter=quieter, **kwargs)
             except fbuild.ExecutionError:
@@ -116,7 +120,7 @@ class Builder:
             quieter=1,
             cflags={},
             lflags={}):
-        with tempfile(code, headers, suffix=self.src_suffix) as src:
+        with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
             try:
                 objects = self.compile([src], quieter=quieter, **cflags)
@@ -132,7 +136,7 @@ class Builder:
             quieter=1,
             cflags={},
             lflags={}):
-        with tempfile(code, headers, suffix=self.src_suffix) as src:
+        with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
             try:
                 objects = self.compile([src], quieter=quieter, **cflags)
@@ -148,7 +152,7 @@ class Builder:
             quieter=1,
             cflags={},
             lflags={}):
-        with tempfile(code, headers, suffix=self.src_suffix) as src:
+        with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
             objects = self.compile([src], quieter=quieter, **cflags)
             exe = self.link_exe(dst, objects, quieter=quieter, **lflags)
@@ -333,5 +337,5 @@ def detect_little_endian(builder):
     return little_endian
 
 
-def config_little_endian(conf, builder):
-    conf.configure('little_endian', detect_little_endian, builder)
+def config_little_endian(conf):
+    conf.configure('little_endian', detect_little_endian, conf.static)
