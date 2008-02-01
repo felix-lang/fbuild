@@ -103,31 +103,34 @@ def config_dlfcn_h(conf):
     if not conf.static.check_header_exists('dlfcn.h'):
         raise ConfigFailed('missing dlfcn.h')
 
-    conf.configure('dlfcn_h.dlopen', detect_dlopen, conf.shared)
+    conf.configure('headers.dlfcn_h.dlopen', detect_dlopen, conf.shared)
 
 def config_pthread_h(conf):
     if not conf.static.check_header_exists('pthread.h'):
         raise ConfigFailed('missing pthread.h')
 
-    conf.configure('pthread_h.flags', detect_pthread_flags, conf.static)
+    conf.configure('headers.pthread_h.flags',
+        detect_pthread_flags, conf.static)
 
 def config_sys_mman_h(conf):
     if not conf.static.check_header_exists('sys/mman.h'):
         raise ConfigFailed('missing sys/mman.h')
 
-    conf.configure('sys.mman_h.macros', detect_mmap_macros, conf.static)
+    conf.configure('headers.sys.mman_h.macros',
+        detect_mmap_macros, conf.static)
 
 def config_sys_socket_h(conf):
     if not conf.static.check_header_exists('sys/socket.h'):
         raise ConfigFailed('missing sys/socket.h')
 
-    conf.configure('sys.socket_h.socklen_t', detect_socklen_t, conf.static)
+    conf.configure('headers.sys.socket_h.socklen_t',
+        detect_socklen_t, conf.static)
 
 def config_unistd_h(conf):
     if not conf.static.check_header_exists('unistd.h'):
         raise ConfigFailed('missing unistd.h')
 
-    conf.configure('unistd_h.types',
+    conf.configure('headers.unistd_h.types',
         std.get_types_data, conf.static, default_types_unistd_h,
         headers=['unistd.h'])
 

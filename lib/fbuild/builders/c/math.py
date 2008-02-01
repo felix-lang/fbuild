@@ -16,7 +16,7 @@ def _check(builder, function):
 
 def config_finite(conf):
     for f in 'finite', 'finitef', 'finitel':
-        conf.configure('math_h.' + f, _check, conf.static, f)
+        conf.configure('headers.math_h.' + f, _check, conf.static, f)
 
 def config_bsd(conf):
     config_finite(conf)
@@ -25,26 +25,27 @@ def config_bsd(conf):
 # c99 classification macros
 
 def config_fpclassify(conf):
-    conf.configure('math_h.fpclassify', _check, conf.static, 'fpclassify')
+    conf.configure('headers.math_h.fpclassify',
+        _check, conf.static, 'fpclassify')
 
 def config_isfinite(conf):
     for f in 'isfinite', 'isfinitef', 'isfinitel':
-        conf.configure('math_h.' + f, _check, conf.static, f)
+        conf.configure('headers.math_h.' + f, _check, conf.static, f)
 
 def config_isinf(conf):
     for f in 'isinf', 'isinff', 'isinfl':
-        conf.configure('math_h.' + f, _check, conf.static, f)
+        conf.configure('headers.math_h.' + f, _check, conf.static, f)
 
 def config_isnan(conf):
     for f in 'isnan', 'isnanf', 'isnanl':
-        conf.configure('math_h.' + f, _check, conf.static, f)
+        conf.configure('headers.math_h.' + f, _check, conf.static, f)
 
 def config_isnormal(conf):
     for f in 'isnormal', 'isnormalf', 'isnormall':
-        conf.configure('math_h.' + f, _check, conf.static, f)
+        conf.configure('headers.math_h.' + f, _check, conf.static, f)
 
 def config_signbit(conf):
-    conf.configure('math_h.signbit', _check, conf.static, 'signbit')
+    conf.configure('headers.math_h.signbit', _check, conf.static, 'signbit')
 
 def config_c99(conf):
     config_fpclassify(conf)

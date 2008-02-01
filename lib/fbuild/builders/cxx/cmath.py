@@ -14,22 +14,23 @@ def _check(builder, function):
 # -----------------------------------------------------------------------------
 
 def config_fpclassify(conf):
-    conf.configure('cmath.fpclassify', _check, conf.static, 'fpclassify')
+    conf.configure('headers.cmath.fpclassify',
+        _check, conf.static, 'fpclassify')
 
 def config_isfinite(conf):
-    conf.configure('cmath.isfinite', _check, conf.static, 'isfinite')
+    conf.configure('headers.cmath.isfinite', _check, conf.static, 'isfinite')
 
 def config_isinf(conf):
-    conf.configure('cmath.isinf', _check, conf.static, 'isinf')
+    conf.configure('headers.cmath.isinf', _check, conf.static, 'isinf')
 
 def config_isnan(conf):
-    conf.configure('cmath.isnan', _check, conf.static, 'isnan')
+    conf.configure('headers.cmath.isnan', _check, conf.static, 'isnan')
 
 def config_isnormal(conf):
-    conf.configure('cmath.isnormal', _check, conf.static, 'isnormal')
+    conf.configure('headers.cmath.isnormal', _check, conf.static, 'isnormal')
 
 def config_signbit(conf):
-    conf.configure('cmath.signbit', _check, conf.static, 'signbit')
+    conf.configure('headers.cmath.signbit', _check, conf.static, 'signbit')
 
 # -----------------------------------------------------------------------------
 

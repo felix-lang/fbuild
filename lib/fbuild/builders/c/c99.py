@@ -66,7 +66,7 @@ def config_complex_h(conf):
     if not conf.static.check_header_exists('complex.h'):
         raise ConfigFailed('missing complex.h')
 
-    conf.configure('c99.complex_h.types',
+    conf.configure('headers.complex_h.types',
         std.get_types_data, conf.static, default_types_complex_h,
         headers=['complex.h'])
 
@@ -74,7 +74,7 @@ def config_stdbool_h(conf):
     if not conf.static.check_header_exists('stdbool.h'):
         raise ConfigFailed('missing stdbool.h')
 
-    conf.configure('c99.stdbool_h.types',
+    conf.configure('headers.stdbool_h.types',
         std.get_types_data, conf.static, default_types_stdbool_h,
         headers=['stdbool.h'])
 
@@ -82,13 +82,13 @@ def config_stdint_h(conf):
     if not conf.static.check_header_exists('stdint.h'):
         raise ConfigFailed('missing stdint.h')
 
-    conf.configure('c99.stdint_h.types',
+    conf.configure('headers.stdint_h.types',
         std.get_types_data, conf.static, default_types_stdint_h,
         headers=['stdint.h'], int_type=True)
 
 def config_stdio_h(conf):
-    conf.configure('c99.stdio_h.snprintf', detect_snprintf, conf.static)
-    conf.configure('c99.stdio_h.vsnprintf', detect_vsnprintf, conf.static)
+    conf.configure('headers.stdio_h.snprintf', detect_snprintf, conf.static)
+    conf.configure('headers.stdio_h.vsnprintf', detect_vsnprintf, conf.static)
 
 def config(conf):
     config_stdio_h(conf)

@@ -139,7 +139,7 @@ def config_stddef_h(conf):
     if not conf.static.check_header_exists('stddef.h'):
         raise ConfigFailed('missing stddef.h')
 
-    conf.configure('std.stddef_h.types',
+    conf.configure('headers.stddef_h.types',
         get_types_data, conf.static, default_types_stddef_h)
 
 def config(conf):
