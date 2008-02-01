@@ -32,7 +32,7 @@ c_optional_tests = [
     'fbuild.builders.c.posix.config',
     'fbuild.builders.c.bsd.config',
     'fbuild.builders.c.linux.config',
-    'fbuild.builders.c.sun.config',
+    'fbuild.builders.c.solaris.config',
     'fbuild.builders.c.win32.config',
     'fbuild.builders.c.gcc.config_extensions',
 ]
