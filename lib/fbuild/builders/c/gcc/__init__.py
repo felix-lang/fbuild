@@ -47,6 +47,24 @@ class Gcc:
         self.system.log('ok', color='green')
         return True
 
+def config_gcc(conf, exe=None, default_exes=['gcc', 'cc']):
+    try:
+        return conf.gcc
+    except AttributeError:
+        pass
+
+    exe = exe or fbuild.builders.find_program(conf.system, default_exes)
+
+    if not exe:
+        raise ConfigFailed('cannot find gcc')
+
+    conf.gcc = Gcc(conf.system, exe)
+
+    if not conf.gcc.check_flags([]):
+        raise ConfigFailed('gcc failed to compile an exe')
+
+    return conf.gcc
+
 # -----------------------------------------------------------------------------
 
 class Compiler:
@@ -95,6 +113,26 @@ class Compiler:
 
         return objects
 
+def make_compiler(conf, make_gcc=config_gcc, flags=[],
+        debug_flags=['-g'],
+        optimize_flags=['-O2'],
+        **kwargs):
+    gcc = make_gcc(conf)
+
+    if flags and not gcc.check_flags(flags):
+        raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
+
+    if not gcc.check_flags(debug_flags):
+        debug_flags = []
+
+    if not gcc.check_flags(optimize_flags):
+        optimize_flags = []
+
+    return Compiler(gcc, flags,
+        debug_flags=debug_flags,
+        optimize_flags=optimize_flags,
+        **kwargs)
+
 # -----------------------------------------------------------------------------
 
 class Linker:
@@ -131,6 +169,14 @@ class Linker:
 
         return dst
 
+def make_linker(conf, make_gcc=config_gcc, flags=[], **kwargs):
+    gcc = make_gcc(conf)
+
+    if flags and not gcc.check_flags(flags):
+        raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
+
+    return Linker(gcc, flags, **kwargs)
+
 # -----------------------------------------------------------------------------
 
 class Builder(c.Builder):
@@ -153,133 +199,100 @@ class Builder(c.Builder):
     def link_exe(self, *args, **kwargs):
         return self.exe_linker(*args, **kwargs)
 
+def make_static(conf, make_compiler, make_lib_linker, make_exe_linker,
+        src_suffix='.c',  obj_suffix='.o',
+        lib_prefix='lib', lib_suffix='.a',
+        exe_suffix='',
+        **kwargs):
+    builder = Builder(conf.system,
+            src_suffix=src_suffix,
+            compiler=make_compiler(conf, suffix=obj_suffix, **kwargs),
+            lib_linker=make_lib_linker(conf,
+                prefix=lib_prefix,
+                suffix=lib_suffix),
+            exe_linker=make_exe_linker(conf,
+                prefix='',
+                suffix=exe_suffix))
+
+    c.check_builder(builder)
+
+    return builder
+
+def make_shared(conf, make_compiler, make_lib_linker, make_exe_linker,
+        src_suffix='.c',  obj_suffix='.os',
+        lib_prefix='lib', lib_suffix='.so',
+        exe_suffix='',
+        **kwargs):
+    builder = Builder(conf.system,
+            src_suffix=src_suffix,
+            compiler=make_compiler(conf,
+                suffix=obj_suffix,
+                **kwargs),
+            lib_linker = make_lib_linker(conf,
+                prefix=lib_prefix,
+                suffix=lib_suffix),
+            exe_linker=make_exe_linker(conf,
+                prefix='',
+                suffix=exe_suffix))
+
+    c.check_builder(builder)
+
+    return builder
+
 # -----------------------------------------------------------------------------
 
-def make_gcc(system, exe=None, default_exes=['gcc', 'cc']):
-    exe = exe or fbuild.builders.find_program(system, default_exes)
-
-    if not exe:
-        raise ConfigFailed('cannot find gcc')
-
-    gcc = Gcc(system, exe)
-
-    if not gcc.check_flags([]):
-        raise ConfigFailed('gcc failed to compile an exe')
-
-    return gcc
-
-def make_compiler(gcc, compile_flags,
-        debug_flags=['-g'],
-        optimize_flags=['-O2'],
-        **kwargs):
-    if compile_flags and not gcc.check_flags(compile_flags):
-        raise ConfigFailed('%s does not support %s flags' %
-            (gcc, compile_flags))
-
-    if not gcc.check_flags(debug_flags):
-        debug_flags = []
-
-    if not gcc.check_flags(optimize_flags):
-        optimize_flags = []
-
-    return Compiler(gcc, compile_flags,
-        debug_flags=debug_flags,
-        optimize_flags=optimize_flags,
-        **kwargs)
-
-def make_linker(gcc, link_flags=[], **kwargs):
-    if link_flags and not gcc.check_flags(link_flags):
-        raise ConfigFailed('%s does not support %s' %
-            (gcc, ' '.join(link_flags)))
-
-    return Linker(gcc, link_flags, **kwargs)
-
-def make_static(gcc, ar, *,
-        src_suffix='.c',
-        obj_suffix='.o',
-        lib_prefix='lib',
-        lib_suffix='.a',
-        exe_suffix='',
+def config_static(conf, *args,
+        make_compiler=make_compiler,
+        make_linker=make_linker,
         compile_flags=['-c'],
-        exe_link_flags=[],
         **kwargs):
-    return Builder(gcc.system,
-            src_suffix=src_suffix,
-            compiler=make_compiler(gcc, compile_flags,
-                suffix=obj_suffix,
-                **kwargs),
-            lib_linker=ar(
-                prefix=lib_prefix,
-                suffix=lib_suffix),
-            exe_linker=make_linker(gcc, exe_link_flags,
-                prefix='',
-                suffix=exe_suffix),
-    )
-
-def make_shared(gcc, *,
-        src_suffix='.c',
-        obj_suffix='.os',
-        lib_prefix='lib',
-        lib_suffix='.so',
-        exe_suffix='',
-        compile_flags=['-c', '-fPIC'],
-        lib_link_flags=['-shared'],
-        exe_link_flags=[],
-        **kwargs):
-    return Builder(gcc.system,
-            src_suffix=src_suffix,
-            compiler=make_compiler(gcc, compile_flags,
-                suffix=obj_suffix,
-                **kwargs),
-            lib_linker = make_linker(gcc, lib_link_flags,
-                prefix=lib_prefix,
-                suffix=lib_suffix),
-            exe_linker=make_linker(gcc, exe_link_flags,
-                prefix='',
-                suffix=exe_suffix),
-    )
-
-# -----------------------------------------------------------------------------
-
-def config_builder(conf, gcc, ar, *,
-        make_shared=make_shared,
-        tests=[],
-        optional_tests=[],
-        **kwargs):
-    static = conf.configure('static', make_static, gcc, ar, **kwargs)
-    shared = conf.configure('shared', make_shared, gcc, **kwargs)
-
-    for test in tests:
-        conf.subconfigure('', test)
-
-    for test in optional_tests:
-        try:
-            conf.subconfigure('', test)
-        except ConfigFailed:
-            pass
-
-    return static, shared
-
-def config(conf, exe, *args, **kwargs):
     from ... import ar
 
-    return conf.subconfigure('c', config_builder,
-        make_gcc(conf.system, exe),
-        partial(ar.config, conf),
+    c = conf.config_group('c')
+    c.static = make_static(conf,
+        partial(make_compiler, flags=compile_flags),
+        ar.config,
+        make_linker,
         *args, **kwargs)
+
+def config_shared(conf, *args,
+        make_compiler=make_compiler,
+        make_linker=make_linker,
+        compile_flags=['-c', '-fPIC'],
+        lib_link_flags=['-shared'],
+        **kwargs):
+    c = conf.config_group('c')
+    c.shared = make_shared(conf,
+        partial(make_compiler, flags=compile_flags),
+        partial(make_linker, flags=lib_link_flags),
+        make_linker,
+        *args, **kwargs)
+
+def config(conf, exe, *args,
+        config_gcc=config_gcc,
+        config_static=config_static,
+        config_shared=config_shared,
+        **kwargs):
+    config_gcc(conf, exe)
+    config_static(conf, *args, **kwargs)
+    config_shared(conf, *args, **kwargs)
+
+    return conf.c
 
 # -----------------------------------------------------------------------------
 
-def detect_builtin_expect(builder):
-    return builder.check_compile('''
+def config_builtin_expect(conf):
+    gcc = conf.config_group('gcc')
+    gcc.builtin_expect = conf.static.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
             return 0;
         }
     ''', 'checking if supports builtin expect')
 
-def detect_named_registers_x86(builder):
-    return builder.check_compile('''
+def config_named_registers_x86(conf):
+    gcc = conf.config_group('gcc')
+    gcc.named_registers_x86 = conf.static.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
 
@@ -289,8 +302,9 @@ def detect_named_registers_x86(builder):
         }
     ''', 'checking if supports x86 named registers')
 
-def detect_named_registers_x86_64(builder):
-    return builder.check_compile('''
+def config_named_registers_x86_64(conf):
+    gcc = conf.config_group('gcc')
+    gcc.named_registers_x86_64 = conf.static.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
 
@@ -300,8 +314,9 @@ def detect_named_registers_x86_64(builder):
         }
     ''', 'checking if supports x86_64 named registers')
 
-def detect_computed_gotos(builder):
-    return builder.check_compile('''
+def config_computed_gotos(conf):
+    gcc = conf.config_group('gcc')
+    gcc.computed_gotos = conf.static.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             goto *label;
@@ -312,8 +327,9 @@ def detect_computed_gotos(builder):
         }
     ''', 'checking if supports computed gotos')
 
-def detect_asm_labels(builder):
-    return builder.check_compile('''
+def config_asm_labels(conf):
+    gcc = conf.config_group('gcc')
+    gcc.asm_labels = conf.static.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             __asm__(".global fred");
@@ -326,25 +342,6 @@ def detect_asm_labels(builder):
             return 0;
         }
     ''', 'checking if supports asm labels')
-
-# -----------------------------------------------------------------------------
-
-def config_builtin_expect(conf):
-    conf.configure('gcc.builtin_expect', detect_builtin_expect, conf.static)
-
-def config_named_registers_x86(conf):
-    conf.configure('gcc.named_registers_x86',
-        detect_named_registers_x86, conf.static)
-
-def config_named_registers_x86_64(conf):
-    conf.configure('gcc.named_registers_x86_64',
-        detect_named_registers_x86_64, conf.static)
-
-def config_computed_gotos(conf):
-    conf.configure('gcc.computed_gotos', detect_computed_gotos, conf.static)
-
-def config_asm_labels(conf):
-    conf.configure('gcc.asm_labels', detect_asm_labels, conf.static)
 
 def config_extensions(conf):
     config_builtin_expect(conf)

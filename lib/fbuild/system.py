@@ -6,51 +6,51 @@ import yaml
 from . import console
 from . import scheduler
 from . import ExecutionError, ConfigFailed
+from .path import import_function
 
 # -----------------------------------------------------------------------------
 
 class ConfigGroup(yaml.YAMLObject):
     yaml_tag = '!ConfigGroup'
 
-    def __init__(self, system, config=None):
+    def __init__(self, system, config={}):
         self.system = system
-        self.config = config or {}
+        for k, v in config.items():
+            setattr(self, k, v)
 
     def __getstate__(self):
-        return self.config
+        return {k:v for k,v in self.__dict__.items() if k != 'system'}
 
     def configure(self, *args, **kwargs):
         return self.system._configure(self, *args, **kwargs)
 
-    def subconfigure(self, *args, **kwargs):
-        return self.system._subconfigure(self, *args, **kwargs)
-
     def config_group(self, *args, **kwargs):
         return self.system._config_group(self, *args, **kwargs)
 
-    def __getitem__(self, key):
-        return self.config[key]
-
-    def __setitem__(self, key, value):
-        self.config[key] = value
-
-    def __getattr__(self, *args, **kwargs):
-        try:
-            return self.config.__getitem__(*args, **kwargs)
-        except KeyError as e:
-            raise AttributeError(e)
-
     def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.config)
+        return '%s(%r)' % (self.__class__.__name__, self.__dict__)
 
     def __bool__(self):
-        return bool(self.config)
+        return 1 < len(self.__dict__)
 
     def log(self, *args, **kwargs):
         return self.system.log(*args, **kwargs)
 
     def check(self, *args, **kwargs):
         return self.system.check(*args, **kwargs)
+
+    def run_tests(self, tests):
+        for test in tests:
+            test = import_function(test)
+            test(self)
+
+    def run_optional_tests(self, tests):
+        for test in tests:
+            test = import_function(test)
+            try:
+                test(self)
+            except ConfigFailed:
+                pass
 
 # -----------------------------------------------------------------------------
 
@@ -87,7 +87,7 @@ class System(yaml.YAMLObject):
 
     def load_yaml_config(self, file):
         def system(loader, node):
-            self.config = loader.construct_mapping(node)
+            self.config = ConfigGroup(self, loader.construct_mapping(node))
             return self
 
         def config_group(loader, node):
@@ -99,72 +99,45 @@ class System(yaml.YAMLObject):
         yaml_loader.get_single_data()
         self.config_dirty = False
 
-
     def __getstate__(self):
-        return self.config.config
+        return self.config.__getstate__()
 
     # -------------------------------------------------------------------------
 
     def configure(self, *args, **kwargs):
         return self._configure(self.config, *args, **kwargs)
 
-
-    def subconfigure(self, *args, **kwargs):
-        return self._subconfigure(self.config, *args, **kwargs)
-
-
     def config_group(self, *args, **kwargs):
         return self._config_group(self.config, *args, **kwargs)
 
     # -------------------------------------------------------------------------
 
-    def _import(self, function):
-        if isinstance(function, str):
-            m, f = function.rsplit('.', 1)
-            try:
-                return getattr(__import__(m, {}, {}, ['']), f)
-            except SyntaxError as e:
-                e.msg = '%s: %s' % (function, e.msg)
-                raise e
-
-        return function
-
-
     def _configure(self, conf, name, function, *args, **kwargs):
         *names, name = name.split('.')
         for n in names:
             try:
-                conf = conf[n]
-            except KeyError:
-                conf[n] = ConfigGroup(self)
-                conf = conf[n]
+                conf = getattr(conf, n)
+            except AttributeError:
+                setattr(conf, n, ConfigGroup(self))
+                conf = getattr(conf, n)
 
         try:
-            result = conf[name]
-        except KeyError:
+            return getattr(conf, name)
+        except AttributeError:
             self.config_dirty = True
-            result = conf[name] = self._import(function)(*args, **kwargs)
+            setattr(conf, name, import_function(function)(*args, **kwargs))
+            return getattr(conf, name)
 
         return result
-
-
-    def _subconfigure(self, conf, name, function, *args, **kwargs):
-        if name:
-            conf = self._config_group(conf, name)
-
-        self.config_dirty = True
-        self._import(function)(conf, *args, **kwargs)
-
-        return conf
 
     def _config_group(self, conf, name):
         for n in name.split('.'):
             c = conf
             try:
-                conf = conf[n]
-            except KeyError:
-                conf[n] = ConfigGroup(self)
-                conf = conf[n]
+                conf = getattr(conf, n)
+            except AttributeError:
+                setattr(conf, n, ConfigGroup(self))
+                conf = getattr(conf, n)
 
         return conf
 
@@ -172,7 +145,6 @@ class System(yaml.YAMLObject):
 
     def join(self):
         self.scheduler.join()
-
 
     def future(self, f, *args, **kwargs):
         @functools.wraps(f)
@@ -258,7 +230,6 @@ class System(yaml.YAMLObject):
                 yaml.dump(self, f)
 
             self.log('-' * 79, color='blue')
-
 
     def run_package(self, package, *args, **kwargs):
         try:

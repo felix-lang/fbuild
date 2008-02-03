@@ -62,4 +62,8 @@ def make_linker(system, ar=None, ranlib=None, *,
 # -----------------------------------------------------------------------------
 
 def config(conf, *args, **kwargs):
-    return conf.configure('ar', make_linker, conf.system, *args, **kwargs)
+    try:
+        return conf.ar
+    except AttributeError:
+        conf.ar = make_linker(conf.system, *args, **kwargs)
+        return conf.ar

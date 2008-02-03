@@ -1,12 +1,13 @@
-from fbuild import ConfigFailed
+from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
 def config_port_h(conf):
     if not conf.static.check_header_exists('port.h'):
-        raise ConfigFailed('missing port.h')
+        raise MissingHeader('port.h')
 
-    conf.configure('headers.port_h', conf.static.check_run, '''
+    port_h = conf.config_group('headers.port_h')
+    port_h.port_create = conf.static.check_run('''
         #include <port.h>
         int main(int argc, char** argv) {
             int port = port_create();

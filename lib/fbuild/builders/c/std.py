@@ -2,6 +2,7 @@ from itertools import chain
 
 from fbuild.builders.c import tempfile
 from fbuild import ExecutionError, ConfigFailed
+from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
@@ -105,42 +106,28 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def detect_types(builder):
-    d = {}
-    d.update(get_types_data(builder, default_types_int, int_type=True))
-    d.update(get_types_data(builder, default_types_float))
-    d.update(get_types_data(builder, default_types_misc))
-
-    return d
-
-def detect_type_conversions_int(builder):
-    type_pairs = [(t1, t2)
-        for t1 in default_types_int
-        for t2 in default_types_int]
-
-    builder.check('getting int type conversions')
-    try:
-        d = get_type_conversions(builder, type_pairs)
-    except ConfigFailed:
-        builder.log('failed', color='yellow')
-    else:
-        builder.log('ok', color='green')
-
-    return d
-
-# -----------------------------------------------------------------------------
-
 def config_types(conf):
-    conf.configure('std.types', detect_types, conf.static)
-    conf.configure('std.int_type_conversions',
-        detect_type_conversions_int, conf.static)
+    std = conf.config_group('std')
+    std.types = get_types_data(conf.static, default_types_int, int_type=True)
+    std.types.update(get_types_data(conf.static, default_types_float))
+    std.types.update(get_types_data(conf.static, default_types_misc))
+
+    pairs = [(t1, t2) for t1 in default_types_int for t2 in default_types_int]
+
+    conf.check('getting int type conversions')
+    try:
+        std.int_type_conversions = get_type_conversions(conf.static, pairs)
+    except ConfigFailed:
+        conf.log('failed', color='yellow')
+    else:
+        conf.log('ok', color='green')
 
 def config_stddef_h(conf):
     if not conf.static.check_header_exists('stddef.h'):
-        raise ConfigFailed('missing stddef.h')
+        raise MissingHeader('stddef.h')
 
-    conf.configure('headers.stddef_h.types',
-        get_types_data, conf.static, default_types_stddef_h)
+    stddef_h = conf.config_group('headers.stddef_h')
+    stddef_h.types = get_types_data(conf.static, default_types_stddef_h)
 
 def config(conf):
     config_types(conf)

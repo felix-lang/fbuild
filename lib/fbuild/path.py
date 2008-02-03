@@ -3,6 +3,8 @@ import fnmatch
 import glob
 import types
 
+# -----------------------------------------------------------------------------
+
 def splitall(path):
     paths = []
     old_path = path
@@ -19,6 +21,7 @@ def splitall(path):
             paths.append(filename)
     paths.reverse()
     return paths
+
 
 def relativepath(root, path):
     roots = splitall(os.path.abspath(root))
@@ -39,6 +42,7 @@ def relativepath(root, path):
     else:
         return os.path.join(*new_paths)
 
+
 def find(path, name=None, include_dirs=True):
     for root, dirs, files in os.walk(path):
         if include_dirs:
@@ -50,6 +54,7 @@ def find(path, name=None, include_dirs=True):
 
             yield os.path.join(root, f)
 
+
 def find_in_paths(filename, paths=None):
     if paths is None:
         paths = os.environ['PATH'].split(os.pathsep)
@@ -60,6 +65,7 @@ def find_in_paths(filename, paths=None):
             return f
 
     return None
+
 
 def make_path(path, prefix=None, suffix=None):
     # if the path is not a string, assume it's a list of path elements
@@ -86,3 +92,10 @@ def glob_paths(paths, root=None):
             pattern = os.path.join(root, path)
         new_paths.extend(glob.glob(pattern))
     return new_paths
+
+
+def import_function(function):
+    if isinstance(function, str):
+        m, f = function.rsplit('.', 1)
+        return getattr(__import__(m, {}, {}, ['']), f)
+    return function

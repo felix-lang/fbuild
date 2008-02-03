@@ -1,36 +1,36 @@
+from functools import partial
+
 from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def _check(builder, function):
-    return builder.check_compile('''
+def config_function(conf, function):
+    cmath = conf.config_group('headers.cmath')
+    setattr(cmath, function, conf.static.check_compile('''
         #include <cmath>
         int main(int argc, char** argv) {
             std::%s(0.0);
             return 0;
         }
-    ''' % function, 'checking if %s is in cmath' % function)
-
-# -----------------------------------------------------------------------------
+    ''' % function, 'checking if %s is in cmath' % function))
 
 def config_fpclassify(conf):
-    conf.configure('headers.cmath.fpclassify',
-        _check, conf.static, 'fpclassify')
+    return config_function(conf, 'fpclassify')
 
 def config_isfinite(conf):
-    conf.configure('headers.cmath.isfinite', _check, conf.static, 'isfinite')
+    return config_function(conf, 'isfinite')
 
 def config_isinf(conf):
-    conf.configure('headers.cmath.isinf', _check, conf.static, 'isinf')
+    return config_function(conf, 'isinf')
 
 def config_isnan(conf):
-    conf.configure('headers.cmath.isnan', _check, conf.static, 'isnan')
+    return config_function(conf, 'isnan')
 
 def config_isnormal(conf):
-    conf.configure('headers.cmath.isnormal', _check, conf.static, 'isnormal')
+    return config_function(conf, 'isnormal')
 
 def config_signbit(conf):
-    conf.configure('headers.cmath.signbit', _check, conf.static, 'signbit')
+    return config_function(conf, 'signbit')
 
 # -----------------------------------------------------------------------------
 

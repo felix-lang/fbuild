@@ -47,35 +47,37 @@ cxx_optional_tests = [
 
 def make_c_builder(conf, **kwargs):
     from fbuild.builders.c.gcc.darwin import config
-    return config(conf,
-        tests=c_tests,
-        optional_tests=c_optional_tests,
-        **kwargs)
+    c = config(conf, **kwargs)
+
+    c.run_tests(c_tests)
+    c.run_optional_tests(c_optional_tests)
 
 
 def make_cxx_builder(conf, **kwargs):
     from fbuild.builders.cxx.gxx.darwin import config
-    return config(conf,
-        tests=c_tests + cxx_tests,
-        optional_tests=c_optional_tests + cxx_optional_tests,
-        **kwargs)
+    cxx = config(conf, **kwargs)
+
+    cxx.run_tests(c_tests)
+    cxx.run_tests(cxx_tests)
+    cxx.run_optional_tests(c_optional_tests)
+    cxx.run_optional_tests(cxx_optional_tests)
 
 
 def config_build(conf, options, model):
     conf.log('configuring build phase', color='green')
-    conf['model'] = model
+    conf.model = model
     make_c_builder(conf, exe=options.build_cc)
     make_cxx_builder(conf, exe=options.build_cxx)
 
 
 def config_host(conf, options, model, build):
     conf.log('configuring host phase')
-    conf['model'] = model
+    conf.model = model
 
-    if model == build['model']:
+    if model == build.model:
         conf.log("using build's c and cxx compiler")
-        conf['c']   = build['c']
-        conf['cxx'] = build['cxx']
+        conf.c   = build.c
+        conf.cxx = build.cxx
     else:
         make_c_builder(conf, exe=options.host_cc)
         make_cxx_builder(conf, exe=options.host_cxx)
@@ -90,12 +92,12 @@ def config_host(conf, options, model, build):
 
 def config_target(conf, options, model, host):
     conf.log('configuring target phase')
-    conf['model'] = model
+    conf.model = model
 
-    if model == host['model']:
+    if model == host.model:
         conf.log("using host's c and cxx compiler")
-        conf['c']   = host['c']
-        conf['cxx'] = host['cxx']
+        conf.c   = host.c
+        conf.cxx = host.cxx
     else:
         make_c_builder(conf, exe=options.target_cc)
         make_cxx_builder(conf, exe=options.target_cxx)
@@ -105,20 +107,21 @@ def config_target(conf, options, model, host):
 def configure(system, options):
     model = None
 
-    build  = system.subconfigure('build',  config_build,  options, model)
-    host   = system.subconfigure('host',   config_host,   options, model, build)
-    target = system.subconfigure('target', config_target, options, model, host)
+    conf = system.config
+    config_build(conf.config_group('build'), options, model)
+    config_host(conf.config_group('host'), options, model, conf.build)
+    config_target(conf.config_group('target'), options, model, conf.host)
 
 
 def build(system, options):
-    conf = system.config['target']
+    conf = system.config.target
     import fbuild.builders.c.c99 as c99
     import pprint
     pprint.pprint(c99.type_aliases_stdint_h(conf.c))
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':
-            builder = conf[lang][mode]
+            builder = getattr(getattr(conf, lang), mode)
 
             d = os.path.join(lang, mode)
             try:

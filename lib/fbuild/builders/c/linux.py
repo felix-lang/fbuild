@@ -1,12 +1,13 @@
-from fbuild import ConfigFailed
+from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
 def config_sys_epoll_h(conf):
     if not conf.static.check_header_exists('sys/epoll.h'):
-        raise ConfigFailed('missing sys/epoll.h')
+        raise MissingHeader('sys/epoll.h')
 
-    conf.configure('headers.sys.epoll_h', conf.static.check_run, '''
+    epoll_h = conf.config_group('headers.sys.epoll_h')
+    epoll_h.epoll = conf.static.check_run('''
         #include <sys/epoll.h>
 
         int main(int argc, char** argv) {
