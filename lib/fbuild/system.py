@@ -1,3 +1,4 @@
+import os
 import time
 import subprocess
 import functools
@@ -62,13 +63,14 @@ class System(yaml.YAMLObject):
             verbose=0,
             logfile='fbuild.log',
             nocolor=False,
-            show_threads=False):
-        try:
-            with open(configfile) as f:
-                self.load_yaml_config(f)
-        except IOError:
+            show_threads=False,
+            force_configuration=False):
+        if force_configuration or not os.path.exists(configfile):
             self.config = ConfigGroup(self)
             self.config_dirty = True
+        else:
+            with open(configfile) as f:
+                self.load_yaml_config(f)
 
         self.configfile = configfile
         self.threadcount = threadcount

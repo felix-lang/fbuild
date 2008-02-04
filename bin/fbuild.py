@@ -33,6 +33,11 @@ def main(argv=None):
             action='store_true',
             default=False,
             help='Do not use colors'),
+        make_option('--configure',
+            dest='force_configuration',
+            action='store_true',
+            default=False,
+            help='force reconfiguration'),
     ])
 
     try:
@@ -55,6 +60,7 @@ def main(argv=None):
         verbose=options.verbose,
         threadcount=options.threadcount,
         nocolor=options.nocolor,
+        force_configuration=options.force_configuration,
     )
 
     try:
