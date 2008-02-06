@@ -134,9 +134,9 @@ def build(system, options):
             shutil.copy('foo.c', d)
             shutil.copy('bar.c', d)
 
-            objects = builder.compile([(d, 'bar.c')])
-            lib = builder.link_lib((d, 'bar'), objects)
+            obj = builder.compile((d, 'bar.c'))
+            lib = builder.link_lib((d, 'bar'), [obj])
 
-            objects = builder.compile([(d, 'foo.c')])
-            exe = builder.link_exe((d, 'foo'), objects, libs=[lib])
+            obj = builder.compile((d, 'foo.c'))
+            exe = builder.link_exe((d, 'foo'), [obj], libs=[lib])
             system.execute([exe], 'running', exe)

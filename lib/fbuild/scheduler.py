@@ -15,14 +15,17 @@ class Scheduler:
             self.threads.append(thread)
             thread.start()
 
+    def qsize(self):
+        return self.__queue.qsize()
+
     def future(self, function, *args, **kwargs):
         f = Future(self.__queue, function, args, kwargs)
-        self.__queue.put(f.start)
+        self.__queue.put(f)
 
         return f
 
     def join(self):
-        while _run_one(self.__queue, block=False):
+        while _run_one(self.__queue, raise_exceptions=True, block=False):
             pass
 
         return self.__queue.join()
@@ -36,7 +39,7 @@ class Scheduler:
         self.shutdown()
 
 
-def _run_one(queue, *args, **kwargs):
+def _run_one(queue, raise_exceptions=False, *args, **kwargs):
     """
     Run one task. This is a separate function to break up a circular
     dependency.
@@ -48,7 +51,7 @@ def _run_one(queue, *args, **kwargs):
         return False
 
     try:
-        f()
+        f.start(raise_exceptions=raise_exceptions)
         return True
     finally:
         queue.task_done()
@@ -105,10 +108,19 @@ class Future:
             self.__kwargs,
         )
 
-    def start(self):
+    def start(self, raise_exceptions=False):
         try:
             self.__result = self.__function(*self.__args, **self.__kwargs)
-        except:
-            self.__exc = sys.exc_info()
+        except Exception as e:
+            if raise_exceptions:
+                raise e
+            else:
+                self.__exc = e
 
         self.__event.set()
+
+def evaluate(future):
+    # evaluate if it actually is a future
+    if isinstance(future, Future):
+        return future()
+    return future

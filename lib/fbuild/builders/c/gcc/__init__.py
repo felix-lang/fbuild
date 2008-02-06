@@ -2,9 +2,10 @@ import os
 from functools import partial
 
 from fbuild import ExecutionError, ConfigFailed
-import fbuild.path
+import fbuild.scheduler as scheduler
+from fbuild.path import make_path, glob_paths
 import fbuild.builders
-from ... import c
+import fbuild.builders.c as c
 
 # -----------------------------------------------------------------------------
 
@@ -80,14 +81,17 @@ class Compiler:
     def __str__(self):
         return ' '.join([str(self.gcc)] + self.flags)
 
-    def __call__(self, srcs, *,
+    def __call__(self, src, dst=None, *,
             includes=[],
             warnings=[],
             macros=[],
             flags=[],
             debug=False,
             optimize=False,
+            destdir=None,
             **kwargs):
+        src = make_path(scheduler.evaluate(src))
+
         cmd_flags = []
 
         if debug:
@@ -101,17 +105,21 @@ class Compiler:
         cmd_flags.extend('-W' + w for w in warnings)
         cmd_flags.extend(flags)
 
-        objects = []
-        for src in fbuild.path.glob_paths(srcs):
+        if dst is None:
             dst = os.path.splitext(src)[0] + self.suffix
-            self.gcc([src], dst, cmd_flags,
-                pre_flags=self.flags,
-                color='green',
-                **kwargs)
 
-            objects.append(dst)
+        if destdir is not None:
+            if not os.path.exists(destdir):
+                os.makedirs(destdir)
 
-        return objects
+            dst = os.path.join(destdir, dst)
+
+        self.gcc([src], dst, cmd_flags,
+            pre_flags=self.flags,
+            color='green',
+            **kwargs)
+
+        return dst
 
 def make_compiler(conf, make_gcc=config_gcc, flags=[],
         debug_flags=['-g'],
@@ -146,9 +154,20 @@ class Linker:
             libpaths=[],
             libs=[],
             flags=[],
+            destdir=None,
             **kwargs):
-        dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
-        srcs = fbuild.path.glob_paths(srcs)
+        dst = make_path(dst, self.prefix, self.suffix)
+
+        if destdir is not None:
+            if not os.path.exists(destdir):
+                os.makedirs(destdir)
+
+            dst = os.path.join(destdir, dst)
+
+        srcs = glob_paths(scheduler.evaluate(s) for s in srcs)
+        libs = [scheduler.evaluate(l) for l in libs]
+
+        assert srcs or libs
 
         cmd_flags = []
         cmd_flags.extend('-L' + p for p in libpaths)
@@ -268,7 +287,7 @@ def config_shared(conf, *args,
         make_linker,
         *args, **kwargs)
 
-def config(conf, exe, *args,
+def config(conf, exe=None, *args,
         config_gcc=config_gcc,
         config_static=config_static,
         config_shared=config_shared,

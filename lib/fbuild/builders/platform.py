@@ -66,3 +66,5 @@ def config(conf, platform=None):
         raise UnknownPlatform(platform)
     else:
         conf.log(', '.join(sorted(conf.platform)), color='green')
+
+    return conf.platform

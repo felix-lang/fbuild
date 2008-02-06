@@ -1,4 +1,7 @@
+import os
+
 import fbuild.builders
+import fbuild.scheduler as scheduler
 
 # -----------------------------------------------------------------------------
 
@@ -11,9 +14,20 @@ class Linker:
         self.prefix = prefix
         self.suffix = suffix
 
-    def __call__(self, dst, srcs, *, flags=[], ranlib_flags=[], **kwargs):
+    def __call__(self, dst, srcs, *,
+            flags=[],
+            ranlib_flags=[],
+            destdir=None,
+            **kwargs):
         dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
-        srcs = fbuild.path.glob_paths(srcs)
+        srcs = list(srcs)
+        srcs = fbuild.path.glob_paths(scheduler.evaluate(s) for s in srcs)
+        assert srcs
+
+        if destdir is not None:
+            if not os.path.exists(destdir):
+                os.makedirs(destdir)
+            dst = os.path.join(destdir, dst)
 
         cmd = [self.ar]
         cmd.extend(self.flags)

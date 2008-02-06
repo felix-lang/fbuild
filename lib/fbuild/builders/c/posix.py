@@ -36,8 +36,8 @@ def config_dlfcn_h(conf):
     '''
 
     with conf.shared.tempfile(lib_code) as lib_src:
-        obj = conf.shared.compile([lib_src], quieter=1)
-        lib = conf.shared.link_lib((os.path.dirname(lib_src), 'temp'), obj,
+        obj = conf.shared.compile(lib_src, quieter=1)
+        lib = conf.shared.link_lib((os.path.dirname(lib_src), 'temp'), [obj],
             quieter=1)
 
         dlfcn_h.dlopen = conf.static.check_run(exe_code % lib,

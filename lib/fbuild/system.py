@@ -2,6 +2,7 @@ import os
 import time
 import subprocess
 import functools
+import threading
 import yaml
 
 from . import console
@@ -150,14 +151,14 @@ class System(yaml.YAMLObject):
 
     def future(self, f, *args, **kwargs):
         @functools.wraps(f)
-        def wrapper():
+        def wrapper(*args, **kwargs):
             self.logger.push_thread()
             try:
                 return f(*args, **kwargs)
             finally:
                 self.logger.pop_thread()
 
-        return self.scheduler.future(wrapper)
+        return self.scheduler.future(wrapper, *args, **kwargs)
 
     # -------------------------------------------------------------------------
 

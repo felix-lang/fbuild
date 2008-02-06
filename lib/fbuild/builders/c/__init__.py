@@ -106,7 +106,7 @@ class Builder:
     def try_compile(self, code=None, headers=[], quieter=1, **kwargs):
         with self.tempfile(code, headers) as src:
             try:
-                self.compile([src], quieter=quieter, **kwargs)
+                self.compile(src, quieter=quieter, **kwargs)
             except fbuild.ExecutionError:
                 self.log(code, verbose=1)
                 return False
@@ -122,8 +122,8 @@ class Builder:
         with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
             try:
-                objects = self.compile([src], quieter=quieter, **cflags)
-                self.link_lib(dst, objects, quieter=quieter, **lflags)
+                obj = self.compile(src, quieter=quieter, **cflags)
+                self.link_lib(dst, [obj], quieter=quieter, **lflags)
             except fbuild.ExecutionError:
                 return False
             else:
@@ -138,8 +138,8 @@ class Builder:
         with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
             try:
-                objects = self.compile([src], quieter=quieter, **cflags)
-                self.link_exe(dst, objects, quieter=quieter, **lflags)
+                obj = self.compile(src, quieter=quieter, **cflags)
+                self.link_exe(dst, [obj], quieter=quieter, **lflags)
             except fbuild.ExecutionError:
                 return False
             else:
@@ -153,8 +153,8 @@ class Builder:
             lflags={}):
         with self.tempfile(code, headers) as src:
             dst = os.path.join(os.path.dirname(src), 'temp')
-            objects = self.compile([src], quieter=quieter, **cflags)
-            exe = self.link_exe(dst, objects, quieter=quieter, **lflags)
+            obj = self.compile(src, quieter=quieter, **cflags)
+            exe = self.link_exe(dst, [obj], quieter=quieter, **lflags)
             return self.system.execute([exe], quieter=quieter)
 
     def try_run(self, *args, **kwargs):
@@ -251,11 +251,12 @@ def check_builder(builder):
             print('  return 0;', file=f)
             print('}', file=f)
 
-        obj = builder.compile([src_lib], quieter=1)
-        lib = builder.link_lib(os.path.join(dirname, 'temp'), obj, quieter=1)
+        obj = builder.compile(src_lib, quieter=1)
+        lib = builder.link_lib(os.path.join(dirname, 'temp'), [obj],
+            quieter=1)
 
-        obj = builder.compile([src_exe], quieter=1)
-        exe = builder.link_exe(os.path.join(dirname, 'temp'), obj,
+        obj = builder.compile(src_exe, quieter=1)
+        exe = builder.link_exe(os.path.join(dirname, 'temp'), [obj],
             libs=[lib],
             quieter=1)
 
