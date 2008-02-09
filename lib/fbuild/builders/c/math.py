@@ -3,14 +3,14 @@ from . import MissingHeader
 # -----------------------------------------------------------------------------
 
 def config_function(conf, function):
-    math_h = conf.config_group('headers.math_h')
-    setattr(math_h, function, conf.static.check_compile('''
+    math_h = conf.setdefault('headers', {}).setdefault('math_h', {})
+    math_h[function] = conf['static'].check_compile('''
         #include <math.h>
         int main(int argc, char** argv) {
             %s(0.0);
             return 0;
         }
-    ''' % function, 'checking if %s is in math.h' % function))
+    ''' % function, 'checking if %s is in math.h' % function)
 
 # -----------------------------------------------------------------------------
 # bsd functions
@@ -59,7 +59,7 @@ def config_c99(conf):
 # -----------------------------------------------------------------------------
 
 def config(conf):
-    if not conf.static.check_header_exists('math.h'):
+    if not conf['static'].check_header_exists('math.h'):
         raise MissingHeader('math.h')
 
     config_bsd(conf)

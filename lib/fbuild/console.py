@@ -23,9 +23,15 @@ def color_str(s, color):
 # -----------------------------------------------------------------------------
 
 class Log:
-    def __init__(self, system, filename):
-        self.system = system
+    def __init__(self, filename='fbuild.log', *,
+            verbose=0,
+            nocolor=False,
+            show_threads=False):
         self.logfile = open(filename, 'w')
+        self.verbose = verbose
+        self.nocolor = nocolor
+        self.show_threads = show_threads
+
         self.maxlen = 40
         self._lock = threading.RLock()
         self._thread_stacks = {}
@@ -64,8 +70,8 @@ class Log:
         msg = str(msg)
         self.logfile.write(msg)
 
-        if verbose <= self.system.verbose:
-            if not self.system.nocolor:
+        if verbose <= self.verbose:
+            if not self.nocolor:
                 msg = color_str(msg, color)
             sys.stdout.write(msg)
         self.flush()
@@ -79,7 +85,9 @@ class Log:
         self.write('\n', verbose=verbose)
 
     def check(self, msg, result=None, color=None, verbose=0):
-        if self.system.show_threads and self.system.threadcount > 1:
+        from fbuild.system import system
+
+        if self.show_threads and system.threadcount > 1:
             msg = '%-10s: %s' % (
                 threading.currentThread().getName(),
                 msg,

@@ -1,23 +1,31 @@
-import os
-import types
-import functools
-import yaml
-
-import fbuild
-import fbuild.path
-import fbuild.builders
+from fbuild import logger, ConfigFailed
+from fbuild.path import find_in_paths, import_function
 
 # -----------------------------------------------------------------------------
 
-def find_program(system, names, *args, **kwargs):
+def find_program(names, *args, **kwargs):
     for name in names:
-        system.check('checking for program ' + name)
+        logger.check('checking for program ' + name)
 
-        program = fbuild.path.find_in_paths(name, *args, **kwargs)
+        program = find_in_paths(name, *args, **kwargs)
         if program:
-            system.log('ok %s' % program, color='green')
+            logger.log('ok %s' % program, color='green')
             return program
         else:
-            system.log('not found', color='yellow')
+            logger.log('not found', color='yellow')
 
-    raise fbuild.ConfigFailed('failed to find any of ' + str(names))
+    raise ConfigFailed('failed to find any of ' + str(names))
+
+
+def run_tests(self, tests):
+    for test in tests:
+        test = import_function(test)
+        test(self)
+
+def run_optional_tests(self, tests):
+    for test in tests:
+        test = import_function(test)
+        try:
+            test(self)
+        except ConfigFailed:
+            pass

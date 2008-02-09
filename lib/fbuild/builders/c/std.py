@@ -1,7 +1,7 @@
 from itertools import chain
 
+from fbuild import logger, ExecutionError, ConfigFailed
 from fbuild.builders.c import tempfile
-from fbuild import ExecutionError, ConfigFailed
 from . import MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -21,7 +21,7 @@ default_types_stddef_h = ('size_t', 'wchar_t', 'ptrdiff_t')
 # -----------------------------------------------------------------------------
 
 def get_type_data(builder, typename, *args, int_type=False, **kwargs):
-    builder.check('getting type %r info' % typename)
+    logger.check('getting type %r info' % typename)
 
     code = '''
         #include <stddef.h>
@@ -47,7 +47,7 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0].split()
     except ExecutionError:
-        builder.log('failed', color='yellow')
+        logger.log('failed', color='yellow')
         raise ConfigFailed('failed to discover type data for %r' % typename)
 
     d = {'alignment': int(data[0]), 'size': int(data[1])}
@@ -57,7 +57,7 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
         d['signed'] = int(data[2]) == 1
         s += ' signed: %(signed)s'
 
-    builder.log(s % d, color='green')
+    logger.log(s % d, color='green')
 
     return d
 
@@ -94,7 +94,6 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0]
     except ExecutionError:
-        builder.log('failed', color='yellow')
         raise ConfigFailed('failed to detect type conversions for %s' % types)
 
     d = {}
@@ -107,27 +106,29 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 # -----------------------------------------------------------------------------
 
 def config_types(conf):
-    std = conf.config_group('std')
-    std.types = get_types_data(conf.static, default_types_int, int_type=True)
-    std.types.update(get_types_data(conf.static, default_types_float))
-    std.types.update(get_types_data(conf.static, default_types_misc))
+    std = conf.setdefault('std', {})
+    static = conf['static']
+    std['types'] = get_types_data(static, default_types_int, int_type=True)
+    std['types'].update(get_types_data(static, default_types_float))
+    std['types'].update(get_types_data(static, default_types_misc))
 
     pairs = [(t1, t2) for t1 in default_types_int for t2 in default_types_int]
 
-    conf.check('getting int type conversions')
+    logger.check('getting int type conversions')
     try:
-        std.int_type_conversions = get_type_conversions(conf.static, pairs)
+        std['int_type_conversions'] = get_type_conversions(static, pairs)
     except ConfigFailed:
-        conf.log('failed', color='yellow')
+        logger.log('failed', color='yellow')
     else:
-        conf.log('ok', color='green')
+        logger.log('ok', color='green')
 
 def config_stddef_h(conf):
-    if not conf.static.check_header_exists('stddef.h'):
+    static = conf['static']
+    if not static.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
-    stddef_h = conf.config_group('headers.stddef_h')
-    stddef_h.types = get_types_data(conf.static, default_types_stddef_h)
+    stddef_h = conf.setdefault('headers', {}).setdefault('stddef_h', {})
+    stddef_h['types'] = get_types_data(static, default_types_stddef_h)
 
 def config(conf):
     config_types(conf)
@@ -136,15 +137,15 @@ def config(conf):
 # -----------------------------------------------------------------------------
 
 def types_int(conf):
-    return (t for t in default_types_int if t in conf.std.types)
+    return (t for t in default_types_int if t in conf['std']['types'])
 
 def types_float(conf):
-    return (t for t in default_types_float if t in conf.std.types)
+    return (t for t in default_types_float if t in conf['std']['types'])
 
 def type_aliases_int(conf):
     d = {}
     for t in types_int(conf):
-        data = conf.std.types[t]
+        data = conf['std']['types'][t]
         d.setdefault((data['size'], data['signed']), t)
 
     return d
@@ -152,12 +153,13 @@ def type_aliases_int(conf):
 def type_aliases_float(conf):
     d = {}
     for t in types_float(conf):
-        data = conf.std.types[t]
+        data = conf['std']['types'][t]
         d.setdefault(data['size'], t)
 
     return d
 
 def type_conversions_int(conf):
     aliases = type_aliases_int(conf)
+    int_type_conversions = conf['std']['int_type_conversions']
     return {type_pair: aliases[size_signed]
-        for type_pair, size_signed in conf.std.int_type_conversions.items()}
+        for type_pair, size_signed in int_type_conversions.items()}

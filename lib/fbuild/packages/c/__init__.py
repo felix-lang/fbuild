@@ -1,14 +1,15 @@
+from fbuild.system import system
 import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
 
 class StaticBuilder:
-    def builder(self, system):
-        return system.config.c.static
+    def builder(self):
+        return system.config['c']['static']
 
 class SharedBuilder:
-    def builder(self, system):
-        return system.config.c.shared
+    def builder(self):
+        return system.config['c']['shared']
 
 # -----------------------------------------------------------------------------
 
@@ -17,9 +18,9 @@ class _Object(packages.Package):
         self.src = src
         self.kwargs = kwargs
 
-    def build(self, system):
-        src = packages.build(system, self.src)
-        return self.builder(system).compile(src, **self.kwargs)
+    def build(self):
+        src = packages.build(self.src)
+        return self.builder().compile(src, **self.kwargs)
 
 class StaticObject(_Object, StaticBuilder):
     pass
@@ -41,10 +42,10 @@ class _Library(packages.Package):
         self.destdir = destdir
         self.kwargs = kwargs
 
-    def build(self, system):
-        builder = self.builder(system)
+    def build(self):
+        builder = self.builder()
         return builder.link_lib( self.dst,
-            [packages.build(system, s) for s in self.srcs],
+            [packages.build(s) for s in self.srcs],
             destdir=self.destdir,
             **self.kwargs)
 
@@ -69,10 +70,10 @@ class Executable(packages.Package):
         self.destdir = destdir
         self.kwargs = kwargs
 
-    def build(self, system):
-        return system.config.c.static.link_exe(
+    def build(self):
+        return system.config['c']['static'].link_exe(
             self.dst,
-            [packages.build(system, s) for s in self.srcs],
-            libs=[packages.build(system, l) for l in self.libs],
+            [packages.build(s) for s in self.srcs],
+            libs=[packages.build(l) for l in self.libs],
             destdir=self.destdir,
             **self.kwargs)

@@ -1,13 +1,13 @@
 import os
 
+from fbuild import execute
 import fbuild.builders
 import fbuild.scheduler as scheduler
 
 # -----------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, system, ar, ranlib, flags, *, prefix, suffix):
-        self.system = system
+    def __init__(self, ar, ranlib, flags, *, prefix, suffix):
         self.ar = ar
         self.ranlib = ranlib
         self.flags = flags
@@ -35,7 +35,7 @@ class Linker:
         cmd.append(dst)
         cmd.extend(srcs)
 
-        self.system.execute(cmd,
+        execute(cmd,
             msg1=self.ar,
             msg2='%s -> %s' % (' '.join(srcs), dst),
             color='cyan',
@@ -46,7 +46,7 @@ class Linker:
             cmd.extend(ranlib_flags)
             cmd.append(dst)
 
-            self.system.execute(cmd,
+            execute(cmd,
                 msg1=self.ranlib,
                 msg2=dst,
                 color='cyan',
@@ -56,19 +56,19 @@ class Linker:
 
 # -----------------------------------------------------------------------------
 
-def make_linker(system, ar=None, ranlib=None, *,
+def make_linker(ar=None, ranlib=None, *,
         prefix='lib',
         suffix='.a',
         link_flags=['-rc'],
         **kwargs):
-    ar = ar or fbuild.builders.find_program(system, ['ar'])
+    ar = ar or fbuild.builders.find_program(['ar'])
 
     if not ar:
         raise ConfigFailed('cannot find ar')
 
-    ranlib = ranlib or fbuild.builders.find_program(system, ['ranlib'])
+    ranlib = ranlib or fbuild.builders.find_program(['ranlib'])
 
-    return Linker(system, ar, ranlib, link_flags,
+    return Linker(ar, ranlib, link_flags,
         prefix=prefix,
         suffix=suffix,
         **kwargs)
@@ -77,7 +77,7 @@ def make_linker(system, ar=None, ranlib=None, *,
 
 def config(conf, *args, **kwargs):
     try:
-        return conf.ar
-    except AttributeError:
-        conf.ar = make_linker(conf.system, *args, **kwargs)
-        return conf.ar
+        return conf['ar']
+    except KeyError:
+        ar = conf['ar'] = make_linker(*args, **kwargs)
+        return ar

@@ -3,11 +3,13 @@ from . import MissingHeader
 # -----------------------------------------------------------------------------
 
 def config_sys_event_h(conf):
-    if not conf.static.check_header_exists('sys/event.h'):
+    if not conf['static'].check_header_exists('sys/event.h'):
         raise MissingHeader('sys/event.h')
 
-    event_h = conf.config_group('headers.sys.event_h')
-    event_h.kqueue = conf.static.check_run('''
+    event_h = conf.setdefault('headers', {}) \
+                  .setdefault('sys', {}) \
+                  .setdefault('event_h', {})
+    event_h['kqueue'] = conf['static'].check_run('''
         #include <sys/types.h>      // from the kqueue manpage
         #include <sys/event.h>      // kernel events
         #include <sys/time.h>       // timespec (kevent timeout)

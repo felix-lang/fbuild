@@ -56,15 +56,15 @@ def main(argv=None):
     else:
         options, args = post_options(options, args) or (options, args)
 
-    system = fbuild.system.System('config.yaml',
-        verbose=options.verbose,
+    fbuild.logger.verbose = options.verbose
+    fbuild.logger.nocolor = options.nocolor
+
+    fbuild.system.make_system('config.yaml',
         threadcount=options.threadcount,
-        nocolor=options.nocolor,
-        force_configuration=options.force_configuration,
-    )
+        force_configuration=options.force_configuration)
 
     try:
-        system.run_package(fbuildroot, options)
+        fbuild.system.system.run_package(fbuildroot, options)
     except fbuild.ConfigFailed:
         return 1
 

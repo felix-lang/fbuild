@@ -1,8 +1,8 @@
-def configure(system, options):
+def configure(conf, options):
     from fbuild.builders.c.guess import config
-    config(system.config)
+    config(conf)
 
-def build(system, options):
+def build(conf, options):
     import fbuild.packages as packages
     import fbuild.packages.c as c
 
@@ -11,4 +11,4 @@ def build(system, options):
     exe = c.Executable('executable', ['exe.c'],
         libs=[lib],
         destdir='build')
-    exe.build(system)
+    exe.build()

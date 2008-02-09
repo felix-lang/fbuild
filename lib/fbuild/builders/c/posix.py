@@ -1,15 +1,18 @@
 import os
 
-from fbuild import ConfigFailed
+from fbuild import logger, ConfigFailed
 from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 
 def config_dlfcn_h(conf):
-    if not conf.static.check_header_exists('dlfcn.h'):
+    static = conf['static']
+    shared = conf['shared']
+
+    if not static.check_header_exists('dlfcn.h'):
         raise MissingHeader('dlfcn.h')
 
-    dlfcn_h = conf.config_group('headers.dlfcn_h')
+    dlfcn_h = conf.setdefault('headers', {}).setdefault('dlfcn_h', {})
 
     lib_code = '''
         #ifdef __cplusplus
@@ -35,22 +38,25 @@ def config_dlfcn_h(conf):
         }
     '''
 
-    with conf.shared.tempfile(lib_code) as lib_src:
-        obj = conf.shared.compile(lib_src, quieter=1)
-        lib = conf.shared.link_lib((os.path.dirname(lib_src), 'temp'), [obj],
+    with shared.tempfile(lib_code) as lib_src:
+        obj = shared.compile(lib_src, quieter=1)
+        lib = shared.link_lib((os.path.dirname(lib_src), 'temp'), [obj],
             quieter=1)
 
-        dlfcn_h.dlopen = conf.static.check_run(exe_code % lib,
+        dlfcn_h['dlopen'] = static.check_run(exe_code % lib,
             'check if supports dlopen')
 
 # -----------------------------------------------------------------------------
 
 def config_sys_mman_h(conf):
-    if not conf.static.check_header_exists('sys/mman.h'):
+    static = conf['static']
+    if not static.check_header_exists('sys/mman.h'):
         raise MissingHeader('sys/mman.h')
 
-    mman_h = conf.config_group('headers.sys.mman_h')
-    mman_h.macros = {m: conf.static.check_macro_exists(m,
+    mman_h = conf.setdefault('headers', {}) \
+                 .setdefault('sys', {}) \
+                 .setdefault('mman_h', {})
+    mman_h['macros'] = {m: static.check_macro_exists(m,
             headers=['sys/mman.h'])
         for m in (
             'PROT_EXEC', 'PROT_READ', 'PROT_WRITE', 'MAP_DENYWRITE',
@@ -63,10 +69,11 @@ def config_sys_mman_h(conf):
 # -----------------------------------------------------------------------------
 
 def config_pthread_h(conf):
-    if not conf.static.check_header_exists('pthread.h'):
+    static = conf['static']
+    if not static.check_header_exists('pthread.h'):
         raise MissingHeader('pthread.h')
 
-    pthread_h = conf.config_group('headers.pthread_h')
+    pthread_h = conf.setdefault('headers', {}).setdefault('pthread_h', {})
 
     code = '''
         void* start(void* data) { return NULL; }
@@ -82,37 +89,40 @@ def config_pthread_h(conf):
         }
     '''
 
-    conf.check('detecting pthread link flags')
+    logger.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
-        if conf.static.try_run(code,
+        if static.try_run(code,
                 headers=['pthread.h'],
                 lflags={'flags': flags}):
-            conf.log('ok %r' % ' '.join(flags), color='green')
-            pthread_h.flags = flags
+            logger.log('ok %r' % ' '.join(flags), color='green')
+            pthread_h['flags'] = flags
             break
     else:
-        conf.log('failed', color='yellow')
+        logger.log('failed', color='yellow')
         raise ConfigFailed('failed to link pthread program')
 
 # -----------------------------------------------------------------------------
 
 def config_sys_socket_h(conf):
-    if not conf.static.check_header_exists('sys/socket.h'):
+    static = conf['static']
+    if not static.check_header_exists('sys/socket.h'):
         raise MissingHeader('sys/socket.h')
 
-    socket_h = conf.config_group('headers.sys.socket_h')
+    socket_h = conf.setdefault('headers', {}) \
+                   .setdefault('sys', {}) \
+                   .setdefault('socket_h', {})
 
     code = 'extern int accept(int s, struct sockaddr* addr, %s* addrlen);'
 
-    conf.check('determing type of socklen_t')
+    logger.check('determing type of socklen_t')
     for t in 'socklen_t', 'unsigned int', 'int':
-        if conf.static.try_compile(code % t,
+        if static.try_compile(code % t,
                 headers=['sys/types.h', 'sys/socket.h']):
-            conf.log('ok ' + t, color='green')
-            socket_h.socklen_t = t
+            logger.log('ok ' + t, color='green')
+            socket_h['socklen_t'] = t
             break
     else:
-        conf.log('failed', color='yellow')
+        logger.log('failed', color='yellow')
         raise ConfigFailed('failed to detect type of socklen_t')
 
 # -----------------------------------------------------------------------------
@@ -130,11 +140,12 @@ default_types_unistd_h = (
 )
 
 def config_unistd_h(conf):
-    if not conf.static.check_header_exists('unistd.h'):
+    static = conf['static']
+    if not static.check_header_exists('unistd.h'):
         raise MissingHeader('unistd.h')
 
-    unistd_h = conf.config_group('headers.unistd_h')
-    unistd_h.types = std.get_types_data(conf.static, default_types_unistd_h,
+    unistd_h = conf.setdefault('headers', {}).setdefault('unistd_h', {})
+    unistd_h['types'] = std.get_types_data(static, default_types_unistd_h,
         headers=['unistd.h'])
 
 # -----------------------------------------------------------------------------

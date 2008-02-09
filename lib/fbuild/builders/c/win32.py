@@ -3,11 +3,11 @@ from fbuild import ConfigFailed
 # -----------------------------------------------------------------------------
 
 def config(conf):
-    if not conf.static.check_header_exists('windows.h'):
+    if not conf['static'].check_header_exists('windows.h'):
         raise ConfigFailed('cannot find windows.h')
 
-    windows_h = conf.config_group('headers.windows_h')
-    windows_h.LoadLibrary = conf.static.check_compile('''
+    windows_h = conf.setdefault('headers', {}).setdefault('windows_h', {})
+    windows_h['LoadLibrary'] = conf['static'].check_compile('''
         #include <windows.h>
         #include <stdlib.h>
 

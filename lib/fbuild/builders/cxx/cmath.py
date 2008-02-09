@@ -5,14 +5,14 @@ from fbuild import ConfigFailed
 # -----------------------------------------------------------------------------
 
 def config_function(conf, function):
-    cmath = conf.config_group('headers.cmath')
-    setattr(cmath, function, conf.static.check_compile('''
+    cmath = conf.setdefault('headers', {}).setdefault('cmath', {})
+    cmath['function'] = conf['static'].check_compile('''
         #include <cmath>
         int main(int argc, char** argv) {
             std::%s(0.0);
             return 0;
         }
-    ''' % function, 'checking if %s is in cmath' % function))
+    ''' % function, 'checking if %s is in cmath' % function)
 
 def config_fpclassify(conf):
     return config_function(conf, 'fpclassify')
@@ -35,7 +35,7 @@ def config_signbit(conf):
 # -----------------------------------------------------------------------------
 
 def config(conf):
-    if not conf.static.check_header_exists('cmath'):
+    if not conf['static'].check_header_exists('cmath'):
         raise ConfigFailed('missing cmath')
 
     config_fpclassify(conf)

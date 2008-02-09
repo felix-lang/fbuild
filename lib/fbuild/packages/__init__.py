@@ -1,8 +1,12 @@
+from fbuild.system import system
+
+# -----------------------------------------------------------------------------
+
 class Package:
-    def build(self, conf):
+    def build(self):
         pass
 
-def build(system, src):
+def build(src):
     if isinstance(src, Package):
-        return system.future(src.build, system)
+        return system.future(src.build)
     return src

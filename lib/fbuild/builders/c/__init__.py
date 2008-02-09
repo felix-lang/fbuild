@@ -3,15 +3,13 @@ import io
 import textwrap
 import contextlib
 
-import yaml
-
-import fbuild
+from fbuild import logger, execute, ConfigFailed
 import fbuild.temp
 import fbuild.builders
 
 # -----------------------------------------------------------------------------
 
-class MissingHeader(fbuild.ConfigFailed):
+class MissingHeader(ConfigFailed):
     def __init__(self, filename):
         self.filename = filename
 
@@ -38,17 +36,8 @@ def tempfile(code=None, headers=[], name='temp', suffix='.c'):
 # -----------------------------------------------------------------------------
 
 class Builder:
-    def __init__(self, system, *, src_suffix):
-        self.system = system
+    def __init__(self, *, src_suffix):
         self.src_suffix = src_suffix
-
-    # -------------------------------------------------------------------------
-
-    def check(self, *args, **kwargs):
-        return self.system.check(*args, **kwargs)
-
-    def log(self, *args, **kwargs):
-        return self.system.log(*args, **kwargs)
 
     # -------------------------------------------------------------------------
 
@@ -64,12 +53,12 @@ class Builder:
     # -------------------------------------------------------------------------
 
     def check_header_exists(self, header, *, **kwargs):
-        self.check('checking if header %r exists' % header)
+        logger.check('checking if header %r exists' % header)
         if self.try_compile(headers=[header], **kwargs):
-            self.log('yes', color='green')
+            logger.log('yes', color='green')
             return True
         else:
-            self.log('no', color='yellow')
+            logger.log('no', color='yellow')
             return False
 
     def check_macro_exists(self, macro, *, **kwargs):
@@ -79,23 +68,23 @@ class Builder:
             #endif
         ''' % (macro, macro)
 
-        self.check('checking if macro %r exists' % macro)
+        logger.check('checking if macro %r exists' % macro)
         if self.try_compile(code, **kwargs):
-            self.log('yes', color='green')
+            logger.log('yes', color='green')
             return True
         else:
-            self.log('no', color='yellow')
+            logger.log('no', color='yellow')
             return False
 
     def check_type_exists(self, typename, *, **kwargs):
         code = '%s x;' % typename
 
-        self.check('checking if type %r exists' % typename)
+        logger.check('checking if type %r exists' % typename)
         if self.try_compile(code, **kwargs):
-            self.log('yes', color='green')
+            logger.log('yes', color='green')
             return True
         else:
-            self.log('no', color='yellow')
+            logger.log('no', color='yellow')
             return False
 
     # -------------------------------------------------------------------------
@@ -108,7 +97,7 @@ class Builder:
             try:
                 self.compile(src, quieter=quieter, **kwargs)
             except fbuild.ExecutionError:
-                self.log(code, verbose=1)
+                logger.log(code, verbose=1)
                 return False
             else:
                 return True
@@ -155,7 +144,7 @@ class Builder:
             dst = os.path.join(os.path.dirname(src), 'temp')
             obj = self.compile(src, quieter=quieter, **cflags)
             exe = self.link_exe(dst, [obj], quieter=quieter, **lflags)
-            return self.system.execute([exe], quieter=quieter)
+            return execute([exe], quieter=quieter)
 
     def try_run(self, *args, **kwargs):
         try:
@@ -166,47 +155,42 @@ class Builder:
             return True
 
     def check_compile(self, code, msg, *args, **kwargs):
-        self.check(msg)
+        logger.check(msg)
         if self.try_compile(code, *args, **kwargs):
-            self.log('yes', color='green')
+            logger.log('yes', color='green')
             return True
         else:
-            self.log('no', color='yellow')
+            logger.log('no', color='yellow')
             return False
 
     def check_run(self, code, msg, *args, **kwargs):
-        self.check(msg)
+        logger.check(msg)
         if self.try_run(code, *args, **kwargs):
-            self.log('yes', color='green')
+            logger.log('yes', color='green')
             return True
         else:
-            self.log('no', color='yellow')
+            logger.log('no', color='yellow')
             return False
 
 
-def make_builder(system, Compiler, LibLinker, ExeLinker,
+def make_builder(Compiler, LibLinker, ExeLinker,
         src_suffix, obj_suffix,
         lib_prefix, lib_suffix,
         exe_suffix,
         compile_flags=[],
         lib_link_flags=[],
         exe_link_flags=[]):
-    builder = Builder(system, src_suffix,
-        Compiler(system,
-            suffix=obj_suffix,
-        ),
-        LibLinker(system,
+    builder = Builder(src_suffix,
+        Compiler(suffix=obj_suffix),
+        LibLinker(
             prefix=lib_prefix,
             suffix=lib_suffix,
             lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix,
-        ),
-        ExeLinker(system,
+            lib_suffix=lib_suffix),
+        ExeLinker(
             suffix=exe_suffix,
             lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix,
-        ),
-    )
+            lib_suffix=lib_suffix))
 
     check_builder(builder)
 
@@ -215,28 +199,28 @@ def make_builder(system, Compiler, LibLinker, ExeLinker,
 # -----------------------------------------------------------------------------
 
 def check_builder(builder):
-    builder.check('checking if can make objects')
+    logger.check('checking if can make objects')
     if builder.try_compile():
-        builder.log('ok', color='green')
+        logger.log('ok', color='green')
     else:
-        raise fbuild.ConfigFailed('compiler failed')
+        raise ConfigFailed('compiler failed')
 
 
-    builder.check('checking if can make libraries')
+    logger.check('checking if can make libraries')
     if builder.try_link_lib('int foo() { return 5; }'):
-        builder.log('ok', color='green')
+        logger.log('ok', color='green')
     else:
-        raise fbuild.ConfigFailed('lib linker failed')
+        raise ConfigFailed('lib linker failed')
 
 
-    builder.check('checking if can make exes')
+    logger.check('checking if can make exes')
     if builder.try_run():
-        builder.log('ok', color='green')
+        logger.log('ok', color='green')
     else:
-        raise fbuild.ConfigFailed('exe linker failed')
+        raise ConfigFailed('exe linker failed')
 
 
-    builder.check('Checking linking lib to exe')
+    logger.check('Checking linking lib to exe')
     with fbuild.temp.tempdir() as dirname:
         src_lib = os.path.join(dirname, 'templib' + builder.src_suffix)
         with open(src_lib, 'w') as f:
@@ -261,24 +245,24 @@ def check_builder(builder):
             quieter=1)
 
         try:
-            stdout, stderr = builder.system.execute([exe], quieter=1)
+            stdout, stderr = execute([exe], quieter=1)
         except fbuild.ExecutionError:
-            raise fbuild.ConfigFailed('failed to link lib to exe')
+            raise ConfigFailed('failed to link lib to exe')
         else:
             if stdout != b'5\n':
-                raise fbuild.ConfigFailed('failed to link lib to exe')
-            builder.log('ok', color='green')
+                raise ConfigFailed('failed to link lib to exe')
+            logger.log('ok', color='green')
 
 # -----------------------------------------------------------------------------
 
 def config_compile_flags(builder, flags):
-    builder.check('checking if "%s" supports %s' % (builder.compiler, flags))
+    logger.check('checking if "%s" supports %s' % (builder.compiler, flags))
 
     if builder.try_tempfile_compile(flags=flags):
-        builder.log('ok', color='green')
+        logger.log('ok', color='green')
         return True
 
-    builder.log('failed', color='yellow')
+    logger.log('failed', color='yellow')
     return False
 
 # -----------------------------------------------------------------------------
@@ -290,7 +274,7 @@ def check_compiler(compiler, suffix):
         try:
             compiler([f], quieter=1)
         except fbuild.ExecutionError as e:
-            raise fbuild.ConfigFailed('compiler failed') from e
+            raise ConfigFailed('compiler failed') from e
 
     compiler.log('ok', color='green')
 
@@ -315,12 +299,12 @@ def config_little_endian(conf):
         }
     '''
 
-    conf.check('checking if little endian')
+    logger.check('checking if little endian')
     try:
-        stdout = 1 == int(conf.static.tempfile_run(code)[0])
+        stdout = 1 == int(conf['static'].tempfile_run(code)[0])
     except fbuild.ExecutionError:
-        conf.log('failed', color='yellow')
-        raise fbuild.ConfigFailed('failed to detect endianness')
+        logger.log('failed', color='yellow')
+        raise ConfigFailed('failed to detect endianness')
 
-    conf.little_endian = int(stdout) == 1
-    conf.log(conf.little_endian, color='green')
+    conf['little_endian'] = int(stdout) == 1
+    logger.log(conf['little_endian'], color='green')

@@ -1,4 +1,11 @@
+import time
+import subprocess
+import threading
+
 # -----------------------------------------------------------------------------
+
+class ConfigFailed(Exception):
+    pass
 
 class ExecutionError(Exception):
     def __init__(self, cmd, stdout, stderr, returncode):
@@ -18,32 +25,67 @@ class ExecutionError(Exception):
         if self.stderr: lines.append(self.stderr.decode('utf-8'))
         return '\n'.join(lines)
 
-class ConfigFailed(Exception):
-    pass
+# -----------------------------------------------------------------------------
+
+import fbuild.console
+logger = fbuild.console.Log()
 
 # -----------------------------------------------------------------------------
 
-def _import_string(s):
-    if isinstance(s, basestring):
-        return getattr(__import__(s), s.rsplit('.')[-1])
-    return s
+def execute(cmd,
+        msg1=None,
+        msg2=None,
+        color=None,
+        quieter=0,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        **kwargs):
+    from fbuild.system import system
 
-builder_cache = {}
+    if isinstance(cmd, str):
+        cmd_string = cmd
+    else:
+        cmd_string = ' '.join(cmd)
 
-def configure(config_builder, phase):
-    config_builder = _import_string(config_builder)
+    if system.threadcount <= 1:
+        logger.write('starting %r\n' % cmd_string,
+            verbose=4,
+            buffer=False)
+    else:
+        logger.write('%-10s: starting %r\n' %
+            (threading.currentThread().getName(), cmd_string),
+            verbose=4,
+            buffer=False)
 
-    key = config_builder.__module__ + '.' + config_builder.__name__
-    builder = builder_cache.setdefault(key, {}).get(phase)
+    starttime = time.time()
+    p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
+    stdout, stderr = p.communicate()
+    returncode = p.wait()
+    endtime = time.time()
 
-    if builder is None:
-        builder = config_builder(phase)
-        builder_cache[config_builder][phase] = builder
+    if msg1:
+        if msg2:
+            logger.check(' * ' + str(msg1), str(msg2),
+                color=color,
+                verbose=quieter)
+        else:
+            logger.check(' * ' + str(msg1),
+                color=color,
+                verbose=quieter)
 
-    return builder
+    if returncode:
+        logger.log(' + ' + cmd_string, verbose=quieter)
+    else:
+        logger.log(' + ' + cmd_string, verbose=1)
 
-def make_phase(name, packages, config=None):
-    packages = [_import_string(p) for p in packages]
+    if stdout: logger.log(stdout.rstrip().decode('utf-8'), verbose=quieter)
+    if stderr: logger.log(stderr.rstrip().decode('utf-8'), verbose=quieter)
 
-    if config is not None:
-        config = _import_string(config)
+    logger.log(
+        ' - exit %d, %.2f sec' % (returncode, endtime - starttime),
+        verbose=2)
+
+    if returncode:
+        raise ExecutionError(cmd, stdout, stderr, returncode)
+
+    return stdout, stderr

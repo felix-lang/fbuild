@@ -1,6 +1,6 @@
 import os
 
-from fbuild import ConfigFailed, ExecutionError
+from fbuild import logger, execute, ConfigFailed, ExecutionError
 
 class UnknownPlatform(ConfigFailed):
     def __init__(self, platform=None):
@@ -41,30 +41,25 @@ archmap = {
 
 def config(conf, platform=None):
     try:
-        return conf.platform
-    except AttributeError:
+        return conf['platform']
+    except KeyError:
         pass
 
-    if platform is not None:
-        if platform in archmap:
-            conf.platform = platform
+    logger.check('determining platform')
+    if platform is None:
+        try:
+            stdout, stderr = execute(('uname', '-s'), quieter=1)
+        except ExecutionError:
+            platform = os.name
         else:
-            raise UnknownPlatform(platform)
-
-    conf.check('determining platform')
-    try:
-        stdout, stderr = conf.system.execute(('uname', '-s'), quieter=1)
-    except ExecutionError:
-        platform = os.name
-    else:
-        platform = stdout.decode('utf-8').strip().lower()
+            platform = stdout.decode('utf-8').strip().lower()
 
     try:
-        conf.platform = archmap[platform]
+        conf['platform'] = archmap[platform]
     except KeyError:
-        conf.log('failed', color='yellow')
+        logger.log('failed', color='yellow')
         raise UnknownPlatform(platform)
     else:
-        conf.log(', '.join(sorted(conf.platform)), color='green')
+        logger.log(conf['platform'], color='green')
 
-    return conf.platform
+    return conf['platform']

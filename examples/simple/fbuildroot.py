@@ -3,6 +3,8 @@ import shutil
 from optparse import make_option
 import pprint
 
+from fbuild import logger, execute
+from fbuild.builders import run_tests, run_optional_tests
 import fbuild.builders.platform as platform
 import fbuild.builders.c.c99 as c99
 
@@ -55,74 +57,73 @@ def make_c_builder(conf, **kwargs):
     from fbuild.builders.c.guess import config
     c = config(conf, **kwargs)
 
-    c.run_tests(c_tests)
-    c.run_optional_tests(c_optional_tests)
+    run_tests(c, c_tests)
+    run_optional_tests(c, c_optional_tests)
 
 def make_cxx_builder(conf, **kwargs):
     from fbuild.builders.cxx.guess import config
     cxx = config(conf, **kwargs)
 
-    cxx.run_tests(c_tests)
-    cxx.run_tests(cxx_tests)
-    cxx.run_optional_tests(c_optional_tests)
-    cxx.run_optional_tests(cxx_optional_tests)
+    run_tests(cxx, c_tests)
+    run_tests(cxx, cxx_tests)
+    run_optional_tests(cxx, c_optional_tests)
+    run_optional_tests(cxx, cxx_optional_tests)
 
 def config_build(conf, options):
-    conf.log('configuring build phase', color='green')
+    logger.log('configuring build phase', color='cyan')
 
     platform.config(conf, options.host_platform)
     make_c_builder(conf, exe=options.build_cc)
     make_cxx_builder(conf, exe=options.build_cxx)
 
 def config_host(conf, options, build):
-    conf.log('configuring host phase')
+    logger.log('configuring host phase', color='cyan')
 
     platform.config(conf, options.host_platform)
 
-    if conf.platform == build.platform:
-        conf.log("using build's c and cxx compiler")
-        conf.c   = build.c
-        conf.cxx = build.cxx
+    if conf['platform'] == build['platform']:
+        logger.log("using build's c and cxx compiler")
+        conf['c']   = build['c']
+        conf['cxx'] = build['cxx']
     else:
         make_c_builder(conf, exe=options.host_cc)
         make_cxx_builder(conf, exe=options.host_cxx)
 
-    conf.configure('ocaml', 'fbuild.builders.ocaml.config',
+    import fbuild.builders.ocaml as ocaml
+    ocaml.config(
         ocamlc=options.ocamlc,
         ocamlopt=options.ocamlopt,
         ocamllex=options.ocamllex,
-        ocamlyacc=options.ocamlyacc,
-    )
+        ocamlyacc=options.ocamlyacc)
 
 def config_target(conf, options, host):
-    conf.log('configuring target phase')
+    logger.log('configuring target phase', color='cyan')
 
     platform.config(conf, options.target_platform)
 
-    if conf.platform == host.platform:
-        conf.log("using host's c and cxx compiler")
-        conf.c   = host.c
-        conf.cxx = host.cxx
+    if conf['platform'] == host['platform']:
+        logger.log("using host's c and cxx compiler")
+        conf['c']   = host['c']
+        conf['cxx'] = host['cxx']
     else:
         make_c_builder(conf, exe=options.target_cc)
         make_cxx_builder(conf, exe=options.target_cxx)
 
 # -----------------------------------------------------------------------------
 
-def configure(system, options):
-    conf = system.config
-    config_build(conf.config_group('build'), options)
-    config_host(conf.config_group('host'), options, conf.build)
-    config_target(conf.config_group('target'), options, conf.host)
+def configure(conf, options):
+    config_build(conf.setdefault('build', {}), options)
+    config_host(conf.setdefault('host', {}), options, conf['build'])
+    config_target(conf.setdefault('target', {}), options, conf['host'])
 
 
-def build(system, options):
-    conf = system.config.target
-    pprint.pprint(c99.type_aliases_stdint_h(conf.c))
+def build(conf, options):
+    conf = conf['target']
+    pprint.pprint(c99.type_aliases_stdint_h(conf['c']))
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':
-            builder = getattr(getattr(conf, lang), mode)
+            builder = conf[lang][mode]
 
             d = os.path.join(lang, mode)
             try:
@@ -139,4 +140,4 @@ def build(system, options):
 
             obj = builder.compile((d, 'foo.c'))
             exe = builder.link_exe((d, 'foo'), [obj], libs=[lib])
-            system.execute([exe], 'running', exe)
+            execute([exe], 'running', exe)
