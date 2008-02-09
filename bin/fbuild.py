@@ -2,11 +2,7 @@
 
 import os
 import sys
-import optparse
-from optparse import OptionParser, make_option
-
-import fbuild.system
-import fbuildroot
+import yaml
 
 # -----------------------------------------------------------------------------
 
@@ -14,6 +10,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
+    from optparse import OptionParser, make_option
     parser = OptionParser(option_list=[
         make_option('-v', '--verbose',
             action='count',
@@ -38,8 +35,17 @@ def main(argv=None):
             action='store_true',
             default=False,
             help='force reconfiguration'),
+        make_option('--config-file',
+            action='store',
+            default='config.yaml',
+            help='the name of the config file (default config.yaml)'),
+        make_option('--log-file',
+            action='store',
+            default='fbuild.log',
+            help='the name of the log file (default fbuild.log)'),
     ])
 
+    import fbuildroot
     try:
         pre_options = fbuildroot.pre_options
     except AttributeError:
@@ -56,19 +62,42 @@ def main(argv=None):
     else:
         options, args = post_options(options, args) or (options, args)
 
+    import fbuild
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
-
-    fbuild.system.make_system('config.yaml',
-        threadcount=options.threadcount,
-        force_configuration=options.force_configuration)
+    fbuild.scheduler.threadcount = options.threadcount
 
     try:
-        fbuild.system.system.run_package(fbuildroot, options)
+        config = configure_package(fbuildroot, options)
+        fbuildroot.build(config, options)
     except fbuild.ConfigFailed:
         return 1
+    finally:
+        fbuild.scheduler.join()
 
     return 0
+
+def configure_package(package, options):
+    import fbuild
+
+    if options.force_configuration or not os.path.exists(options.config_file):
+        config = {}
+        try:
+            package.configure(config, options)
+        except fbuild.ConfigFailed as e:
+            fbuild.logger.log(e, color='red')
+            raise e from e
+
+        fbuild.logger.log('saving config')
+        with open(options.config_file, 'w') as f:
+            yaml.dump(config, f)
+
+        fbuild.logger.log('-' * 79, color='blue')
+    else:
+        with open(options.config_file) as f:
+            config = yaml.load(f)
+
+    return config
 
 # -----------------------------------------------------------------------------
 

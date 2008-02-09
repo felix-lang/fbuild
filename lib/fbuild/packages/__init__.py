@@ -1,12 +1,12 @@
-from fbuild.system import system
+import fbuild
 
 # -----------------------------------------------------------------------------
 
 class Package:
-    def build(self):
-        pass
+    def build(self, conf):
+        raise NotImplemented
 
-def build(src):
+def build(src, conf):
     if isinstance(src, Package):
-        return system.future(src.build)
+        return fbuild.scheduler.future(src.build, conf)
     return src

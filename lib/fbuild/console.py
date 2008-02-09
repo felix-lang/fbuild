@@ -85,9 +85,8 @@ class Log:
         self.write('\n', verbose=verbose)
 
     def check(self, msg, result=None, color=None, verbose=0):
-        from fbuild.system import system
-
-        if self.show_threads and system.threadcount > 1:
+        import fbuild
+        if self.show_threads and fbuild.scheduler.threadcount > 1:
             msg = '%-10s: %s' % (
                 threading.currentThread().getName(),
                 msg,

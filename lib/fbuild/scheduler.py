@@ -5,24 +5,46 @@ import Queue
 # -----------------------------------------------------------------------------
 
 class Scheduler:
-    def __init__(self, maxsize, worker_timeout=1.0):
+    def __init__(self, count=0, worker_timeout=1.0):
         self.__queue = Queue.Queue()
-
-        # we subtract one thread because we'll use the main one as well
-        self.threads = []
-        for i in range(maxsize - 1):
-            thread = WorkerThread(self.__queue, worker_timeout)
-            self.threads.append(thread)
-            thread.start()
+        self.__threadcount_lock = threading.RLock()
+        self.__threads = []
+        self.__worker_timeout = worker_timeout
+        self.set_threadcount(count)
 
     def qsize(self):
         return self.__queue.qsize()
+
+    def set_threadcount(self, count):
+        # we subtract one thread because we'll use the main one as well
+        count = max(0, count - 1)
+
+        with self.__threadcount_lock:
+            for i in range(len(self.__threads) - count):
+                t = self.__threads.pop()
+                t.stop()
+
+            for i in range(count - len(self.__threads)):
+                thread = WorkerThread(self.__queue, self.__worker_timeout)
+                self.__threads.append(thread)
+                thread.start()
+
+    def get_threadcount(self):
+        return len(self.__threads)
+
+    threadcount = property(get_threadcount, set_threadcount)
 
     def future(self, function, *args, **kwargs):
         f = Future(self.__queue, function, args, kwargs)
         self.__queue.put(f)
 
         return f
+
+    def evaluate(self, future):
+        # evaluate if it actually is a future
+        if isinstance(future, Future):
+            return future()
+        return future
 
     def join(self):
         while _run_one(self.__queue, raise_exceptions=True, block=False):
@@ -31,8 +53,8 @@ class Scheduler:
         return self.__queue.join()
 
     def shutdown(self):
-        for thread in self.threads:
-            thread.cancel()
+        for thread in self.__threads:
+            thread.stop()
 
     def __del__(self):
         # make sure we kill the threads
@@ -71,7 +93,7 @@ class WorkerThread(threading.Thread):
         while not self.__finished:
             _run_one(self.__queue, timeout=self.__timeout)
 
-    def cancel(self):
+    def stop(self):
         self.__finished = True
 
 # -----------------------------------------------------------------------------
@@ -118,9 +140,3 @@ class Future:
                 self.__exc = e
 
         self.__event.set()
-
-def evaluate(future):
-    # evaluate if it actually is a future
-    if isinstance(future, Future):
-        return future()
-    return future

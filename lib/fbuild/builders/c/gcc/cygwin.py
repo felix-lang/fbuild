@@ -1,13 +1,38 @@
-import fbuild.system
-import fbuild.conf.c.gcc as gcc
+from .. import gcc
 
 # -----------------------------------------------------------------------------
 
-def static(system):
-    return gcc.static(system, '.obj', '', '.lib', '.exe')
+def config_static(*args,
+        obj_suffix='.obj',
+        lib_prefix='',
+        lib_suffix='.lib',
+        exe_suffix='.exe',
+        **kwargs):
+    return gcc.config_static(
+        obj_suffix=obj_suffix,
+        lib_prefix=lib_prefix,
+        lib_suffix=lib_suffix,
+        exe_suffix=exe_suffix,
+        *args, **kwargs)
 
+def config_shared(*args,
+        obj_suffix='.obj',
+        lib_prefix='',
+        lib_suffix='.dll',
+        exe_suffix='.exe',
+        **kwargs):
+    return gcc.config_static(
+        obj_suffix=obj_suffix,
+        lib_prefix=lib_prefix,
+        lib_suffix=lib_suffix,
+        exe_suffix=exe_suffix,
+        *args, **kwargs)
 
-def shared(system):
-    return gcc.config_builder(system,
-        gcc.config_compile_shared, config_link_dynamiclib, gcc.config_link_exe,
-        '.obj', '', '.dll', '.exe')
+def config(*args,
+        config_static=config_static,
+        config_shared=config_shared,
+        **kwargs):
+    return gcc.config(
+        config_static=config_static,
+        config_shared=config_shared,
+        *args, **kwargs)

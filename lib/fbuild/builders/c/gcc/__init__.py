@@ -2,7 +2,7 @@ import os
 from functools import partial
 
 from fbuild import logger, execute, ExecutionError, ConfigFailed
-import fbuild.scheduler as scheduler
+import fbuild.scheduler
 from fbuild.path import make_path, glob_paths
 import fbuild.builders
 import fbuild.builders.c as c
@@ -89,7 +89,7 @@ class Compiler:
             optimize=False,
             destdir=None,
             **kwargs):
-        src = make_path(scheduler.evaluate(src))
+        src = make_path(fbuild.scheduler.evaluate(src))
 
         cmd_flags = []
 
@@ -163,8 +163,8 @@ class Linker:
 
             dst = os.path.join(destdir, dst)
 
-        srcs = glob_paths(scheduler.evaluate(s) for s in srcs)
-        libs = [scheduler.evaluate(l) for l in libs]
+        srcs = glob_paths(fbuild.scheduler.evaluate(s) for s in srcs)
+        libs = [fbuild.scheduler.evaluate(l) for l in libs]
 
         assert srcs or libs
 

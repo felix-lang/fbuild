@@ -11,4 +11,4 @@ def build(conf, options):
     exe = c.Executable('executable', ['exe.c'],
         libs=[lib],
         destdir='build')
-    exe.build()
+    exe.build(conf)
