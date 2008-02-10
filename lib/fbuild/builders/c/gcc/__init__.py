@@ -37,7 +37,10 @@ class Gcc:
         else:
             logger.check('checking %s' % self)
 
-        with c.tempfile() as src:
+        code = 'int main(int argc, char** argv){return 0;}'
+
+        from fbuild.temp import tempfile
+        with tempfile(code, suffix='.c') as src:
             try:
                 self(flags + [src], quieter=1, cwd=os.path.dirname(src))
             except ExecutionError:

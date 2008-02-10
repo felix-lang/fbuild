@@ -1,8 +1,4 @@
 import os
-import io
-import textwrap
-import contextlib
-
 from fbuild import logger, execute, ConfigFailed
 import fbuild.temp
 import fbuild.builders
@@ -15,23 +11,6 @@ class MissingHeader(ConfigFailed):
 
     def __str__(self):
         return 'missing header %r' % self.filename
-
-# -----------------------------------------------------------------------------
-
-@contextlib.contextmanager
-def tempfile(code=None, headers=[], name='temp', suffix='.c'):
-    code = code or 'int main(int argc, char** argv) { return 0; }'
-    src = io.StringIO()
-
-    for header in headers: print('#include <%s>' % header, file=src)
-    print(textwrap.dedent(code), file=src)
-
-    with fbuild.temp.tempdir() as dirname:
-        name = os.path.join(dirname, name + suffix)
-        with open(name, 'w') as f:
-            print(src.getvalue(), file=f)
-
-        yield name
 
 # -----------------------------------------------------------------------------
 
@@ -89,8 +68,11 @@ class Builder:
 
     # -------------------------------------------------------------------------
 
-    def tempfile(self, *args, **kwargs):
-        return tempfile(suffix=self.src_suffix, *args, **kwargs)
+    def tempfile(self, code=None, headers=[], *args, **kwargs):
+        code = code or 'int main(int argc, char** argv) { return 0; }'
+        headers = ['#include <%s>' % h for h in headers]
+        return fbuild.temp.tempfile('\n'.join(headers + [code]),
+            self.src_suffix, *args, **kwargs)
 
     def try_compile(self, code=None, headers=[], quieter=1, **kwargs):
         with self.tempfile(code, headers) as src:

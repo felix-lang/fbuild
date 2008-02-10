@@ -17,11 +17,10 @@ def tempdir(*args, **kwargs):
 # -----------------------------------------------------------------------------
 
 @contextlib.contextmanager
-def tempfile(*args, **kwargs):
-    fd, name = _tempfile.mkstemp(*args, **kwargs)
-    try:
-        with os.fdopen(fd) as f:
-            yield f, name
-    finally:
-        os.close(fd)
-        os.remove(name)
+def tempfile(src, suffix='', name='temp'):
+    with tempdir() as dirname:
+        name = os.path.join(dirname, name + suffix)
+        with open(name, 'w') as f:
+            print(textwrap.dedent(src), file=f)
+
+        yield name
