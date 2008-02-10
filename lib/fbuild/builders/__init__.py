@@ -12,14 +12,13 @@ class MissingProgram(ConfigFailed):
 
 # -----------------------------------------------------------------------------
 
-def find_program(names, *args, **kwargs):
+def find_program(names):
     for name in names:
         logger.check('checking for program ' + name)
 
-        program = find_in_paths(name, *args, **kwargs)
-        if program:
-            logger.passed('ok %s' % program)
-            return program
+        if find_in_paths(name):
+            logger.passed('ok %s' % name)
+            return name
         else:
             logger.failed('not found')
 
