@@ -23,10 +23,7 @@ class ExecutionError(Error):
         else:
             cmd = ' '.join(self.cmd)
 
-        lines = ['Error running %r exited with %d' % (cmd, self.returncode)]
-        if self.stdout: lines.append(self.stdout.decode('utf-8'))
-        if self.stderr: lines.append(self.stderr.decode('utf-8'))
-        return '\n'.join(lines)
+        return 'Error running %r exited with %d' % (cmd, self.returncode)
 
 # -----------------------------------------------------------------------------
 
