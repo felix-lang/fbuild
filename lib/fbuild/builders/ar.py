@@ -20,7 +20,6 @@ class Linker:
             destdir=None,
             **kwargs):
         dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
-        srcs = list(srcs)
         srcs = fbuild.path.glob_paths(scheduler.evaluate(s) for s in srcs)
         assert srcs
 

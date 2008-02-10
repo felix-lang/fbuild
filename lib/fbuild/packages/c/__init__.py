@@ -43,7 +43,7 @@ class _Library(packages.Package):
 
     def build(self, conf):
         builder = self.builder(conf)
-        return builder.link_lib( self.dst,
+        return builder.link_lib(self.dst,
             [packages.build(s, conf) for s in self.srcs],
             destdir=self.destdir,
             **self.kwargs)

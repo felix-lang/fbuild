@@ -1,5 +1,5 @@
 import os
-from fbuild import logger, execute, ConfigFailed
+from fbuild import logger, execute, ConfigFailed, ExecutionError
 import fbuild.temp
 import fbuild.builders
 
@@ -74,19 +74,18 @@ class Builder:
         return fbuild.temp.tempfile('\n'.join(headers + [code]),
             self.src_suffix, *args, **kwargs)
 
-    def try_compile(self, code=None, headers=[], quieter=1, **kwargs):
+    def try_compile(self, code=None, headers=[], *,
+            quieter=1,
+            **kwargs):
         with self.tempfile(code, headers) as src:
             try:
                 self.compile(src, quieter=quieter, **kwargs)
-            except fbuild.ExecutionError:
-                logger.log(code, verbose=1)
+            except ExecutionError:
                 return False
             else:
                 return True
 
-    def try_link_lib(self,
-            code=None,
-            headers=[],
+    def try_link_lib(self, code=None, headers=[], *,
             quieter=1,
             cflags={},
             lflags={}):
@@ -95,14 +94,12 @@ class Builder:
             try:
                 obj = self.compile(src, quieter=quieter, **cflags)
                 self.link_lib(dst, [obj], quieter=quieter, **lflags)
-            except fbuild.ExecutionError:
+            except ExecutionError:
                 return False
             else:
                 return True
 
-    def try_link_exe(self,
-            code=None,
-            headers=[],
+    def try_link_exe(self, code=None, headers=[], *,
             quieter=1,
             cflags={},
             lflags={}):
@@ -111,14 +108,12 @@ class Builder:
             try:
                 obj = self.compile(src, quieter=quieter, **cflags)
                 self.link_exe(dst, [obj], quieter=quieter, **lflags)
-            except fbuild.ExecutionError:
+            except ExecutionError:
                 return False
             else:
                 return True
 
-    def tempfile_run(self,
-            code=None,
-            headers=[],
+    def tempfile_run(self, code=None, headers=[], *,
             quieter=1,
             cflags={},
             lflags={}):
@@ -131,7 +126,7 @@ class Builder:
     def try_run(self, *args, **kwargs):
         try:
             self.tempfile_run(*args, **kwargs)
-        except fbuild.ExecutionError:
+        except ExecutionError:
             return False
         else:
             return True
@@ -202,7 +197,7 @@ def check_builder(builder):
         raise ConfigFailed('exe linker failed')
 
 
-    logger.check('Checking linking lib to exe')
+    logger.check('Checking if can link lib to exe')
     with fbuild.temp.tempdir() as dirname:
         src_lib = os.path.join(dirname, 'templib' + builder.src_suffix)
         with open(src_lib, 'w') as f:
@@ -228,7 +223,7 @@ def check_builder(builder):
 
         try:
             stdout, stderr = execute([exe], quieter=1)
-        except fbuild.ExecutionError:
+        except ExecutionError:
             raise ConfigFailed('failed to link lib to exe')
         else:
             if stdout != b'5\n':
@@ -255,7 +250,7 @@ def check_compiler(compiler, suffix):
     with compiler.tempfile(suffix=suffix) as f:
         try:
             compiler([f], quieter=1)
-        except fbuild.ExecutionError as e:
+        except ExecutionError as e:
             raise ConfigFailed('compiler failed') from e
 
     compiler.log('ok', color='green')
@@ -284,7 +279,7 @@ def config_little_endian(conf):
     logger.check('checking if little endian')
     try:
         stdout = 1 == int(conf['static'].tempfile_run(code)[0])
-    except fbuild.ExecutionError:
+    except ExecutionError:
         logger.log('failed', color='yellow')
         raise ConfigFailed('failed to detect endianness')
 

@@ -1,10 +1,9 @@
 import os
 from functools import partial
 
-from fbuild import logger, execute, ExecutionError, ConfigFailed
+from fbuild import logger, ExecutionError, ConfigFailed
 import fbuild.scheduler
 from fbuild.path import make_path, glob_paths
-import fbuild.builders
 import fbuild.builders.c as c
 
 # -----------------------------------------------------------------------------
@@ -29,7 +28,8 @@ class Gcc:
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return execute(cmd, msg1=self.exe, msg2=msg2, **kwargs)
+        from fbuild import execute
+        return execute(cmd, self.exe, msg2, **kwargs)
 
     def check_flags(self, flags=[]):
         if flags:
@@ -97,11 +97,8 @@ class Compiler:
 
         cmd_flags = []
 
-        if debug:
-            cmd_flags.extend(self.debug_flags)
-
-        if optimize:
-            cmd_flags.extend(self.optimize_flags)
+        if debug:    cmd_flags.extend(self.debug_flags)
+        if optimize: cmd_flags.extend(self.optimize_flags)
 
         cmd_flags.extend('-I' + i for i in includes)
         cmd_flags.extend('-D' + d for d in macros)

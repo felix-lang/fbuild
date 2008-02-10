@@ -1,7 +1,6 @@
 from itertools import chain
 
 from fbuild import logger, ExecutionError, ConfigFailed
-from fbuild.builders.c import tempfile
 from . import MissingHeader
 
 # -----------------------------------------------------------------------------
