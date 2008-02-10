@@ -9,6 +9,7 @@ class Scheduler:
         self.__queue = Queue.Queue()
         self.__threadcount_lock = threading.RLock()
         self.__threads = []
+        self.__future_lock = threading.RLock()
         self.__worker_timeout = worker_timeout
         self.set_threadcount(count)
 
@@ -35,26 +36,32 @@ class Scheduler:
     threadcount = property(get_threadcount, set_threadcount)
 
     def future(self, function, *args, **kwargs):
-        f = Future(self.__queue, function, args, kwargs)
-        self.__queue.put(f)
+        with self.__future_lock:
+            f = Future(self.__queue, function, args, kwargs)
+            self.__queue.put(f)
 
         return f
 
     def evaluate(self, future):
         # evaluate if it actually is a future
-        if isinstance(future, Future):
-            return future()
+        while isinstance(future, Future):
+            future = future()
         return future
 
     def join(self):
-        while _run_one(self.__queue, raise_exceptions=True, block=False):
-            pass
+        with self.__future_lock:
+            while _run_one(self.__queue, raise_exceptions=True, block=False):
+                pass
 
-        return self.__queue.join()
+            res = self.__queue.join()
+
+            # check for any dead threads
+            for thread in self.__threads:
+                if thread._exc:
+                    raise thread._exc
 
     def shutdown(self):
-        for thread in self.__threads:
-            thread.stop()
+        self.set_threadcount(0)
 
     def __del__(self):
         # make sure we kill the threads
@@ -66,7 +73,6 @@ def _run_one(queue, raise_exceptions=False, *args, **kwargs):
     Run one task. This is a separate function to break up a circular
     dependency.
     """
-
     try:
         f = queue.get(*args, **kwargs)
     except Queue.Empty:
@@ -88,10 +94,14 @@ class WorkerThread(threading.Thread):
         self.__queue = queue
         self.__timeout = timeout
         self.__finished = False
+        self._exc = None
 
     def run(self):
-        while not self.__finished:
-            _run_one(self.__queue, timeout=self.__timeout)
+        try:
+            while not self.__finished:
+                _run_one(self.__queue, timeout=self.__timeout)
+        except Exception as e:
+            self._exc = e
 
     def stop(self):
         self.__finished = True
