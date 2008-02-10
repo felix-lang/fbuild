@@ -30,15 +30,23 @@ def main(argv=None):
             action='store_true',
             default=False,
             help='Do not use colors'),
+        make_option('--show-threads',
+            action='store_true',
+            default=False,
+            help='Show which thread is running which command'),
         make_option('--configure',
             dest='force_configuration',
             action='store_true',
             default=False,
             help='force reconfiguration'),
+        make_option('--buildroot',
+            action='store',
+            default='build',
+            help='where to store the build files (default build)'),
         make_option('--config-file',
             action='store',
             default='config.yaml',
-            help='the name of the config file (default config.yaml)'),
+            help='the name of the config file (default buildroot/config.yaml)'),
         make_option('--log-file',
             action='store',
             default='fbuild.log',
@@ -55,6 +63,8 @@ def main(argv=None):
 
     options, args = parser.parse_args(argv)
 
+    options.config_file = os.path.join(options.buildroot, options.config_file)
+
     try:
         post_options = fbuildroot.post_options
     except AttributeError:
@@ -63,8 +73,10 @@ def main(argv=None):
         options, args = post_options(options, args) or (options, args)
 
     import fbuild
+    fbuild.buildroot = options.buildroot
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
+    fbuild.logger.show_threads = options.show_threads
     fbuild.scheduler.threadcount = options.threadcount
 
     try:
@@ -85,6 +97,11 @@ def configure_package(package, options):
         package.configure(config, options)
 
         fbuild.logger.log('saving config')
+
+        config_dir = os.path.dirname(options.config_file)
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+
         with open(options.config_file, 'w') as f:
             yaml.dump(config, f)
 

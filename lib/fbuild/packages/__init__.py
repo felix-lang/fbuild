@@ -8,5 +8,5 @@ class Package:
 
 def build(src, conf):
     if isinstance(src, Package):
-        return fbuild.scheduler.future(src.build, conf)
+        return src.build(conf)
     return src

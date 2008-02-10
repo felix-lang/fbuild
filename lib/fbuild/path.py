@@ -67,16 +67,19 @@ def find_in_paths(filename, paths=None):
     return None
 
 
-def make_path(path, prefix=None, suffix=None):
+def make_path(path, prefix=None, suffix=None, root=None):
     # if the path is not a string, assume it's a list of path elements
     if not isinstance(path, str):
         path = os.path.join(*path)
 
-    if prefix:
+    if root is not None:
+        path = os.path.join(root, path)
+
+    if prefix is not None:
         dirname, basename = os.path.split(path)
         path = os.path.join(dirname, prefix + basename)
 
-    if suffix:
+    if suffix is not None:
         path += suffix
 
     return path
@@ -85,12 +88,7 @@ def make_path(path, prefix=None, suffix=None):
 def glob_paths(paths, root=None):
     new_paths = []
     for path in paths:
-        path = make_path(path)
-        if root is None:
-            pattern = path
-        else:
-            pattern = os.path.join(root, path)
-        new_paths.extend(glob.glob(pattern))
+        new_paths.extend(glob.glob(make_path(path, root=root)))
     return new_paths
 
 
@@ -99,3 +97,7 @@ def import_function(function):
         m, f = function.rsplit('.', 1)
         return getattr(__import__(m, {}, {}, ['']), f)
     return function
+
+def make_dirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

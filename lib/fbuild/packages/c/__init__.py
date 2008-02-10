@@ -1,78 +1,66 @@
+from fbuild import scheduler
 import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
 
-class StaticBuilder:
-    def builder(self, conf):
-        return conf['c']['static']
-
-class SharedBuilder:
-    def builder(self, conf):
-        return conf['c']['shared']
-
-# -----------------------------------------------------------------------------
-
-class _Object(packages.Package):
+class _Compiler(packages.Package):
     def __init__(self, src, **kwargs):
         self.src = src
         self.kwargs = kwargs
 
     def build(self, conf):
-        src = packages.build(self.src, conf)
-        return self.builder(conf).compile(src, **self.kwargs)
+        return scheduler.future(self.compiler(conf),
+            packages.build(self.src, conf), **self.kwargs)
 
-class StaticObject(_Object, StaticBuilder):
-    pass
+    def __str__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.src)
 
-class SharedObject(_Object, SharedBuilder):
-    pass
+class StaticObject(_Compiler):
+    def compiler(self, conf):
+        return conf['c']['static'].compile
+
+class SharedObject(_Compiler):
+    def compiler(self, conf):
+        return conf['c']['shared'].compile
 
 # -----------------------------------------------------------------------------
 
-class _Library(packages.Package):
-    def __init__(self, dst, srcs, *, destdir=None, **kwargs):
+class _Linker(packages.Package):
+    def __init__(self, dst, srcs, libs=[], *, **kwargs):
         self.dst = dst
         self.srcs = []
         for src in srcs:
             if isinstance(src, str):
-                self.srcs.append(self.Object(src, destdir=destdir))
-            else:
-                self.srcs.append(src)
-        self.destdir = destdir
-        self.kwargs = kwargs
-
-    def build(self, conf):
-        builder = self.builder(conf)
-        return builder.link_lib(self.dst,
-            [packages.build(s, conf) for s in self.srcs],
-            destdir=self.destdir,
-            **self.kwargs)
-
-class StaticLibrary(_Library, StaticBuilder):
-    Object = StaticObject
-
-class SharedLibrary(_Library, SharedBuilder):
-    Object = SharedObject
-
-# -----------------------------------------------------------------------------
-
-class Executable(packages.Package):
-    def __init__(self, dst, srcs, libs=[], *, destdir=None, **kwargs):
-        self.dst = dst
-        self.srcs = []
-        for src in srcs:
-            if isinstance(src, str):
-                self.srcs.append(StaticObject(src, destdir=destdir))
+                self.srcs.append(self.compiler(src))
             else:
                 self.srcs.append(src)
         self.libs = libs
-        self.destdir = destdir
         self.kwargs = kwargs
 
     def build(self, conf):
-        return conf['c']['static'].link_exe(
-            self.dst,
-            [packages.build(s, conf) for s in self.srcs],
-            libs=[packages.build(l, conf) for l in self.libs],
-            destdir=self.destdir,
-            **self.kwargs)
+        srcs = (packages.build(s, conf) for s in self.srcs)
+        libs = (packages.build(l, conf) for l in self.libs)
+        return scheduler.future(self.linker(conf), self.dst, srcs,
+            libs=libs, **self.kwargs)
+
+    def __str__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self.dst, self.srcs)
+
+
+class StaticLibrary(_Linker):
+    compiler = StaticObject
+
+    def linker(self, conf):
+        return conf['c']['static'].link_lib
+
+class SharedLibrary(_Linker):
+    compiler = SharedObject
+
+    def linker(self, conf):
+        return conf['c']['shared'].link_lib
+
+class Executable(_Linker):
+    compiler = StaticObject
+
+    def linker(self, conf):
+        return conf['c']['static'].link_exe

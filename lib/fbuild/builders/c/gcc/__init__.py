@@ -91,9 +91,14 @@ class Compiler:
             flags=[],
             debug=False,
             optimize=False,
-            destdir=None,
+            buildroot=fbuild.buildroot,
             **kwargs):
         src = make_path(fbuild.scheduler.evaluate(src))
+        if dst is None:
+            dst = os.path.splitext(src)[0] + self.suffix
+
+        dst = make_path(dst, root=buildroot)
+        fbuild.path.make_dirs(os.path.dirname(dst))
 
         cmd_flags = []
 
@@ -104,15 +109,6 @@ class Compiler:
         cmd_flags.extend('-D' + d for d in macros)
         cmd_flags.extend('-W' + w for w in warnings)
         cmd_flags.extend(flags)
-
-        if dst is None:
-            dst = os.path.splitext(src)[0] + self.suffix
-
-        if destdir is not None:
-            if not os.path.exists(destdir):
-                os.makedirs(destdir)
-
-            dst = os.path.join(destdir, dst)
 
         self.gcc([src], dst, cmd_flags,
             pre_flags=self.flags,
@@ -154,20 +150,15 @@ class Linker:
             libpaths=[],
             libs=[],
             flags=[],
-            destdir=None,
+            buildroot=fbuild.buildroot,
             **kwargs):
-        dst = make_path(dst, self.prefix, self.suffix)
-
-        if destdir is not None:
-            if not os.path.exists(destdir):
-                os.makedirs(destdir)
-
-            dst = os.path.join(destdir, dst)
-
         srcs = glob_paths(fbuild.scheduler.evaluate(s) for s in srcs)
-        libs = [fbuild.scheduler.evaluate(l) for l in libs]
+        libs = (fbuild.scheduler.evaluate(l) for l in libs)
 
         assert srcs or libs
+
+        dst = make_path(dst, self.prefix, self.suffix, root=buildroot)
+        fbuild.path.make_dirs(os.path.dirname(dst))
 
         cmd_flags = []
         cmd_flags.extend('-L' + p for p in libpaths)

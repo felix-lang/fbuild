@@ -26,11 +26,14 @@ class Builder:
             pre_flags=[],
             flags=[],
             debug=False,
-            destdir=None,
+            buildroot=fbuild.buildroot,
             **kwargs):
         # we need to make sure libraries are built first before we compile
         # the sources
         assert srcs or libs
+
+        dst = make_path(dst, root=buildroot)
+        fbuild.path.make_dirs(os.path.dirname(dst))
 
         extra_srcs = []
         for lib in libs:
@@ -38,12 +41,6 @@ class Builder:
                 extra_srcs.append(lib)
             else:
                 extra_srcs.append(lib + self.lib_suffix)
-
-        if destdir is not None:
-            if not os.path.exists(destdir):
-                os.makedirs(destdir)
-
-            dst = os.path.join(destdir, dst)
 
         cmd = [self.exe]
         cmd.extend(pre_flags)
@@ -130,7 +127,9 @@ class Builder:
 
         with fbuild.temp.tempfile('', '.ml') as src:
             try:
-                self(flags + [src], quieter=1, cwd=os.path.dirname(src))
+                self.compile(flags + [src],
+                    quieter=1,
+                    cwd=os.path.dirname(src))
             except ExecutionError:
                 logger.log('failed', color='yellow')
                 return False
