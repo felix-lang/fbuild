@@ -90,7 +90,7 @@ def config_host(conf, options, build):
         make_cxx_builder(conf, exe=options.host_cxx)
 
     import fbuild.builders.ocaml as ocaml
-    ocaml.config(
+    ocaml.config(conf,
         ocamlc=options.ocamlc,
         ocamlopt=options.ocamlopt,
         ocamllex=options.ocamllex,
