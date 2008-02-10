@@ -89,7 +89,7 @@ class Builder:
         if os.path.exists(src + 'i'):
             interface = self.compile_interface(src + 'i', *args, **kwargs)
         else:
-            interface = os.path.splitext(src)[0] + '.cmi'
+            interface = os.path.splitext(src)[0] + '.mli'
 
         return self.compile_implementation(src, *args, **kwargs)
 
