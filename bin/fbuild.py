@@ -70,7 +70,8 @@ def main(argv=None):
     try:
         config = configure_package(fbuildroot, options)
         fbuildroot.build(config, options)
-    except fbuild.ConfigFailed:
+    except fbuild.Error as e:
+        fbuild.logger.log(e, color='red')
         return 1
     finally:
         fbuild.scheduler.join()
@@ -82,11 +83,7 @@ def configure_package(package, options):
 
     if options.force_configuration or not os.path.exists(options.config_file):
         config = {}
-        try:
-            package.configure(config, options)
-        except fbuild.ConfigFailed as e:
-            fbuild.logger.log(e, color='red')
-            raise e from e
+        package.configure(config, options)
 
         fbuild.logger.log('saving config')
         with open(options.config_file, 'w') as f:

@@ -13,7 +13,7 @@ class MissingHeader(ConfigFailed):
     def __init__(self, filename):
         self.filename = filename
 
-    def str(self):
+    def __str__(self):
         return 'missing header %r' % self.filename
 
 # -----------------------------------------------------------------------------

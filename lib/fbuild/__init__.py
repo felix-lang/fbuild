@@ -4,10 +4,13 @@ import threading
 
 # -----------------------------------------------------------------------------
 
-class ConfigFailed(Exception):
+class Error(Exception):
     pass
 
-class ExecutionError(Exception):
+class ConfigFailed(Error):
+    pass
+
+class ExecutionError(Error):
     def __init__(self, cmd, stdout, stderr, returncode):
         self.cmd = cmd
         self.stdout = stdout

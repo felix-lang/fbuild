@@ -53,10 +53,11 @@ def config_gcc(conf, exe=None, default_exes=['gcc', 'cc']):
     except KeyError:
         pass
 
-    exe = exe or fbuild.builders.find_program(default_exes)
+    from fbuild.builders import MissingProgram, find_program
+    exe = exe or find_program(default_exes)
 
     if not exe:
-        raise ConfigFailed('cannot find gcc')
+        raise MissingProgram('gcc')
 
     gcc = conf['gcc'] = Gcc(exe)
 
