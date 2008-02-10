@@ -99,3 +99,9 @@ class Log:
             self.write(msg, verbose=verbose)
             self.write(result, color=color, verbose=verbose)
             self.write('\n', verbose=verbose)
+
+    def passed(self, msg='ok', color='green'):
+        self.log(msg, color=color)
+
+    def failed(self, msg='failed', color='yellow'):
+        self.log(msg, color=color)

@@ -18,10 +18,10 @@ def find_program(names, *args, **kwargs):
 
         program = find_in_paths(name, *args, **kwargs)
         if program:
-            logger.log('ok %s' % program, color='green')
+            logger.passed('ok %s' % program)
             return program
         else:
-            logger.log('not found', color='yellow')
+            logger.failed('not found')
 
     raise ConfigFailed('failed to find any of ' + str(names))
 

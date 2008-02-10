@@ -131,10 +131,10 @@ class Builder:
                     quieter=1,
                     cwd=os.path.dirname(src))
             except ExecutionError:
-                logger.log('failed', color='yellow')
+                logger.failed()
                 return False
 
-        logger.log('ok', color='green')
+        logger.passed()
         return True
 
     def try_compile(self, code='', quieter=1, **kwargs):
@@ -195,19 +195,19 @@ class Builder:
     def check_compile(self, code, msg, *args, **kwargs):
         logger.check(msg)
         if self.try_compile(code, *args, **kwargs):
-            logger.log('yes', color='green')
+            logger.passed('yes')
             return True
         else:
-            logger.log('no', color='yellow')
+            logger.failed('no')
             return False
 
     def check_run(self, code, msg, *args, **kwargs):
         logger.check(msg)
         if self.try_run(code, *args, **kwargs):
-            logger.log('yes', color='green')
+            logger.passsed('yes')
             return True
         else:
-            logger.log('no', color='yellow')
+            logger.failed('no')
             return False
 
 # -----------------------------------------------------------------------------
@@ -215,19 +215,19 @@ class Builder:
 def check_builder(builder):
     logger.check('checking if ocaml can make objects')
     if builder.try_compile():
-        logger.log('ok', color='green')
+        logger.passed()
     else:
         raise ConfigFailed('ocaml compiler failed')
 
     logger.check('checking if ocaml can make libraries')
     if builder.try_link_lib():
-        logger.log('ok', color='green')
+        logger.passed()
     else:
         raise ConfigFailed('ocaml lib linker failed')
 
     logger.check('checking if ocaml can make exes')
     if builder.try_link_exe():
-        logger.log('ok', color='green')
+        logger.passed()
     else:
         raise ConfigFailed('ocaml exe linker failed')
 
@@ -257,7 +257,7 @@ def check_builder(builder):
         else:
             if stdout != b'5':
                raise ConfigFailed('failed to link ocaml lib to exe')
-            logger.log('ok', color='green')
+            logger.passed()
 
 # -----------------------------------------------------------------------------
 

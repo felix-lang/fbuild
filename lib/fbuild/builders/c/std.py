@@ -46,7 +46,7 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0].split()
     except ExecutionError:
-        logger.log('failed', color='yellow')
+        logger.failed()
         raise ConfigFailed('failed to discover type data for %r' % typename)
 
     d = {'alignment': int(data[0]), 'size': int(data[1])}
@@ -56,7 +56,7 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
         d['signed'] = int(data[2]) == 1
         s += ' signed: %(signed)s'
 
-    logger.log(s % d, color='green')
+    logger.passed(s % d)
 
     return d
 
@@ -117,9 +117,9 @@ def config_types(conf):
     try:
         std['int_type_conversions'] = get_type_conversions(static, pairs)
     except ConfigFailed:
-        logger.log('failed', color='yellow')
+        logger.failed()
     else:
-        logger.log('ok', color='green')
+        logger.passed()
 
 def config_stddef_h(conf):
     static = conf['static']

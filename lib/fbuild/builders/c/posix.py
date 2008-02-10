@@ -94,11 +94,11 @@ def config_pthread_h(conf):
         if static.try_run(code,
                 headers=['pthread.h'],
                 lflags={'flags': flags}):
-            logger.log('ok %r' % ' '.join(flags), color='green')
+            logger.passed('ok %r' % ' '.join(flags))
             pthread_h['flags'] = flags
             break
     else:
-        logger.log('failed', color='yellow')
+        logger.failed()
         raise ConfigFailed('failed to link pthread program')
 
 # -----------------------------------------------------------------------------
@@ -118,11 +118,11 @@ def config_sys_socket_h(conf):
     for t in 'socklen_t', 'unsigned int', 'int':
         if static.try_compile(code % t,
                 headers=['sys/types.h', 'sys/socket.h']):
-            logger.log('ok ' + t, color='green')
+            logger.passed('ok ' + t)
             socket_h['socklen_t'] = t
             break
     else:
-        logger.log('failed', color='yellow')
+        logger.failed()
         raise ConfigFailed('failed to detect type of socklen_t')
 
 # -----------------------------------------------------------------------------

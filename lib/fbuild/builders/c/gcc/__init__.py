@@ -44,10 +44,10 @@ class Gcc:
             try:
                 self(flags + [src], quieter=1, cwd=os.path.dirname(src))
             except ExecutionError:
-                logger.log('failed', color='yellow')
+                logger.failed()
                 return False
 
-        logger.log('ok', color='green')
+        logger.passed()
         return True
 
 def config_gcc(conf, exe=None, default_exes=['gcc', 'cc']):

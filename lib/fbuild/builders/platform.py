@@ -57,9 +57,9 @@ def config(conf, platform=None):
     try:
         conf['platform'] = archmap[platform]
     except KeyError:
-        logger.log('failed', color='yellow')
+        logger.failed()
         raise UnknownPlatform(platform)
     else:
-        logger.log(conf['platform'], color='green')
+        logger.passed(conf['platform'])
 
     return conf['platform']
