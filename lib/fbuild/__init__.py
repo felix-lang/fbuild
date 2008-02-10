@@ -56,6 +56,8 @@ def execute(cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         **kwargs):
+    cmd = scheduler.evaluate(cmd)
+
     if isinstance(cmd, str):
         cmd_string = cmd
     else:
