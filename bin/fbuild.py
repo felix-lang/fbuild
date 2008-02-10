@@ -70,11 +70,10 @@ def main(argv=None):
     try:
         config = configure_package(fbuildroot, options)
         fbuildroot.build(config, options)
+        fbuild.scheduler.join()
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
-    finally:
-        fbuild.scheduler.join()
 
     return 0
 
