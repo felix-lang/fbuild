@@ -67,29 +67,22 @@ class Builder:
 
         return dst
 
-    def compile_implementation(self, src, dst=None, *args, **kwargs):
+    def _compile(self, src, dst=None, *args, obj_suffix, **kwargs):
         src = make_path(fbuild.scheduler.evaluate(src))
 
         if dst is None:
-            dst = os.path.splitext(src)[0] + self.obj_suffix
+            dst = os.path.splitext(src)[0] + obj_suffix
 
         return self._run(dst, [src],
             pre_flags=['-c'],
             color='green',
             *args, **kwargs)
 
-    def compile_interface(self, src, dst=None, *args, **kwargs):
-        src = make_path(fbuild.scheduler.evaluate(src))
+    def compile_implementation(self, *args, **kwargs):
+        return self._compile(obj_suffix=self.obj_suffix, *args, **kwargs)
 
-        if dst is None:
-            dst = os.path.splitext(src)[0] + '.cmi'
-
-        return self._run(dst, [src],
-            pre_flags=['-c'],
-            color='green',
-            *args, **kwargs)
-
-        return obj
+    def compile_interface(self, *args, **kwargs):
+        return self._compile(obj_suffix='.cmi', *args, **kwargs)
 
     def compile(self, src, *args, **kwargs):
         src = make_path(fbuild.scheduler.evaluate(src))
