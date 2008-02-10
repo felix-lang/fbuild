@@ -43,20 +43,14 @@ class Log:
     def pop_thread(self):
         msgs = self._thread_stacks[threading.currentThread()].pop()
 
-        self._lock.acquire()
-        try:
+        with self._lock:
             for msg, kwargs in msgs:
                 self._write(msg, **kwargs)
-        finally:
-            self._lock.release()
 
     def write(self, msg, *, buffer=True, **kwargs):
         if not buffer:
-            self._lock.acquire()
-            try:
+            with self._lock:
                 self._write(msg, **kwargs)
-            finally:
-                self._lock.release()
         else:
             stack = self._thread_stacks.setdefault(threading.currentThread(), [])
 
@@ -105,4 +99,3 @@ class Log:
             self.write(msg, verbose=verbose)
             self.write(result, color=color, verbose=verbose)
             self.write('\n', verbose=verbose)
-        self.flush()
