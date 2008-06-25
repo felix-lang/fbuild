@@ -5,6 +5,41 @@ import contextlib
 from fbuild import logger, execute, ConfigFailed, ExecutionError
 import fbuild.temp
 from fbuild.path import make_path, glob_paths
+from fbuild.builders import find_program
+
+# -----------------------------------------------------------------------------
+
+class Ocamldep:
+    def __init__(self, exe, module_flags=['-modules']):
+        self.exe = exe
+        self.module_flags = module_flags
+
+    def __call__(self, src, *, flags=[], buildroot=fbuild.buildroot):
+        dst = make_path(src + '.depends', root=buildroot)
+        fbuild.path.make_dirs(os.path.dirname(dst))
+
+        cmd = [self.exe]
+        cmd.extend(self.module_flags)
+        cmd.extend(flags)
+        cmd.append(src)
+
+        with open(dst, 'w') as f:
+            execute(cmd, self.exe, '%s -> %s' % (src, dst),
+                stdout=f,
+                color='yellow')
+
+        d = {}
+        with open(dst) as f:
+            for line in f:
+                filename, *deps = line.split()
+                d[filename[:-1]] = deps
+
+        return d[src]
+
+def config_ocamldep(conf, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
+    exe = exe or find_program(default_exes)
+
+    conf.setdefault('ocaml', {})['ocamldep'] = Ocamldep(exe)
 
 # -----------------------------------------------------------------------------
 
@@ -299,6 +334,7 @@ def config(conf,
         ocamlopt=None,
         ocamllex=None,
         ocamlyacc=None):
+    config_ocamldep(conf, ocamlc)
     config_bytecode(conf, ocamlc)
     config_native(conf, ocamlopt)
     config_ocamllex(conf, ocamllex)
