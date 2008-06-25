@@ -32,7 +32,7 @@ class Log:
         self.nocolor = nocolor
         self.show_threads = show_threads
 
-        self.maxlen = 40
+        self.maxlen = 25
         self._lock = threading.RLock()
         self._thread_stacks = {}
 
@@ -81,7 +81,7 @@ class Log:
 
     def check(self, msg, result=None, color=None, verbose=0):
         import fbuild
-        if self.show_threads and fbuild.scheduler.threadcount > 1:
+        if self.show_threads and fbuild.scheduler.threadcount > 0:
             msg = '%-10s: %s' % (
                 threading.current_thread().get_name(),
                 msg,
