@@ -1,12 +1,12 @@
 import sys
 import threading
-import Queue
+import queue
 
 # -----------------------------------------------------------------------------
 
 class Scheduler:
     def __init__(self, count=0, worker_timeout=1.0):
-        self.__queue = Queue.Queue()
+        self.__queue = queue.Queue()
         self.__threadcount_lock = threading.RLock()
         self.__threads = []
         self.__future_lock = threading.RLock()
@@ -68,28 +68,28 @@ class Scheduler:
         self.shutdown()
 
 
-def _run_one(queue, raise_exceptions=False, *args, **kwargs):
+def _run_one(q, raise_exceptions=False, *args, **kwargs):
     """
     Run one task. This is a separate function to break up a circular
     dependency.
     """
     try:
-        f = queue.get(*args, **kwargs)
-    except Queue.Empty:
+        f = q.get(*args, **kwargs)
+    except queue.Empty:
         return False
 
     try:
         f.start(raise_exceptions=raise_exceptions)
         return True
     finally:
-        queue.task_done()
+        q.task_done()
 
 # -----------------------------------------------------------------------------
 
 class WorkerThread(threading.Thread):
     def __init__(self, queue, timeout):
         super(WorkerThread, self).__init__()
-        self.setDaemon(True)
+        self.set_daemon(True)
 
         self.__queue = queue
         self.__timeout = timeout
@@ -119,10 +119,10 @@ class Future:
         self.__exc = None
 
     def __call__(self):
-        while not self.__event.isSet():
+        while not self.__event.is_set():
             # we're going to block anyway, so just run another future
             if not _run_one(self.__queue, block=False) and \
-                    not self.__event.isSet():
+                    not self.__event.is_set():
                 # there weren't any tasks for us and we're still waiting, so
                 # just block until the task is done
                 self.__event.wait()

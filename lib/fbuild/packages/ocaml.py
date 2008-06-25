@@ -40,7 +40,7 @@ class NativeInterface(_Compiler):
 # -----------------------------------------------------------------------------
 
 class _Linker(packages.Package):
-    def __init__(self, dst, srcs, libs=[], *, **kwargs):
+    def __init__(self, dst, srcs, libs=[], **kwargs):
         self.dst = dst
         self.srcs = []
         for src in srcs:

@@ -37,11 +37,11 @@ class Log:
         self._thread_stacks = {}
 
     def push_thread(self):
-        stack = self._thread_stacks.setdefault(threading.currentThread(), [])
+        stack = self._thread_stacks.setdefault(threading.current_thread(), [])
         stack.append([])
 
     def pop_thread(self):
-        msgs = self._thread_stacks[threading.currentThread()].pop()
+        msgs = self._thread_stacks[threading.current_thread()].pop()
 
         with self._lock:
             for msg, kwargs in msgs:
@@ -52,7 +52,8 @@ class Log:
             with self._lock:
                 self._write(msg, **kwargs)
         else:
-            stack = self._thread_stacks.setdefault(threading.currentThread(), [])
+            stack = self._thread_stacks.setdefault(
+                threading.current_thread(), [])
 
             if buffer and stack:
                 stack[-1].append((msg, kwargs))
@@ -82,7 +83,7 @@ class Log:
         import fbuild
         if self.show_threads and fbuild.scheduler.threadcount > 1:
             msg = '%-10s: %s' % (
-                threading.currentThread().getName(),
+                threading.current_thread().get_name(),
                 msg,
             )
 

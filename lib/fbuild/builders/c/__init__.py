@@ -31,7 +31,7 @@ class Builder:
 
     # -------------------------------------------------------------------------
 
-    def check_header_exists(self, header, *, **kwargs):
+    def check_header_exists(self, header, **kwargs):
         logger.check('checking if header %r exists' % header)
         if self.try_compile(headers=[header], **kwargs):
             logger.passed('yes')
@@ -40,7 +40,7 @@ class Builder:
             logger.failed('no')
             return False
 
-    def check_macro_exists(self, macro, *, **kwargs):
+    def check_macro_exists(self, macro, **kwargs):
         code = '''
             #ifndef %s
             #error %s
@@ -55,7 +55,7 @@ class Builder:
             logger.failed('no')
             return False
 
-    def check_type_exists(self, typename, *, **kwargs):
+    def check_type_exists(self, typename, **kwargs):
         code = '%s x;' % typename
 
         logger.check('checking if type %r exists' % typename)

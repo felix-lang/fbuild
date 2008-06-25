@@ -2,13 +2,13 @@ import time
 import random
 import unittest
 
-import fbuild.scheduler
+import fbuild
 
 # -----------------------------------------------------------------------------
 
 class TestScheduler(unittest.TestCase):
     def setUp(self):
-        self.scheduler = fbuild.scheduler.Scheduler(self.threads)
+        self.scheduler = fbuild.Scheduler(self.threads)
 
     def tearDown(self):
         self.scheduler.shutdown()

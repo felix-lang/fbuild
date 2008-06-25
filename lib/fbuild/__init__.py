@@ -69,7 +69,7 @@ def execute(cmd,
             buffer=False)
     else:
         logger.write('%-10s: starting %r\n' %
-            (threading.currentThread().getName(), cmd_string),
+            (threading.current_thread().get_name(), cmd_string),
             verbose=4,
             buffer=False)
 
