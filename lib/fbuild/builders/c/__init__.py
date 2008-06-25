@@ -14,12 +14,7 @@ class MissingHeader(ConfigFailed):
 
 # -----------------------------------------------------------------------------
 
-class Builder:
-    def __init__(self, *, src_suffix):
-        self.src_suffix = src_suffix
-
-    # -------------------------------------------------------------------------
-
+class Builder(fbuild.builders.AbstractCompilerBuilder):
     def compile(self, *args, **kwargs):
         raise NotImplemented
 
@@ -33,7 +28,7 @@ class Builder:
 
     def check_header_exists(self, header, **kwargs):
         logger.check('checking if header %r exists' % header)
-        if self.try_compile(headers=[header], **kwargs):
+        if self.try_compile('#include <%s>' % header, **kwargs):
             logger.passed('yes')
             return True
         else:
@@ -56,93 +51,8 @@ class Builder:
             return False
 
     def check_type_exists(self, typename, **kwargs):
-        code = '%s x;' % typename
-
         logger.check('checking if type %r exists' % typename)
-        if self.try_compile(code, **kwargs):
-            logger.passed('yes')
-            return True
-        else:
-            logger.failed('no')
-            return False
-
-    # -------------------------------------------------------------------------
-
-    def tempfile(self, code=None, headers=[], *args, **kwargs):
-        code = code or 'int main(int argc, char** argv) { return 0; }'
-        headers = ['#include <%s>' % h for h in headers]
-        return fbuild.temp.tempfile('\n'.join(headers + [code]),
-            self.src_suffix, *args, **kwargs)
-
-    def try_compile(self, code=None, headers=[], *,
-            quieter=1,
-            **kwargs):
-        with self.tempfile(code, headers) as src:
-            try:
-                self.compile(src, quieter=quieter, **kwargs)
-            except ExecutionError:
-                return False
-            else:
-                return True
-
-    def try_link_lib(self, code=None, headers=[], *,
-            quieter=1,
-            cflags={},
-            lflags={}):
-        with self.tempfile(code, headers) as src:
-            dst = os.path.join(os.path.dirname(src), 'temp')
-            try:
-                obj = self.compile(src, quieter=quieter, **cflags)
-                self.link_lib(dst, [obj], quieter=quieter, **lflags)
-            except ExecutionError:
-                return False
-            else:
-                return True
-
-    def try_link_exe(self, code=None, headers=[], *,
-            quieter=1,
-            cflags={},
-            lflags={}):
-        with self.tempfile(code, headers) as src:
-            dst = os.path.join(os.path.dirname(src), 'temp')
-            try:
-                obj = self.compile(src, quieter=quieter, **cflags)
-                self.link_exe(dst, [obj], quieter=quieter, **lflags)
-            except ExecutionError:
-                return False
-            else:
-                return True
-
-    def tempfile_run(self, code=None, headers=[], *,
-            quieter=1,
-            cflags={},
-            lflags={}):
-        with self.tempfile(code, headers) as src:
-            dst = os.path.join(os.path.dirname(src), 'temp')
-            obj = self.compile(src, quieter=quieter, **cflags)
-            exe = self.link_exe(dst, [obj], quieter=quieter, **lflags)
-            return execute([exe], quieter=quieter)
-
-    def try_run(self, *args, **kwargs):
-        try:
-            self.tempfile_run(*args, **kwargs)
-        except ExecutionError:
-            return False
-        else:
-            return True
-
-    def check_compile(self, code, msg, *args, **kwargs):
-        logger.check(msg)
-        if self.try_compile(code, *args, **kwargs):
-            logger.passed('yes')
-            return True
-        else:
-            logger.failed('no')
-            return False
-
-    def check_run(self, code, msg, *args, **kwargs):
-        logger.check(msg)
-        if self.try_run(code, *args, **kwargs):
+        if self.try_compile('%s x;' % typename, **kwargs):
             logger.passed('yes')
             return True
         else:
@@ -177,7 +87,7 @@ def make_builder(Compiler, LibLinker, ExeLinker,
 
 def check_builder(builder):
     logger.check('checking if can make objects')
-    if builder.try_compile():
+    if builder.try_compile('int main(int argc, char** argv) { return 0; }'):
         logger.passed()
     else:
         raise ConfigFailed('compiler failed')
@@ -189,7 +99,7 @@ def check_builder(builder):
         raise ConfigFailed('lib linker failed')
 
     logger.check('checking if can make exes')
-    if builder.try_run():
+    if builder.try_run('int main(int argc, char** argv) { return 0; }'):
         logger.passed()
     else:
         raise ConfigFailed('exe linker failed')
