@@ -35,12 +35,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             logger.failed('no')
             return False
 
-    def check_macro_exists(self, macro, **kwargs):
+    def check_macro_exists(self, macro, *, headers=[], **kwargs):
         code = '''
+            %s
             #ifndef %s
             #error %s
             #endif
-        ''' % (macro, macro)
+        ''' % ('\n'.join('#include <%s>' % h for h in headers), macro, macro)
 
         logger.check('checking if macro %r exists' % macro)
         if self.try_compile(code, **kwargs):

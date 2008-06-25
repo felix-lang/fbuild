@@ -115,7 +115,7 @@ class AbstractCompilerBuilder:
     def check_run(self, code, msg, *args, **kwargs):
         logger.check(msg)
         if self.try_run(code, *args, **kwargs):
-            logger.passsed('yes')
+            logger.passed('yes')
             return True
         else:
             logger.failed('no')

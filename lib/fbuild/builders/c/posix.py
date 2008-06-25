@@ -1,6 +1,7 @@
 import os
 
 from fbuild import logger, ConfigFailed
+from fbuild.temp import tempfile
 from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -38,7 +39,7 @@ def config_dlfcn_h(conf):
         }
     '''
 
-    with shared.tempfile(lib_code) as lib_src:
+    with tempfile(lib_code, shared.src_suffix) as lib_src:
         obj = shared.compile(lib_src, quieter=1)
         lib = shared.link_lib((os.path.dirname(lib_src), 'temp'), [obj],
             quieter=1)
@@ -56,8 +57,7 @@ def config_sys_mman_h(conf):
     mman_h = conf.setdefault('headers', {}) \
                  .setdefault('sys', {}) \
                  .setdefault('mman_h', {})
-    mman_h['macros'] = {m: static.check_macro_exists(m,
-            headers=['sys/mman.h'])
+    mman_h['macros'] = {m: static.check_macro_exists(m, headers=['sys/mman.h'])
         for m in (
             'PROT_EXEC', 'PROT_READ', 'PROT_WRITE', 'MAP_DENYWRITE',
             'MAP_ANON', 'MAP_FILE', 'MAP_FIXED', 'MAP_HASSEMAPHORE',
@@ -76,6 +76,8 @@ def config_pthread_h(conf):
     pthread_h = conf.setdefault('headers', {}).setdefault('pthread_h', {})
 
     code = '''
+        #include <pthread.h>
+
         void* start(void* data) { return NULL; }
 
         int main(int argc, char** argv) {
@@ -92,7 +94,6 @@ def config_pthread_h(conf):
     logger.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
         if static.try_run(code,
-                headers=['pthread.h'],
                 lflags={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
             pthread_h['flags'] = flags
@@ -112,12 +113,16 @@ def config_sys_socket_h(conf):
                    .setdefault('sys', {}) \
                    .setdefault('socket_h', {})
 
-    code = 'extern int accept(int s, struct sockaddr* addr, %s* addrlen);'
+    code = '''
+        #include <sys/types.h>
+        #include <sys/socket.h>
+
+        extern int accept(int s, struct sockaddr* addr, %s* addrlen);
+    '''
 
     logger.check('determing type of socklen_t')
     for t in 'socklen_t', 'unsigned int', 'int':
-        if static.try_compile(code % t,
-                headers=['sys/types.h', 'sys/socket.h']):
+        if static.try_compile(code % t):
             logger.passed('ok ' + t)
             socket_h['socklen_t'] = t
             break

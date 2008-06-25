@@ -19,12 +19,16 @@ default_types_stddef_h = ('size_t', 'wchar_t', 'ptrdiff_t')
 
 # -----------------------------------------------------------------------------
 
-def get_type_data(builder, typename, *args, int_type=False, **kwargs):
+def get_type_data(builder, typename, *args,
+        int_type=False,
+        headers=[],
+        **kwargs):
     logger.check('getting type %r info' % typename)
 
     code = '''
         #include <stddef.h>
         #include <stdio.h>
+        %s
 
         typedef %s type;
         struct TEST { char c; type mem; };
@@ -36,7 +40,7 @@ def get_type_data(builder, typename, *args, int_type=False, **kwargs):
         #endif
             return 0;
         }
-    ''' % typename
+    ''' % ('\n'.join('#include <%s>' % h for h in headers), typename)
 
     if int_type:
         cflags = dict(kwargs.get('cflags', {}))
