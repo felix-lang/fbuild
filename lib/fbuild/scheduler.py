@@ -1,6 +1,7 @@
 import sys
 import threading
 import queue
+import operator
 
 # -----------------------------------------------------------------------------
 
@@ -31,10 +32,23 @@ class Scheduler:
     threadcount = property(get_threadcount, set_threadcount)
 
     def map(self, function, srcs):
-        nodes = (Node(function, src) for src in srcs)
-        return [n.result for n in self._evaluate(nodes)]
+        '''
+        Run the function over the input sources concurrently. This function
+        returns the results in their initial order.
+        '''
+
+        nodes = (Node(function, src, index) for index, src in enumerate(srcs))
+        nodes = sorted(self._evaluate(nodes), key=operator.attrgetter('index'))
+
+        return [n.result for n in nodes]
 
     def map_with_dependencies(self, depends, function, srcs):
+        '''
+        Calculate the dependencies between the input sources and run them
+        concurrently. This function returns the results in the order that they
+        finished, not their initial order.
+        '''
+
         nodes = {}
 
         for src in srcs:
@@ -124,9 +138,10 @@ class WorkerThread(threading.Thread):
 # -----------------------------------------------------------------------------
 
 class Node:
-    def __init__(self, function, src):
+    def __init__(self, function, src, index=None):
         self.function = function
         self.src = src
+        self.index = index
         self.running = False
         self.done = False
         self.dependencies = []

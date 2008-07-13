@@ -2,40 +2,26 @@ import time
 import random
 import unittest
 
-import fbuild
+from fbuild.scheduler import Scheduler
 
 # -----------------------------------------------------------------------------
 
 class TestScheduler(unittest.TestCase):
     def setUp(self):
-        self.scheduler = fbuild.Scheduler(self.threads)
+        self.scheduler = Scheduler(self.threads)
 
     def tearDown(self):
         self.scheduler.shutdown()
         self.scheduler = None
 
-    def testSimple(self):
-        i = 0
-        def f():
-            nonlocal i
-            i += 1
-            return i
+    def testMap(self):
+        def f(x):
+            time.sleep(random.random() * 0.1)
+            return x + 1
 
-        future = self.scheduler.future(f)
-        self.assertEquals(future(), 1)
-        self.assertEquals(future(), 1)
-
-        future = self.scheduler.future(f)
-        self.assertEquals(future(), 2)
-        self.assertEquals(future(), 2)
-
-    def testMultiple(self):
-        def g(i):
-            time.sleep(random.random() * .1)
-            return i + 1
-
-        fs = [self.scheduler.future(g, i) for i in range(10)]
-        self.assertEquals([f() for f in fs], list(range(1, 11)))
+        self.assertEquals(
+            self.scheduler.map(f, [0,1,2,3,4,5,6,7,8,9]),
+            [1,2,3,4,5,6,7,8,9,10])
 
     def run(self, *args, **kwargs):
         for i in range(10):
