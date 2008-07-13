@@ -31,20 +31,7 @@ import fbuild.console
 logger = fbuild.console.Log()
 
 import fbuild.scheduler
-class Scheduler(fbuild.scheduler.Scheduler):
-    def future(self, f, *args, **kwargs):
-        import functools
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            logger.push_thread()
-            try:
-                return f(*args, **kwargs)
-            finally:
-                logger.pop_thread()
-
-        return super(Scheduler, self).future(wrapper, *args, **kwargs)
-
-scheduler = Scheduler()
+scheduler = fbuild.scheduler.Scheduler()
 
 # -----------------------------------------------------------------------------
 
@@ -56,8 +43,6 @@ def execute(cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         **kwargs):
-    cmd = scheduler.evaluate(cmd)
-
     if isinstance(cmd, str):
         cmd_string = cmd
     else:

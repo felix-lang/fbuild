@@ -2,7 +2,6 @@ import os
 
 from fbuild import execute
 import fbuild.builders
-import fbuild.scheduler as scheduler
 
 # -----------------------------------------------------------------------------
 
@@ -20,7 +19,7 @@ class Linker:
             destdir=None,
             **kwargs):
         dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
-        srcs = fbuild.path.glob_paths(scheduler.evaluate(s) for s in srcs)
+        srcs = fbuild.path.glob_paths(srcs)
         assert srcs
 
         if destdir is not None:

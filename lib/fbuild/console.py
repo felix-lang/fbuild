@@ -1,5 +1,6 @@
 import sys
 import threading
+import contextlib
 
 # -----------------------------------------------------------------------------
 
@@ -36,16 +37,18 @@ class Log:
         self._lock = threading.RLock()
         self._thread_stacks = {}
 
-    def push_thread(self):
+    @contextlib.contextmanager
+    def log_from_thread(self):
         stack = self._thread_stacks.setdefault(threading.current_thread(), [])
         stack.append([])
 
-    def pop_thread(self):
-        msgs = self._thread_stacks[threading.current_thread()].pop()
-
-        with self._lock:
-            for msg, kwargs in msgs:
-                self._write(msg, **kwargs)
+        try:
+            yield
+        finally:
+            msgs = stack.pop()
+            with self._lock:
+                for msg, kwargs in msgs:
+                    self._write(msg, **kwargs)
 
     def write(self, msg, *, buffer=True, **kwargs):
         if not buffer:
@@ -76,8 +79,9 @@ class Log:
         sys.stdout.flush()
 
     def log(self, msg, color=None, verbose=0):
-        self.write(msg, verbose=verbose, color=color)
-        self.write('\n', verbose=verbose)
+        with self._lock:
+            self.write(msg, verbose=verbose, color=color)
+            self.write('\n', verbose=verbose)
 
     def check(self, msg, result=None, color=None, verbose=0):
         import fbuild

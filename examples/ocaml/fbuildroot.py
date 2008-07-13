@@ -3,13 +3,12 @@ def configure(conf, options):
     config(conf)
 
 def build(conf, options):
-    from fbuild import execute
     import fbuild.packages.ocaml as ocaml
 
-    lib = ocaml.BytecodeLibrary('lib', ['lib*.ml'])
+    lib = ocaml.BytecodeLibrary('lib', ['lib*.ml', 'lib*.mli'])
     exe = ocaml.BytecodeExecutable('exe.byte', ['exe.ml'], libs=[lib])
-    execute(exe.build(conf))
+    exe.build(conf)
 
     lib = ocaml.NativeLibrary('lib', ['lib*.ml'])
     exe = ocaml.NativeExecutable('exe.native', ['exe.ml'], libs=[lib])
-    execute(exe.build(conf))
+    exe.build(conf)

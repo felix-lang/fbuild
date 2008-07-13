@@ -132,7 +132,7 @@ class Builder(AbstractCompilerBuilder):
         return dst
 
     def _compile(self, src, dst=None, *args, obj_suffix, **kwargs):
-        src = make_path(fbuild.scheduler.evaluate(src))
+        src = make_path(src)
 
         if dst is None:
             dst = os.path.splitext(src)[0] + obj_suffix
@@ -149,17 +149,15 @@ class Builder(AbstractCompilerBuilder):
         return self._compile(obj_suffix='.cmi', *args, **kwargs)
 
     def compile(self, src, *args, **kwargs):
-        src = make_path(fbuild.scheduler.evaluate(src))
-        if os.path.exists(src + 'i'):
-            interface = self.compile_interface(src + 'i', *args, **kwargs)
-        else:
-            interface = os.path.splitext(src)[0] + '.mli'
+        src = make_path(src)
 
-        return self.compile_implementation(src, *args, **kwargs)
+        if src.endswith('.mli'):
+            return self.compile_interface(src, *args, **kwargs)
+        else:
+            return self.compile_implementation(src, *args, **kwargs)
 
     def _link(self, dst, srcs, *args, libs=[], **kwargs):
-        libs = [fbuild.scheduler.evaluate(l) for l in libs]
-        srcs = glob_paths(fbuild.scheduler.evaluate(s) for s in srcs)
+        srcs = glob_paths(srcs)
 
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 

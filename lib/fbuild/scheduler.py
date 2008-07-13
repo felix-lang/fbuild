@@ -5,20 +5,15 @@ import queue
 # -----------------------------------------------------------------------------
 
 class Scheduler:
-    def __init__(self, count=0, worker_timeout=1.0):
-        self.__queue = queue.Queue()
+    def __init__(self, count=0):
+        self.__ready_queue = queue.Queue()
+        self.__done_queue = queue.Queue()
         self.__threadcount_lock = threading.RLock()
         self.__threads = []
-        self.__future_lock = threading.RLock()
-        self.__worker_timeout = worker_timeout
         self.set_threadcount(count)
 
-    def qsize(self):
-        return self.__queue.qsize()
-
     def set_threadcount(self, count):
-        # we subtract one thread because we'll use the main one as well
-        count = max(0, count - 1)
+        count = max(1, count)
 
         with self.__threadcount_lock:
             for i in range(len(self.__threads) - count):
@@ -26,7 +21,7 @@ class Scheduler:
                 t.stop()
 
             for i in range(count - len(self.__threads)):
-                thread = WorkerThread(self.__queue, self.__worker_timeout)
+                thread = WorkerThread(self.__ready_queue, self.__done_queue)
                 self.__threads.append(thread)
                 thread.start()
 
@@ -35,30 +30,61 @@ class Scheduler:
 
     threadcount = property(get_threadcount, set_threadcount)
 
-    def future(self, function, *args, **kwargs):
-        with self.__future_lock:
-            f = Future(self.__queue, function, args, kwargs)
-            self.__queue.put(f)
+    def map(self, function, srcs):
+        nodes = (Node(function, src) for src in srcs)
+        return [n.result for n in self._evaluate(nodes)]
 
-        return f
+    def map_with_dependencies(self, depends, function, srcs):
+        nodes = {}
 
-    def evaluate(self, future):
-        # evaluate if it actually is a future
-        while isinstance(future, Future):
-            future = future()
-        return future
+        for src in srcs:
+            nodes[src] = Node(function, src)
 
-    def join(self):
-        with self.__future_lock:
-            while _run_one(self.__queue, raise_exceptions=True, block=False):
+        for dep_node in self._evaluate([Node(depends, src) for src in srcs]):
+            try:
+                node = nodes[dep_node.src]
+            except KeyError:
+                # ignore missing dependencies
                 pass
+            else:
+                for dep in dep_node.result:
+                    try:
+                        node.dependencies.append(nodes[dep])
+                    except KeyError:
+                        # ignore missing dependencies
+                        pass
 
-            res = self.__queue.join()
+        return [n.result for n in self._evaluate(nodes.values())]
 
-            # check for any dead threads
-            for thread in self.__threads:
-                if thread._exc:
-                    raise thread._exc
+    def _evaluate(self, tasks):
+        count = 0
+        children = {}
+        results = []
+
+        for task in tasks:
+            for dep in task.dependencies:
+                children.setdefault(dep, []).append(task)
+
+            if task.can_run():
+                count += 1
+                task.running = True
+                self.__ready_queue.put(task)
+
+        while count != 0:
+            task = self.__done_queue.get()
+            count -= 1
+            task.done = True
+            if task.exc is not None:
+                raise task.exc
+            results.append(task)
+
+            for child in children.get(task, []):
+                if child.can_run():
+                    count += 1
+                    child.running = True
+                    self.__ready_queue.put(child)
+
+        return results
 
     def shutdown(self):
         self.set_threadcount(0)
@@ -67,86 +93,50 @@ class Scheduler:
         # make sure we kill the threads
         self.shutdown()
 
-
-def _run_one(q, raise_exceptions=False, *args, **kwargs):
-    """
-    Run one task. This is a separate function to break up a circular
-    dependency.
-    """
-    try:
-        f = q.get(*args, **kwargs)
-    except queue.Empty:
-        return False
-
-    try:
-        f.start(raise_exceptions=raise_exceptions)
-        return True
-    finally:
-        q.task_done()
-
 # -----------------------------------------------------------------------------
 
 class WorkerThread(threading.Thread):
-    def __init__(self, queue, timeout):
-        super(WorkerThread, self).__init__()
+    def __init__(self, ready_queue, done_queue):
+        super().__init__()
         self.set_daemon(True)
 
-        self.__queue = queue
-        self.__timeout = timeout
+        self.__ready_queue = ready_queue
+        self.__done_queue = done_queue
         self.__finished = False
-        self._exc = None
 
     def run(self):
-        try:
-            while not self.__finished:
-                _run_one(self.__queue, timeout=self.__timeout)
-        except Exception as e:
-            self._exc = e
+        from fbuild import logger
+
+        while not self.__finished:
+            task = self.__ready_queue.get()
+            with logger.log_from_thread():
+                try:
+                    task.result = task.function(task.src)
+                except Exception as e:
+                    task.exc = e
+                finally:
+                    self.__ready_queue.task_done()
+                    self.__done_queue.put(task)
 
     def stop(self):
         self.__finished = True
 
 # -----------------------------------------------------------------------------
 
-class Future:
-    def __init__(self, queue, function, args, kwargs):
-        self.__queue = queue
-        self.__function = function
-        self.__args = args
-        self.__kwargs = kwargs
-        self.__event = threading.Event()
-        self.__result = None
-        self.__exc = None
+class Node:
+    def __init__(self, function, src):
+        self.function = function
+        self.src = src
+        self.running = False
+        self.done = False
+        self.dependencies = []
+        self.exc =None
 
-    def __call__(self):
-        while not self.__event.is_set():
-            # we're going to block anyway, so just run another future
-            if not _run_one(self.__queue, block=False) and \
-                    not self.__event.is_set():
-                # there weren't any tasks for us and we're still waiting, so
-                # just block until the task is done
-                self.__event.wait()
+    def can_run(self):
+        if self.running or self.done:
+            return False
 
-        if self.__exc:
-            raise self.__exc
+        if not self.dependencies:
+            return True
 
-        return self.__result
-
-    def __repr__(self):
-        return '<%s: %s, %s, %s>' % (
-            self.__class__.__name__,
-            self.__function.__name__,
-            self.__args,
-            self.__kwargs,
-        )
-
-    def start(self, raise_exceptions=False):
-        try:
-            self.__result = self.__function(*self.__args, **self.__kwargs)
-        except Exception as e:
-            if raise_exceptions:
-                raise e
-            else:
-                self.__exc = e
-
-        self.__event.set()
+        return all(d.done for d in self.dependencies)
