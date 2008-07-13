@@ -17,9 +17,15 @@ colorcodes = {
 
 def color_str(s, color):
     if color is not None and sys.platform != 'win32':
-        return '\x1b[01;%.2dm%s\x1b[0m' % (colorcodes[color], s)
-    else:
-        return s
+        try:
+            color = colorcodes[color]
+        except KeyError:
+            # we couldn't find the color so just ignore
+            pass
+        else:
+            return '\x1b[01;%.2dm%s\x1b[0m' % (color, s)
+
+    return s
 
 # -----------------------------------------------------------------------------
 
