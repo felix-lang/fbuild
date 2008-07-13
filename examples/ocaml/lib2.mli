@@ -1,2 +1,2 @@
-let x = 5;;
+val x : int;;
 type y = int;;
