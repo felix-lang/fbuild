@@ -8,7 +8,6 @@ import operator
 class Scheduler:
     def __init__(self, count=0):
         self.__ready_queue = queue.Queue()
-        self.__done_queue = queue.Queue()
         self.__threads = []
 
         for i in range(max(1, count)):
@@ -58,6 +57,7 @@ class Scheduler:
     def _evaluate(self, tasks):
         count = 0
         children = {}
+        done_queue = queue.Queue()
         results = []
 
         for task in tasks:
@@ -67,10 +67,28 @@ class Scheduler:
             if task.can_run():
                 count += 1
                 task.running = True
-                self.__ready_queue.put(task)
+                self.__ready_queue.put((done_queue, task))
+
+        current_thread = threading.current_thread()
 
         while count != 0:
-            task = self.__done_queue.get()
+            if isinstance(current_thread, WorkerThread):
+                # we're inside an already running thread, so we're going to run
+                # until all of our tasks are done
+                try:
+                    current_thread.run_one(block=False)
+                except queue.Empty:
+                    pass
+
+                # see if any of our tasks are done yet
+                try:
+                    task = done_queue.get(block=False)
+                except queue.Empty:
+                    # no tasks done, so loop
+                    continue
+            else:
+                task = done_queue.get()
+
             count -= 1
             task.done = True
             if task.exc is not None:
@@ -81,7 +99,7 @@ class Scheduler:
                 if child.can_run():
                     count += 1
                     child.running = True
-                    self.__ready_queue.put(child)
+                    self.__ready_queue.put((done_queue, child))
 
         return results
 
@@ -96,31 +114,32 @@ class Scheduler:
 # -----------------------------------------------------------------------------
 
 class WorkerThread(threading.Thread):
-    def __init__(self, ready_queue, done_queue):
+    def __init__(self, ready_queue):
         super().__init__()
         self.set_daemon(True)
 
         self.__ready_queue = ready_queue
-        self.__done_queue = done_queue
         self.__finished = False
 
     def run(self):
         from fbuild import logger
 
         while True:
-            task = self.__ready_queue.get()
-            if task is None:
-                break
-
             with logger.log_from_thread():
-                try:
-                    task.result = task.function(task.src)
-                except Exception as e:
-                    task.exc = e
-                finally:
-                    self.__ready_queue.task_done()
-                    self.__done_queue.put(task)
+                if self.run_one():
+                    break
 
+    def run_one(self, *args, **kwargs):
+        queue_task = self.__ready_queue.get(*args, **kwargs)
+        if queue_task is None:
+            return True
+
+        done_queue, task = queue_task
+        try:
+            task.run()
+        finally:
+            self.__ready_queue.task_done()
+            done_queue.put(task)
 
 # -----------------------------------------------------------------------------
 
@@ -142,3 +161,9 @@ class Node:
             return True
 
         return all(d.done for d in self.dependencies)
+
+    def run(self):
+        try:
+            self.result = self.function(self.src)
+        except Exception as e:
+            self.exc = e

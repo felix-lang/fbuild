@@ -29,6 +29,15 @@ class TestScheduler(unittest.TestCase):
             self.scheduler.map(f, [0,1,2,3,4,5,6,7,8,9]),
             [1,2,3,4,5,6,7,8,9,10])
 
+        # now test if we can handle recursive scheduling
+        def g(x):
+            time.sleep(random.random() * 0.1)
+            return self.scheduler.map(f, x)
+
+        self.assertEquals(
+            self.scheduler.map(g, [[0,1,2],[3,4,5],[6,7,8]]),
+            [[1,2,3],[4,5,6],[7,8,9]])
+
     def run(self, *args, **kwargs):
         for i in range(10):
             self.threads = i
