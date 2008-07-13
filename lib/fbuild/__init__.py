@@ -45,15 +45,10 @@ def execute(cmd,
     else:
         cmd_string = ' '.join(cmd)
 
-    if scheduler.threadcount <= 1:
-        logger.write('starting %r\n' % cmd_string,
-            verbose=4,
-            buffer=False)
-    else:
-        logger.write('%-10s: starting %r\n' %
-            (threading.current_thread().get_name(), cmd_string),
-            verbose=4,
-            buffer=False)
+    logger.write('%-10s: starting %r\n' %
+        (threading.current_thread().get_name(), cmd_string),
+        verbose=4,
+        buffer=False)
 
     starttime = time.time()
     p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)

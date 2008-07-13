@@ -9,27 +9,12 @@ class Scheduler:
     def __init__(self, count=0):
         self.__ready_queue = queue.Queue()
         self.__done_queue = queue.Queue()
-        self.__threadcount_lock = threading.RLock()
         self.__threads = []
-        self.set_threadcount(count)
 
-    def set_threadcount(self, count):
-        count = max(1, count)
-
-        with self.__threadcount_lock:
-            for i in range(len(self.__threads) - count):
-                t = self.__threads.pop()
-                t.stop()
-
-            for i in range(count - len(self.__threads)):
-                thread = WorkerThread(self.__ready_queue, self.__done_queue)
-                self.__threads.append(thread)
-                thread.start()
-
-    def get_threadcount(self):
-        return len(self.__threads)
-
-    threadcount = property(get_threadcount, set_threadcount)
+        for i in range(max(1, count)):
+            thread = WorkerThread(self.__ready_queue)
+            self.__threads.append(thread)
+            thread.start()
 
     def map(self, function, srcs):
         '''
@@ -100,12 +85,13 @@ class Scheduler:
 
         return results
 
-    def shutdown(self):
-        self.set_threadcount(0)
-
     def __del__(self):
         # make sure we kill the threads
-        self.shutdown()
+        for thread in self.__threads:
+            self.__ready_queue.put(None)
+
+        for thread in self.__threads:
+            thread.join()
 
 # -----------------------------------------------------------------------------
 
@@ -121,8 +107,11 @@ class WorkerThread(threading.Thread):
     def run(self):
         from fbuild import logger
 
-        while not self.__finished:
+        while True:
             task = self.__ready_queue.get()
+            if task is None:
+                break
+
             with logger.log_from_thread():
                 try:
                     task.result = task.function(task.src)
@@ -132,8 +121,6 @@ class WorkerThread(threading.Thread):
                     self.__ready_queue.task_done()
                     self.__done_queue.put(task)
 
-    def stop(self):
-        self.__finished = True
 
 # -----------------------------------------------------------------------------
 

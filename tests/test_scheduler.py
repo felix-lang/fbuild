@@ -4,15 +4,21 @@ import unittest
 
 from fbuild.scheduler import Scheduler
 
+import threading
+
 # -----------------------------------------------------------------------------
 
 class TestScheduler(unittest.TestCase):
     def setUp(self):
+        self.assertEquals(threading.active_count(), 1)
+
         self.scheduler = Scheduler(self.threads)
 
     def tearDown(self):
-        self.scheduler.shutdown()
-        self.scheduler = None
+        # make sure we turn off all tht threads when shutting down
+        del self.scheduler
+
+        self.assertEquals(threading.active_count(), 1)
 
     def testMap(self):
         def f(x):
