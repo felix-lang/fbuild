@@ -1,25 +1,34 @@
 import os
 import textwrap
-import contextlib
 
+import fbuild
 from fbuild import logger, execute, ConfigFailed, ExecutionError
-import fbuild.temp
+from fbuild.temp import tempdir
 from fbuild.path import make_path, glob_paths
 from fbuild.builders import find_program, AbstractCompilerBuilder
 
 # -----------------------------------------------------------------------------
 
 class Ocamldep:
-    def __init__(self, exe, module_flags=['-modules']):
+    '''
+    Use ocamldoc to generate dependencies for ocaml files.
+    '''
+
+    def __init__(self, exe, module_flags=[]):
         self.exe = exe
         self.module_flags = module_flags
 
-    def __call__(self, src, *, flags=[], buildroot=fbuild.buildroot):
-        dst = make_path(src + '.depends', root=buildroot)
+    def __call__(self, src, *,
+            includes=[],
+            flags=[],
+            buildroot=fbuild.buildroot):
+        dst = make_path(src, root=buildroot) + '.depends'
         fbuild.path.make_dirs(os.path.dirname(dst))
 
         cmd = [self.exe]
         cmd.extend(self.module_flags)
+        for i in includes:
+            cmd.extend(('-I', i))
         cmd.extend(flags)
         cmd.append(src)
 
@@ -28,13 +37,31 @@ class Ocamldep:
                 stdout=f,
                 color='yellow')
 
+        def fix(path):
+            base, ext = os.path.splitext(path)
+            if ext == '.cmo' or ext == '.cmx':
+                return base + '.ml'
+            if ext == '.cmi':
+                return base + '.mli'
+
         d = {}
         with open(dst) as f:
             for line in f:
                 filename, *deps = line.split()
-                d[filename[:-1]] = deps
+                d[fix(filename[:-1])] = [fix(d) for d in deps]
 
-        return d[src]
+        paths = []
+
+        for include_path in os.path.dirname(src) or '.',:
+            # note we use listdir to protect against case insensitive
+            # filesystems
+            dirs = set(os.listdir(include_path))
+
+            for path in d.get(src, []):
+                if path not in paths:
+                    paths.append(path)
+
+        return paths
 
 def config_ocamldep(conf, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
     exe = exe or find_program(default_exes)
@@ -165,7 +192,7 @@ def check_builder(builder):
         raise ConfigFailed('ocaml exe linker failed')
 
     logger.check('Checking if ocaml can link lib to exe')
-    with fbuild.temp.tempdir() as dirname:
+    with tempdir() as dirname:
         src_lib = os.path.join(dirname, 'lib.ml')
         with open(src_lib, 'w') as f:
             print('let x = 5;;', file=f)
