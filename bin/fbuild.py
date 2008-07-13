@@ -77,7 +77,9 @@ def main(argv=None):
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
     fbuild.logger.show_threads = options.show_threads
-    fbuild.scheduler.threadcount = options.threadcount
+
+    import fbuild.scheduler
+    fbuild.scheduler = fbuild.scheduler.Scheduler(options.threadcount)
 
     try:
         config = configure_package(fbuildroot, options)

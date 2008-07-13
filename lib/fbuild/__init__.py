@@ -30,9 +30,6 @@ class ExecutionError(Error):
 import fbuild.console
 logger = fbuild.console.Log()
 
-import fbuild.scheduler
-scheduler = fbuild.scheduler.Scheduler()
-
 # -----------------------------------------------------------------------------
 
 def execute(cmd,
