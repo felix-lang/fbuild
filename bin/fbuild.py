@@ -2,7 +2,7 @@
 
 import os
 import sys
-import yaml
+import pickle
 
 # -----------------------------------------------------------------------------
 
@@ -45,12 +45,22 @@ def main(argv=None):
             help='where to store the build files (default build)'),
         make_option('--config-file',
             action='store',
-            default='config.yaml',
-            help='the name of the config file (default buildroot/config.yaml)'),
+            default='config.db',
+            help='the name of the config file (default buildroot/config.db)'),
         make_option('--log-file',
             action='store',
             default='fbuild.log',
             help='the name of the log file (default fbuild.log)'),
+        make_option('--config-dump',
+            action='store_true',
+            default=False,
+            help='print the config database'),
+        make_option('--config-query',
+            action='store',
+            help='query the config database'),
+        make_option('--config-remove',
+            action='store',
+            help='delete a key in the config'),
     ])
 
     import fbuildroot
@@ -81,12 +91,54 @@ def main(argv=None):
     import fbuild.scheduler
     fbuild.scheduler = fbuild.scheduler.Scheduler(options.threadcount)
 
+    # -------------------------------------------------------------------------
+
     try:
         config = configure_package(fbuildroot, options)
+
+        # ---------------------------------------------------------------------
+
+        if options.config_dump:
+            import pprint
+            pprint.pprint(config)
+            return 0
+
+        if options.config_query:
+            import pprint
+            d = config
+            try:
+                for key in options.config_query.split():
+                    d = d[key]
+            except KeyError:
+                raise fbuild.Error(
+                    'missing config value for %s' % options.config_query)
+            else:
+                pprint.pprint(d)
+                return 0
+
+        if options.config_remove:
+            keys = options.config_remove.split()
+            d = config
+            try:
+                for key in keys[:-1]:
+                    d = d[key]
+                del d[keys[-1]]
+                return 0
+            except KeyError:
+                raise fbuild.Error(
+                    'missing config value for %s' % options.config_remove)
+                return 1
+
+        # ---------------------------------------------------------------------
+
         fbuildroot.build(config, options)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
+    finally:
+        # re-save the config
+        with open(options.config_file, 'wb') as f:
+            pickle.dump(config, f)
 
     return 0
 
@@ -103,13 +155,13 @@ def configure_package(package, options):
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
-        with open(options.config_file, 'w') as f:
-            yaml.dump(config, f)
+        with open(options.config_file, 'wb') as f:
+            pickle.dump(config, f)
 
         fbuild.logger.log('-' * 79, color='blue')
     else:
-        with open(options.config_file) as f:
-            config = yaml.load(f)
+        with open(options.config_file, 'rb') as f:
+            config = pickle.load(f)
 
     return config
 
