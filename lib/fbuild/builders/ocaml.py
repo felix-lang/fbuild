@@ -1,4 +1,5 @@
 import os
+import io
 import textwrap
 
 import fbuild
@@ -27,8 +28,14 @@ class Ocamldep:
 
         cmd = [self.exe]
         cmd.extend(self.module_flags)
+
         for i in includes:
             cmd.extend(('-I', i))
+
+        d = os.path.dirname(src)
+        if d not in includes:
+            cmd.extend(('-I', d))
+
         cmd.extend(flags)
         cmd.append(src)
 
@@ -46,7 +53,8 @@ class Ocamldep:
 
         d = {}
         with open(dst) as f:
-            for line in f:
+            # we need to join lines ending in "\" together
+            for line in io.StringIO(f.read().replace('\\\n', '')):
                 filename, *deps = line.split()
                 d[fix(filename[:-1])] = [fix(d) for d in deps]
 
