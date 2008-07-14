@@ -33,7 +33,7 @@ class Ocamldep:
             cmd.extend(('-I', i))
 
         d = os.path.dirname(src)
-        if d not in includes:
+        if d and d not in includes:
             cmd.extend(('-I', d))
 
         cmd.extend(flags)
@@ -102,7 +102,7 @@ class Builder(AbstractCompilerBuilder):
             **kwargs):
         # we need to make sure libraries are built first before we compile
         # the sources
-        assert srcs or libs
+        assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
         dst = make_path(dst, root=buildroot)
         fbuild.path.make_dirs(os.path.dirname(dst))
@@ -132,7 +132,6 @@ class Builder(AbstractCompilerBuilder):
         cmd.extend(extra_srcs)
         cmd.extend(srcs)
 
-        from fbuild import execute
         execute(cmd, self.exe,
             '%s -> %s' % (' '.join(extra_srcs + srcs), dst),
             **kwargs)
