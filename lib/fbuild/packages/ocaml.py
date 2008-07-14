@@ -87,3 +87,13 @@ class NativeExecutable(_Linker):
 
     def command(self, conf):
         return conf['ocaml']['native'].link_exe
+
+# -----------------------------------------------------------------------------
+
+class Ocamllex(packages.SimplePackage):
+    def command(self, conf):
+        return conf['ocaml']['ocamllex']
+
+class Ocamlyacc(packages.SimplePackage):
+    def command(self, conf):
+        return conf['ocaml']['ocamlyacc']

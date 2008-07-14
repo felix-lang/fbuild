@@ -254,11 +254,63 @@ def config_native(conf,
 
 # -----------------------------------------------------------------------------
 
-def config_ocamllex(conf, exe=None):
-    pass
+class Ocamllex:
+    def __init__(self, exe, flags=[]):
+        self.exe = exe
+        self.flags = flags
 
-def config_ocamlyacc(conf, exe=None):
-    pass
+    def __call__(self, src, *,
+            flags=[],
+            buildroot=fbuild.buildroot):
+        dst = make_path(src, root=buildroot, ext='.ml')
+
+        cmd = [self.exe]
+        cmd.extend(('-o', dst))
+        cmd.extend(self.flags)
+        cmd.extend(flags)
+        cmd.append(src)
+
+        execute(cmd, self.exe,
+            '%s -> %s' % (src, dst),
+            color='yellow')
+
+        return dst
+
+def config_ocamllex(conf, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
+    exe = exe or find_program(default_exes)
+
+    conf.setdefault('ocaml', {})['ocamllex'] = Ocamllex(exe)
+
+# -----------------------------------------------------------------------------
+
+class Ocamlyacc:
+    def __init__(self, exe, flags=[]):
+        self.exe = exe
+        self.flags = flags
+
+    def __call__(self, src, *,
+            flags=[],
+            buildroot=fbuild.buildroot):
+        dst = make_path(src, root=buildroot, ext='.ml')
+
+        cmd = [self.exe]
+        cmd.extend(('-o', dst))
+        cmd.extend(self.flags)
+        cmd.extend(flags)
+        cmd.append(src)
+
+        execute(cmd, self.exe,
+            '%s -> %s' % (src, dst),
+            color='yellow')
+
+        return (dst, dst + '.i')
+
+def config_ocamlyacc(conf,
+        exe=None,
+        default_exes=['ocamlyacc.opt', 'ocamlyacc']):
+    exe = exe or find_program(default_exes)
+
+    conf.setdefault('ocaml', {})['ocamlyacc'] = Ocamlyacc(exe)
 
 # -----------------------------------------------------------------------------
 
