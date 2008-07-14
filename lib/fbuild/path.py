@@ -67,12 +67,12 @@ def find_in_paths(filename, paths=None):
     return None
 
 
-def make_path(path, prefix=None, suffix=None, root=None):
+def make_path(path, prefix=None, suffix=None, root=None, ext=None):
     # if the path is not a string, assume it's a list of path elements
     if not isinstance(path, str):
         path = os.path.join(*path)
 
-    if root is not None:
+    if root is not None and not path.startswith(root):
         path = os.path.join(root, path)
 
     if prefix is not None:
@@ -82,13 +82,16 @@ def make_path(path, prefix=None, suffix=None, root=None):
     if suffix is not None:
         path += suffix
 
+    if ext is not None:
+        path = os.path.splitext(path)[0] + ext
+
     return path
 
 
-def glob_paths(paths, root=None):
+def glob_paths(paths, *args, **kwargs):
     new_paths = []
     for path in paths:
-        new_paths.extend(glob.glob(make_path(path, root=root)))
+        new_paths.extend(glob.glob(make_path(path, *args, **kwargs)))
     return new_paths
 
 
