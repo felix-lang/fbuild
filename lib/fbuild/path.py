@@ -88,6 +88,10 @@ def make_path(path, prefix=None, suffix=None, root=None, ext=None):
     return path
 
 
+def glob_path(path, *args, **kwargs):
+    return glob.glob(make_path(path, *args, **kwargs))
+
+
 def glob_paths(paths, *args, **kwargs):
     new_paths = []
     for path in paths:
