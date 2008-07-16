@@ -36,6 +36,10 @@ class Ocamldep:
         if d and d not in includes:
             cmd.extend(('-I', d))
 
+        d = os.path.dirname(dst)
+        if d and d not in includes:
+            cmd.extend(('-I', d))
+
         cmd.extend(flags)
         cmd.append(src)
 
@@ -124,7 +128,7 @@ class Builder(AbstractCompilerBuilder):
             cmd.extend(('-I', i))
 
         d = os.path.dirname(dst)
-        if d not in includes:
+        if d and d not in includes:
             cmd.extend(('-I', d))
 
         cmd.extend(flags)
