@@ -90,6 +90,39 @@ class NativeExecutable(_Linker):
 
 # -----------------------------------------------------------------------------
 
+class Library(_Linker):
+    '''
+    Choose the native compiler if it is available, or if not available, fall
+    back to the bytecode compiler.
+    '''
+
+    def compiler(self, conf):
+        try:
+            return conf['ocaml']['native'].compile
+        except KeyError:
+            return conf['ocaml']['bytecode'].compile
+
+    def command(self, conf):
+        try:
+            return conf['ocaml']['native'].link_lib
+        except KeyError:
+            return conf['ocaml']['bytecode'].link_lib
+
+class Executable(_Linker):
+    def compiler(self, conf):
+        try:
+            return conf['ocaml']['native'].compile
+        except KeyError:
+            return conf['ocaml']['bytecode'].compile
+
+    def command(self, conf):
+        try:
+            return conf['ocaml']['native'].link_exe
+        except KeyError:
+            return conf['ocaml']['bytecode'].link_exe
+
+# -----------------------------------------------------------------------------
+
 class Ocamllex(packages.SimplePackage):
     def command(self, conf):
         return conf['ocaml']['ocamllex']
