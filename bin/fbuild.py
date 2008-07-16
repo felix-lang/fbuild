@@ -96,8 +96,13 @@ def main(argv=None):
     try:
         config = configure_package(fbuildroot, options)
 
-        # ---------------------------------------------------------------------
+    except fbuild.Error as e:
+        fbuild.logger.log(e, color='red')
+        return 1
 
+    # -------------------------------------------------------------------------
+
+    try:
         if options.config_dump:
             import pprint
             pprint.pprint(config)
