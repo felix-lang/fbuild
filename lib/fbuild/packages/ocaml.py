@@ -41,7 +41,9 @@ class _Linker(packages.SimplePackage):
         self.libs = libs
 
     def dependencies(self, conf):
-        return chain(self.srcs, self.libs)
+        # filter out system libraries
+        return chain(self.srcs, (lib for lib in self.libs
+            if isinstance(lib, packages.AbstractPackage)))
 
     def run(self, conf):
         libs = packages.build_srcs(conf, self.libs)
