@@ -168,7 +168,8 @@ class Builder(AbstractCompilerBuilder):
 
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
-    def link_lib(self, dst, *args, **kwargs):
+    def link_lib(self, dst, *args, libs=[], **kwargs):
+        # ignore passed in libraries
         return self._link(dst + self.lib_suffix,
             pre_flags=['-a'], *args, **kwargs)
 
