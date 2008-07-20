@@ -29,7 +29,7 @@ class _Linker(packages.SimplePackage):
 
     def run(self, conf):
         libs = packages.build_srcs(conf, self.libs)
-        srcs = packages.build_srcs(conf, srcs)
+        srcs = packages.build_srcs(conf, self.srcs)
 
         objs = scheduler.map(
             partial(self.compiler(conf), includes=self.includes),
