@@ -1,5 +1,3 @@
-import os
-
 from fbuild import logger, ConfigFailed
 from fbuild.temp import tempfile
 from . import std, MissingHeader
@@ -41,8 +39,7 @@ def config_dlfcn_h(conf):
 
     with tempfile(lib_code, shared.src_suffix) as lib_src:
         obj = shared.compile(lib_src, quieter=1)
-        lib = shared.link_lib((os.path.dirname(lib_src), 'temp'), [obj],
-            quieter=1)
+        lib = shared.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
 
         dlfcn_h['dlopen'] = static.check_run(exe_code % lib,
             'check if supports dlopen')

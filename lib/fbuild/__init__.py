@@ -4,6 +4,11 @@ import threading
 
 # -----------------------------------------------------------------------------
 
+# just share Path with everything that uses fbuild
+from fbuild.path import Path
+
+# -----------------------------------------------------------------------------
+
 class Error(Exception):
     pass
 

@@ -1,11 +1,10 @@
-import os
 import io
 import textwrap
 
 import fbuild
 from fbuild import logger, execute, ConfigFailed, ExecutionError
 from fbuild.temp import tempdir
-from fbuild.path import make_path, glob_paths
+from fbuild.path import Path
 from fbuild.builders import find_program, AbstractCompilerBuilder
 
 # -----------------------------------------------------------------------------
@@ -23,8 +22,10 @@ class Ocamldep:
             includes=[],
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = make_path(src, root=buildroot) + '.depends'
-        fbuild.path.make_dirs(os.path.dirname(dst))
+        dst = src + '.depends'
+        if not dst.startswith(buildroot):
+            dst = buildroot / dst
+        dst.parent.make_dirs()
 
         cmd = [self.exe]
         cmd.extend(self.module_flags)
@@ -32,13 +33,11 @@ class Ocamldep:
         for i in includes:
             cmd.extend(('-I', i))
 
-        d = os.path.dirname(src)
-        if d and d not in includes:
-            cmd.extend(('-I', d))
+        if src.parent and src.parent not in includes:
+            cmd.extend(('-I', src.parent))
 
-        d = os.path.dirname(dst)
-        if d and d not in includes:
-            cmd.extend(('-I', d))
+        if dst.parent and dst.parent not in includes:
+            cmd.extend(('-I', dst.parent))
 
         cmd.extend(flags)
         cmd.append(src)
@@ -48,30 +47,22 @@ class Ocamldep:
                 stdout=f,
                 color='yellow')
 
-        def fix(path):
-            base, ext = os.path.splitext(path)
-            if ext == '.cmo' or ext == '.cmx':
-                return base + '.ml'
-            if ext == '.cmi':
-                return base + '.mli'
-
+        suffixes = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
         d = {}
         with open(dst) as f:
             # we need to join lines ending in "\" together
             for line in io.StringIO(f.read().replace('\\\n', '')):
-                filename, *deps = line.split()
-                d[fix(filename[:-1])] = [fix(d) for d in deps]
+                name, *deps = line.split()
+
+                # strip off the ':'
+                name = Path(name[:-1]).replace_suffixes(suffixes)
+
+                d[name] = Path.replace_all_suffixes(deps, suffixes)
 
         paths = []
-
-        for include_path in os.path.dirname(src) or '.',:
-            # note we use listdir to protect against case insensitive
-            # filesystems
-            dirs = set(os.listdir(include_path))
-
-            for path in d.get(src, []):
-                if path not in paths:
-                    paths.append(path)
+        for path in d.get(src, []):
+            if path not in paths:
+                paths.append(path)
 
         return paths
 
@@ -108,12 +99,13 @@ class Builder(AbstractCompilerBuilder):
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
-        dst = make_path(dst, root=buildroot)
-        fbuild.path.make_dirs(os.path.dirname(dst))
+        if not dst.startswith(buildroot):
+            dst = buildroot / dst
+        dst.parent.make_dirs()
 
         extra_srcs = []
         for lib in libs:
-            if os.path.exists(lib):
+            if lib.exists():
                 extra_srcs.append(lib)
             else:
                 extra_srcs.append(lib + self.lib_suffix)
@@ -127,9 +119,8 @@ class Builder(AbstractCompilerBuilder):
         for i in includes:
             cmd.extend(('-I', i))
 
-        d = os.path.dirname(dst)
-        if d and d not in includes:
-            cmd.extend(('-I', d))
+        if dst.parent and dst.parent not in includes:
+            cmd.extend(('-I', dst.parent))
 
         cmd.extend(flags)
         cmd.extend(('-o', dst))
@@ -143,10 +134,8 @@ class Builder(AbstractCompilerBuilder):
         return dst
 
     def _compile(self, src, dst=None, *args, obj_suffix, **kwargs):
-        src = make_path(src)
-
         if dst is None:
-            dst = os.path.splitext(src)[0] + obj_suffix
+            dst = src.replace_ext(obj_suffix)
 
         return self._run(dst, [src],
             pre_flags=['-c'],
@@ -160,16 +149,13 @@ class Builder(AbstractCompilerBuilder):
         return self._compile(obj_suffix='.cmi', *args, **kwargs)
 
     def compile(self, src, *args, **kwargs):
-        src = make_path(src)
-
         if src.endswith('.mli'):
             return self.compile_interface(src, *args, **kwargs)
         else:
             return self.compile_implementation(src, *args, **kwargs)
 
     def _link(self, dst, srcs, *args, libs=[], **kwargs):
-        srcs = glob_paths(srcs)
-
+        srcs = Path.glob_all(srcs)
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
     def link_lib(self, dst, *args, libs=[], **kwargs):
@@ -202,23 +188,20 @@ def check_builder(builder):
         raise ConfigFailed('ocaml exe linker failed')
 
     logger.check('Checking if ocaml can link lib to exe')
-    with tempdir() as dirname:
-        src_lib = os.path.join(dirname, 'lib.ml')
+    with tempdir() as parent:
+        src_lib = parent / 'lib.ml'
         with open(src_lib, 'w') as f:
             print('let x = 5;;', file=f)
 
-        src_exe = os.path.join(dirname, 'exe.ml')
+        src_exe = parent / 'exe.ml'
         with open(src_exe, 'w') as f:
             print('print_int Lib.x;;', file=f)
 
         obj = builder.compile(src_lib, quieter=1)
-        lib = builder.link_lib(os.path.join(dirname, 'lib'), [obj],
-            quieter=1)
+        lib = builder.link_lib(parent / 'lib', [obj], quieter=1)
 
         obj = builder.compile(src_exe, quieter=1)
-        exe = builder.link_exe(os.path.join(dirname, 'exe'), [obj],
-            libs=[lib],
-            quieter=1)
+        exe = builder.link_exe(parent / 'exe', [obj], libs=[lib], quieter=1)
 
         try:
             stdout, stderr = execute([exe], quieter=1)
@@ -267,7 +250,9 @@ class Ocamllex:
     def __call__(self, src, *,
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = make_path(src, root=buildroot, ext='.ml')
+        dst = src.replace_ext('.ml')
+        if not dst.startswith(buildroot):
+            dst = buildroot / dst
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))
@@ -296,7 +281,9 @@ class Ocamlyacc:
     def __call__(self, src, *,
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = make_path(src, root=buildroot, ext='.ml')
+        dst = src.replace_ext('.ml')
+        if not dst.startswith(buildroot):
+            dst = buildroot / dst
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))

@@ -1,26 +1,26 @@
-import os
-import tempfile as _tempfile
-import shutil
 import textwrap
 import contextlib
+
+from fbuild.path import Path
 
 # -----------------------------------------------------------------------------
 
 @contextlib.contextmanager
 def tempdir(*args, **kwargs):
-    name = _tempfile.mkdtemp(*args, **kwargs)
+    import tempfile
+    path = Path(tempfile.mkdtemp(*args, **kwargs))
     try:
-        yield name
+        yield path
     finally:
-        shutil.rmtree(name)
+        path.rmtree()
 
 # -----------------------------------------------------------------------------
 
 @contextlib.contextmanager
 def tempfile(src, suffix='', name='temp'):
     with tempdir() as dirname:
-        name = os.path.join(dirname, name + suffix)
+        name = dirname / name + suffix
         with open(name, 'w') as f:
             print(textwrap.dedent(src), file=f)
 
-        yield name
+        yield Path(name)

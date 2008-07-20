@@ -1,6 +1,4 @@
-import os
-
-from fbuild import execute
+from fbuild import Path, execute
 import fbuild.builders
 
 # -----------------------------------------------------------------------------
@@ -18,14 +16,14 @@ class Linker:
             ranlib_flags=[],
             destdir=None,
             **kwargs):
-        dst = fbuild.path.make_path(dst, self.prefix, self.suffix)
-        srcs = fbuild.path.glob_paths(srcs)
-        assert srcs
+        dst = dst.parent / self.prefix + dst.name + self.suffix
+        srcs = Path.glob_all(srcs)
+
+        assert srcs, 'no sources passed into ar'
 
         if destdir is not None:
-            if not os.path.exists(destdir):
-                os.makedirs(destdir)
-            dst = os.path.join(destdir, dst)
+            destdir.make_dirs()
+            dst = destdir / dst
 
         cmd = [self.ar]
         cmd.extend(self.flags)

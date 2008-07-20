@@ -83,7 +83,7 @@ def main(argv=None):
         options, args = post_options(options, args) or (options, args)
 
     import fbuild
-    fbuild.buildroot = options.buildroot
+    fbuild.buildroot = fbuild.Path(options.buildroot)
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
     fbuild.logger.show_threads = options.show_threads

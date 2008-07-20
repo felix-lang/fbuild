@@ -1,4 +1,3 @@
-import os
 from fbuild import logger, execute, ConfigFailed, ExecutionError
 import fbuild.temp
 import fbuild.builders
@@ -107,11 +106,11 @@ def check_builder(builder):
 
     logger.check('Checking if can link lib to exe')
     with fbuild.temp.tempdir() as dirname:
-        src_lib = os.path.join(dirname, 'templib' + builder.src_suffix)
+        src_lib = dirname / 'templib' + builder.src_suffix
         with open(src_lib, 'w') as f:
             print('int foo() { return 5; }', file=f)
 
-        src_exe = os.path.join(dirname, 'tempexe' + builder.src_suffix)
+        src_exe = dirname / 'tempexe' + builder.src_suffix
         with open(src_exe, 'w') as f:
             print('#include <stdio.h>', file=f)
             print('extern int foo();', file=f)
@@ -121,13 +120,9 @@ def check_builder(builder):
             print('}', file=f)
 
         obj = builder.compile(src_lib, quieter=1)
-        lib = builder.link_lib(os.path.join(dirname, 'temp'), [obj],
-            quieter=1)
-
+        lib = builder.link_lib(dirname / 'temp', [obj], quieter=1)
         obj = builder.compile(src_exe, quieter=1)
-        exe = builder.link_exe(os.path.join(dirname, 'temp'), [obj],
-            libs=[lib],
-            quieter=1)
+        exe = builder.link_exe(dirname / 'temp', [obj], libs=[lib], quieter=1)
 
         try:
             stdout, stderr = execute([exe], quieter=1)

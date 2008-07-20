@@ -1,9 +1,7 @@
-import os
-import shutil
 from optparse import make_option
 import pprint
 
-from fbuild import logger, execute
+from fbuild import Path, logger, execute
 from fbuild.builders import run_tests, run_optional_tests
 import fbuild.builders.platform as platform
 import fbuild.builders.c.c99 as c99
@@ -125,19 +123,19 @@ def build(conf, options):
         for mode in 'static', 'shared':
             builder = conf[lang][mode]
 
-            d = os.path.join(lang, mode)
+            d = Path(lang, mode)
             try:
-                shutil.rmtree(d)
+                d.rmtree()
             except OSError:
                 pass
 
-            os.makedirs(d)
-            shutil.copy('foo.c', d)
-            shutil.copy('bar.c', d)
+            d.make_dirs()
+            Path.copy('foo.c', d)
+            Path.copy('bar.c', d)
 
-            obj = builder.compile((d, 'bar.c'))
-            lib = builder.link_lib((d, 'bar'), [obj])
+            obj = builder.compile(d / 'bar.c')
+            lib = builder.link_lib(d / 'bar', [obj])
 
-            obj = builder.compile((d, 'foo.c'))
-            exe = builder.link_exe((d, 'foo'), [obj], libs=[lib])
+            obj = builder.compile(d / 'foo.c')
+            exe = builder.link_exe(d / 'foo', [obj], libs=[lib])
             execute([exe], 'running', exe)

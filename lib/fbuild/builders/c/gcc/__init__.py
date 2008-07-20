@@ -1,9 +1,8 @@
-import os
 from functools import partial
 
 import fbuild
 from fbuild import logger, ExecutionError, ConfigFailed
-from fbuild.path import make_path, glob_paths
+from fbuild.path import Path
 import fbuild.builders.c as c
 
 # -----------------------------------------------------------------------------
@@ -42,7 +41,7 @@ class Gcc:
         from fbuild.temp import tempfile
         with tempfile(code, suffix='.c') as src:
             try:
-                self(flags + [src], quieter=1, cwd=os.path.dirname(src))
+                self(flags + [src], quieter=1, cwd=src.parent)
             except ExecutionError:
                 logger.failed()
                 return False
@@ -93,12 +92,12 @@ class Compiler:
             optimize=False,
             buildroot=fbuild.buildroot,
             **kwargs):
-        src = make_path(src)
+        src = Path(src)
         if dst is None:
-            dst = os.path.splitext(src)[0] + self.suffix
+            dst = src.replace_ext(self.suffix)
 
-        dst = make_path(dst, root=buildroot)
-        fbuild.path.make_dirs(os.path.dirname(dst))
+        dst = buildroot / dst
+        dst.parent.make_dirs()
 
         cmd_flags = []
 
@@ -152,19 +151,19 @@ class Linker:
             flags=[],
             buildroot=fbuild.buildroot,
             **kwargs):
-        srcs = glob_paths(srcs)
+        srcs = Path.glob_all(srcs)
 
         assert srcs or libs
 
-        dst = make_path(dst, self.prefix, self.suffix, root=buildroot)
-        fbuild.path.make_dirs(os.path.dirname(dst))
+        dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
+        dst.parent.make_dirs()
 
         cmd_flags = []
         cmd_flags.extend('-L' + p for p in libpaths)
 
         extra_srcs = []
         for lib in libs:
-            if os.path.exists(lib):
+            if lib.exists():
                 extra_srcs.append(lib)
             else:
                 cmd_flags.append('-l' + lib)

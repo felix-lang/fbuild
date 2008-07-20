@@ -1,8 +1,6 @@
-import os
 import time
 
 import fbuild
-import fbuild.path
 
 # -----------------------------------------------------------------------------
 
@@ -45,7 +43,7 @@ class AbstractPackage:
 
 class FilePackage(AbstractPackage):
     def __init__(self, target):
-        super().__init__(fbuild.path.make_path(target))
+        super().__init__(fbuild.Path(target))
 
     def dependencies(self, conf):
         return []
@@ -66,7 +64,7 @@ class FilePackage(AbstractPackage):
                     self._is_dirty = True
                     return True
             else:
-                if timestamp < os.path.getmtime(src):
+                if timestamp < src.mtime:
                     self._is_dirty = True
                     return True
 
@@ -95,26 +93,25 @@ def build(conf, src):
     return src
 
 def build_srcs(conf, srcs):
-    new_srcs = []
+    results = []
     for src in srcs:
-        src = build(conf, src)
-        if isinstance(src, str):
-            new_srcs.append(src)
+        result = build(conf, src)
+        if isinstance(result, str):
+            results.append(result)
         else:
             # assume it's iterable
-            new_srcs.extend(src)
-    return new_srcs
+            results.extend(result)
+    return results
 
 def glob_paths(srcs):
-    new_srcs = []
+    paths = []
     for src in srcs:
         if isinstance(src, AbstractPackage):
-            new_srcs.append(src)
+            paths.append(src)
+        elif isinstance(src, str):
+            paths.extend(fbuild.Path(src).glob())
         else:
-            try:
-                paths = fbuild.path.glob_paths([src])
-            except TypeError:
-                new_srcs.append(src)
-            else:
-                new_srcs.extend(paths)
-    return new_srcs
+            # assume it's a list-like object
+            paths.extend(fbuild.Path.glob_all(src))
+
+    return paths
