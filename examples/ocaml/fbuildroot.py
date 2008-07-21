@@ -5,10 +5,10 @@ def configure(conf, options):
 def build(conf, options):
     import fbuild.packages.ocaml as ocaml
 
-    lib = ocaml.BytecodeLibrary('lib', ['lib*.ml', 'lib*.mli'])
+    lib = ocaml.BytecodeLibrary('lib', ['lib*.ml{,i}'])
     exe = ocaml.BytecodeExecutable('exe.byte', ['exe.ml'], libs=[lib])
     exe.build(conf)
 
-    lib = ocaml.NativeLibrary('lib', ['lib*.ml'])
+    lib = ocaml.NativeLibrary('lib', ['lib*.ml{,i}'])
     exe = ocaml.NativeExecutable('exe.native', ['exe.ml'], libs=[lib])
     exe.build(conf)

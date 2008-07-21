@@ -1,8 +1,8 @@
 import os
-import glob
 import shutil
 import types
 import itertools
+import re
 
 # -----------------------------------------------------------------------------
 
@@ -174,12 +174,12 @@ class Path(str):
                 yield os.path.join(root, f)
 
     def fnmatch(self, pattern):
-        import fnmatch
-        return fnmatch.fnmatch(self, pattern)
+        import fbuild.fnmatch
+        return fbuild.fnmatch.fnmatch(self, pattern)
 
     def glob(self):
-        import glob
-        return [Path(path) for path in glob.glob(self)]
+        import fbuild.glob
+        return [Path(path) for path in fbuild.glob.glob(self)]
 
     listdir = os.listdir
 
