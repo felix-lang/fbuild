@@ -22,9 +22,7 @@ class Ocamldep:
             includes=[],
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = src + '.depends'
-        if not dst.startswith(buildroot):
-            dst = buildroot / dst
+        dst = (src + '.depends').replace_root(buildroot)
         dst.parent.make_dirs()
 
         cmd = [self.exe]
@@ -99,8 +97,7 @@ class Builder(AbstractCompilerBuilder):
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
-        if not dst.startswith(buildroot):
-            dst = buildroot / dst
+        dst = dst.replace_root(buildroot)
         dst.parent.make_dirs()
 
         extra_srcs = []
@@ -250,9 +247,7 @@ class Ocamllex:
     def __call__(self, src, *,
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = src.replace_ext('.ml')
-        if not dst.startswith(buildroot):
-            dst = buildroot / dst
+        dst = src.replace_ext('.ml').replace_root(buildroot)
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))
@@ -281,9 +276,7 @@ class Ocamlyacc:
     def __call__(self, src, *,
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = src.replace_ext('.ml')
-        if not dst.startswith(buildroot):
-            dst = buildroot / dst
+        dst = src.replace_ext('.ml').replace_root(buildroot)
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))
