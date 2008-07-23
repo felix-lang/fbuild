@@ -78,8 +78,15 @@ def config_ext_hash_map(conf):
     if not conf['static'].check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
 
-    # FIXME: just make a hash_map stub until we write a test for it
-    conf.setdefault('ext', {}).setdefault('hash_map', {})
+    gxx = conf.setdefault('gxx', {})
+    gxx['hash_map'] = conf['static'].check_compile('''
+        #include <ext/hash_map>
+        using namespace __gnu_cxx;
+
+        int main(int argc,char** argv) {
+            return 0;
+        }
+    ''', 'checking if gnu hash_map is supported')
 
 def config_extensions(conf):
     config_ext_hash_map(conf)
