@@ -65,6 +65,16 @@ def config_sys_mman_h(conf):
 
 # -----------------------------------------------------------------------------
 
+def config_poll_h(conf):
+    static = conf['static']
+    if not static.check_header_exists('poll.h'):
+        raise MissingHeader('poll.h')
+
+    # just check if the header exists for now
+    conf.setdefault('headers', {}).setdefault('poll_h', {})
+
+# -----------------------------------------------------------------------------
+
 def config_pthread_h(conf):
     static = conf['static']
     if not static.check_header_exists('pthread.h'):
@@ -90,8 +100,7 @@ def config_pthread_h(conf):
 
     logger.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
-        if static.try_run(code,
-                lflags={'flags': flags}):
+        if static.try_run(code, lflags={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
             pthread_h['flags'] = flags
             break
@@ -154,6 +163,7 @@ def config_unistd_h(conf):
 
 def config(conf):
     config_dlfcn_h(conf)
+    config_poll_h(conf)
     config_pthread_h(conf)
     config_sys_mman_h(conf)
     config_sys_socket_h(conf)
