@@ -6,7 +6,7 @@ from fbuild import ConfigFailed
 
 def config_function(conf, function):
     cmath = conf.setdefault('headers', {}).setdefault('cmath', {})
-    cmath['function'] = conf['static'].check_compile('''
+    cmath[function] = conf['static'].check_compile('''
         #include <cmath>
         int main(int argc, char** argv) {
             std::%s(0.0);
