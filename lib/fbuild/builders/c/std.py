@@ -108,14 +108,18 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_types(conf):
+def config_types(conf,
+        types_int=default_types_int,
+        types_float=default_types_float,
+        types_misc=default_types_misc):
     std = conf.setdefault('std', {})
     static = conf['static']
-    std['types'] = get_types_data(static, default_types_int, int_type=True)
-    std['types'].update(get_types_data(static, default_types_float))
-    std['types'].update(get_types_data(static, default_types_misc))
+    std['types'] = get_types_data(static, types_int, int_type=True)
+    std['types'].update(get_types_data(static, types_float))
+    std['types'].update(get_types_data(static, types_misc))
+    std['types']['enum'] = get_type_data(static, 'enum enum_t {tag}')
 
-    pairs = [(t1, t2) for t1 in default_types_int for t2 in default_types_int]
+    pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
     logger.check('getting int type conversions')
     try:
