@@ -135,7 +135,8 @@ def config_stddef_h(conf):
         raise MissingHeader('stddef.h')
 
     stddef_h = conf.setdefault('headers', {}).setdefault('stddef_h', {})
-    stddef_h['types'] = get_types_data(static, default_types_stddef_h)
+    stddef_h['types'] = get_types_data(static, default_types_stddef_h,
+        int_type=True)
 
 def config(conf):
     config_types(conf)
