@@ -5,9 +5,14 @@ from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-default_types_int = tuple('%s%s' % (prefix, typename)
+# Since the 'char' type can be signed or unsigned, put the type first so that
+# the 'signed char' or 'unsigned char' will have precidence over the ambigous
+# 'char' type.
+default_types_int = ('signed char', 'unsigned char', 'char')
+
+default_types_int += tuple('%s%s' % (prefix, typename)
     for prefix in ('', 'signed ', 'unsigned ')
-    for typename in ('char', 'short', 'int', 'long', 'long long'))
+    for typename in ('short', 'int', 'long', 'long long'))
 
 default_types_float = ('float', 'double', 'long double')
 
