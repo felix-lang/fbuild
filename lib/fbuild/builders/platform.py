@@ -33,8 +33,8 @@ archmap = {
     'freebsd':   {'posix', 'bsd', 'freebsd'},
     'netbsd':    {'posix', 'bsd', 'netbsd'},
     'openbsd':   {'posix', 'bsd', 'openbsd'},
-    'darwin':    {'posix', 'bsd', 'darwin'},
-    'osx':       {'posix', 'bsd', 'darwin'},
+    'darwin':    {'posix', 'bsd', 'darwin', 'macosx'},
+    'osx':       {'posix', 'bsd', 'darwin', 'macosx'},
 }
 
 # -----------------------------------------------------------------------------
