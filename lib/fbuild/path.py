@@ -81,8 +81,8 @@ class Path(str):
         return Path.relative_path_to(self, os.getcwd())
 
     def relative_path_to(self, path):
-        roots = Path.split_all(os.path.abspath(self))
-        paths = Path.split_all(os.path.abspath(path))
+        paths = Path.split_all(os.path.abspath(self))
+        roots = Path.split_all(os.path.abspath(path))
 
         for i, (r, p) in enumerate(zip(roots, paths)):
             j = i
