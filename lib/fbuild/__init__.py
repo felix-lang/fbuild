@@ -56,9 +56,14 @@ def execute(cmd,
         buffer=False)
 
     starttime = time.time()
-    p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
-    stdout, stderr = p.communicate()
-    returncode = p.wait()
+    try:
+        p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
+        stdout, stderr = p.communicate()
+        returncode = p.wait()
+    except OSError as e:
+        # flush the logger
+        logger.log('command failed: ' + cmd_string, color='red')
+        raise e from e
     endtime = time.time()
 
     if msg1:
