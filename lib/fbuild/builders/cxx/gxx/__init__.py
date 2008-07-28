@@ -61,7 +61,7 @@ def config_shared(conf, *args,
         src_suffix=src_suffix,
         *args, **kwargs)
 
-def config(conf, exe, *args,
+def config(conf, exe=None, *args,
         config_gxx=config_gxx,
         config_static=config_static,
         config_shared=config_shared,
