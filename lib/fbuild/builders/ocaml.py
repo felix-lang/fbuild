@@ -248,6 +248,7 @@ class Ocamllex:
             flags=[],
             buildroot=fbuild.buildroot):
         dst = src.replace_ext('.ml').replace_root(buildroot)
+        dst.parent.make_dirs()
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))
