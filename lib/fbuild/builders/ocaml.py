@@ -96,12 +96,12 @@ class Builder(AbstractCompilerBuilder):
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
-        dst = dst.replace_root(buildroot)
+        dst = Path.replace_root(dst, buildroot)
         dst.parent.make_dirs()
 
         extra_srcs = []
         for lib in libs:
-            if lib.exists():
+            if Path.exists(lib):
                 extra_srcs.append(lib)
             else:
                 extra_srcs.append(lib + self.lib_suffix)

@@ -2,7 +2,6 @@ from functools import partial
 
 import fbuild
 from fbuild import logger, ExecutionError, ConfigFailed
-from fbuild.path import Path
 import fbuild.builders.c as c
 
 # -----------------------------------------------------------------------------
@@ -92,7 +91,7 @@ class Compiler:
             optimize=False,
             buildroot=fbuild.buildroot,
             **kwargs):
-        src = Path(src)
+        src = fbuild.Path(src)
         if dst is None:
             dst = src.replace_ext(self.suffix)
 
@@ -151,10 +150,11 @@ class Linker:
             flags=[],
             buildroot=fbuild.buildroot,
             **kwargs):
-        srcs = Path.glob_all(srcs)
+        srcs = fbuild.Path.glob_all(srcs)
 
         assert srcs or libs
 
+        dst = fbuild.Path(dst)
         dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
         dst.parent.make_dirs()
 
