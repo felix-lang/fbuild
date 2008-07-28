@@ -6,21 +6,20 @@ import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
 
-class StaticObject(packages.SimplePackage):
-    def command(self, conf):
-        return conf['c']['static'].compile
+class StaticObject(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['c']['static'].compile(*args, **kwargs)
 
-class SharedObject(packages.SimplePackage):
-    def command(self, conf):
-        return conf['c']['shared'].compile
+class SharedObject(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['c']['shared'].compile(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
-class _Linker(packages.SimplePackage):
+class _Linker(packages.ManyToOnePackage):
     def __init__(self, dst, srcs, *, includes=[], libs=[], **kwargs):
-        super().__init__(dst, **kwargs)
+        super().__init__(dst, packages.glob_paths(srcs), **kwargs)
 
-        self.srcs = packages.glob_paths(srcs)
         self.includes = includes
         self.libs = libs
 
@@ -32,28 +31,29 @@ class _Linker(packages.SimplePackage):
         srcs = packages.build_srcs(conf, self.srcs)
 
         objs = scheduler.map(
-            partial(self.compiler(conf), includes=self.includes),
+            partial(self.compiler, conf, includes=self.includes),
             srcs)
 
-        return super(_Linker, self).run(conf, objs, libs=libs)
+        return self.command(conf, packages.build(conf, self.dst), objs,
+            libs=libs)
 
 class StaticLibrary(_Linker):
-    def compiler(self, conf):
-        return conf['c']['static'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['c']['static'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['c']['static'].link_lib
+    def command(self, conf, *args, **kwargs):
+        return conf['c']['static'].link_lib(*args, **kwargs)
 
 class SharedLibrary(_Linker):
-    def compiler(self, conf):
-        return conf['c']['shared'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['c']['shared'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['c']['shared'].link_lib
+    def command(self, conf, *args, **kwargs):
+        return conf['c']['shared'].link_lib(*args, **kwargs)
 
 class Executable(_Linker):
-    def compiler(self, conf):
-        return conf['c']['static'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['c']['static'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['c']['static'].link_exe
+    def command(self, conf, *args, **kwargs):
+        return conf['c']['static'].link_exe(*args, **kwargs)

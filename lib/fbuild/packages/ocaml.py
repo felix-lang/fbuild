@@ -6,44 +6,43 @@ import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
 
-class BytecodeModule(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['bytecode'].compile
+class BytecodeModule(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
 
-class NativeModule(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['native'].compile
+class NativeModule(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].compile(*args, **kwargs)
 
-class BytecodeImplementation(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['bytecode'].compile_implementation
+class BytecodeImplementation(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].compile_implementation(*args, **kwargs)
 
-class NativeImplementation(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['native'].compile_implementation
+class NativeImplementation(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].compile_implementation(*args, **kwargs)
 
-class BytecodeInterface(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['bytecode'].compile_interface
+class BytecodeInterface(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].compile_interface(*args, **kwargs)
 
-class NativeInterface(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['native'].compile_interface
+class NativeInterface(packages.OneToOnePackage):
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].compile_interface(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
-class _Linker(packages.SimplePackage):
+class _Linker(packages.ManyToOnePackage):
     def __init__(self, dst, srcs, *, includes=[], libs=[], **kwargs):
-        super().__init__(dst, **kwargs)
+        super().__init__(dst, packages.glob_paths(srcs), **kwargs)
 
-        self.srcs = packages.glob_paths(srcs)
         self.includes = includes
         self.libs = libs
 
     def dependencies(self, conf):
         # filter out system libraries
-        return chain(self.srcs, (lib for lib in self.libs
-            if isinstance(lib, packages.AbstractPackage)))
+        return chain(super().dependencies(conf), (lib for lib in self.libs
+            if isinstance(lib, packages.Package)))
 
     def run(self, conf):
         libs = packages.build_srcs(conf, self.libs)
@@ -61,42 +60,42 @@ class _Linker(packages.SimplePackage):
         # all of the source files will have been evaluated
         objs = fbuild.scheduler.map_with_dependencies(
             partial(conf['ocaml']['ocamldep'], includes=includes),
-            partial(self.compiler(conf),       includes=includes),
+            partial(self.compiler, conf, includes=includes),
             srcs)
 
         objs = [obj for obj in objs if not obj.endswith('cmi')]
 
-        return super(_Linker, self).run(conf, objs,
+        return self.command(conf, packages.build(conf, self.dst), objs,
             includes=includes,
             libs=libs)
 
 class BytecodeLibrary(_Linker):
-    def compiler(self, conf):
-        return conf['ocaml']['bytecode'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['ocaml']['bytecode'].link_lib
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].link_lib(*args, **kwargs)
 
 class NativeLibrary(_Linker):
-    def compiler(self, conf):
-        return conf['ocaml']['native'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['ocaml']['native'].link_lib
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].link_lib(*args, **kwargs)
 
 class BytecodeExecutable(_Linker):
-    def compiler(self, conf):
-        return conf['ocaml']['bytecode'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['ocaml']['bytecode'].link_exe
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['bytecode'].link_exe(*args, **kwargs)
 
 class NativeExecutable(_Linker):
-    def compiler(self, conf):
-        return conf['ocaml']['native'].compile
+    def compiler(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].compile(*args, **kwargs)
 
-    def command(self, conf):
-        return conf['ocaml']['native'].link_exe
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['native'].link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -106,37 +105,37 @@ class Library(_Linker):
     back to the bytecode compiler.
     '''
 
-    def compiler(self, conf):
+    def compiler(self, conf, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].compile
+            return conf['ocaml']['native'].compile(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].compile
+            return conf['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf):
+    def command(self, conf, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].link_lib
+            return conf['ocaml']['native'].link_lib(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].link_lib
+            return conf['ocaml']['bytecode'].link_lib(*args, **kwargs)
 
 class Executable(_Linker):
-    def compiler(self, conf):
+    def compiler(self, conf, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].compile
+            return conf['ocaml']['native'].compile(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].compile
+            return conf['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf):
+    def command(self, conf, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].link_exe
+            return conf['ocaml']['native'].link_exe(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].link_exe
+            return conf['ocaml']['bytecode'].link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
 class Ocamllex(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['ocamllex']
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['ocamllex'](*args, **kwargs)
 
 class Ocamlyacc(packages.SimplePackage):
-    def command(self, conf):
-        return conf['ocaml']['ocamlyacc']
+    def command(self, conf, *args, **kwargs):
+        return conf['ocaml']['ocamlyacc'](*args, **kwargs)
