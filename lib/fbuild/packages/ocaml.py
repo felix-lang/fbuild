@@ -44,17 +44,36 @@ class _Linker(packages.ManyToOnePackage):
         return chain(super().dependencies(conf), (lib for lib in self.libs
             if isinstance(lib, packages.Package)))
 
+    def src_includes(self, conf):
+        """
+        Find all the include paths in each library. This will evaluate each
+        source.
+        """
+
+        includes = set()
+        for src in packages.build_srcs(conf, self.srcs):
+            if src.parent:
+                includes.add(src.parent)
+                includes.add(src.parent.replace_root(fbuild.buildroot))
+
+        return includes
+
     def run(self, conf):
         libs = packages.build_srcs(conf, self.libs)
         srcs = packages.build_srcs(conf, self.srcs)
 
+        includes = set(self.includes)
+
         # make sure that we include the parent of the src and the dst in the
         # include paths
-        includes = set(self.includes)
-        for src in srcs:
-            if src.parent:
-                includes.add(src.parent)
-                includes.add(src.parent.replace_root(fbuild.buildroot))
+        includes.update(self.src_includes(conf))
+
+        # add the include paths from each library so we don't need to specify
+        # the "includes" explicitly. Note that we don't use the includes from
+        # each library, as this shows what is directly used.
+        for lib in self.libs:
+            if isinstance(lib, _Linker):
+                includes.update(lib.src_includes(conf))
 
         #  Note that we don't need the -modules flag since at the point
         # all of the source files will have been evaluated
