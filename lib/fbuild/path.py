@@ -177,9 +177,19 @@ class Path(str):
         import fbuild.fnmatch
         return fbuild.fnmatch.fnmatch(self, pattern)
 
-    def glob(self):
+    def glob(self, *, exclude=[]):
+        import fbuild.fnmatch
         import fbuild.glob
-        return [Path(path) for path in fbuild.glob.glob(self)]
+
+        if isinstance(exclude, str):
+            exclude = [exclude]
+
+        for path in fbuild.glob.iglob(self):
+            for pattern in exclude:
+                if fbuild.fnmatch.fnmatch(path, pattern):
+                    break
+            else:
+                yield Path(path)
 
     listdir = os.listdir
 
