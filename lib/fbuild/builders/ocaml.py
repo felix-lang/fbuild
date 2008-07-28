@@ -288,7 +288,7 @@ class Ocamlyacc:
             '%s -> %s' % (src, dst),
             color='yellow')
 
-        return (dst, dst + '.i')
+        return (dst, dst + 'i')
 
 def config_ocamlyacc(conf,
         exe=None,
