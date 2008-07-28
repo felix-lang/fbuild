@@ -58,8 +58,29 @@ class _Linker(packages.ManyToOnePackage):
 
         return includes
 
+    def src_libs(self, conf):
+        """
+        Recursively determine all of the library dependencies. This will
+        evaluate each library.
+        """
+
+        # Unfortunately, library order matters to ocaml, so we can't use a
+        # set.
+        libs = []
+        for lib in self.libs:
+            # add all the sub-libraries of this library
+            if isinstance(lib, _Linker):
+                libs.extend(l for l in lib.src_libs(conf) if l not in libs)
+
+            # now, this library
+            lib = packages.build(conf, lib)
+            if lib not in libs:
+                libs.append(lib)
+
+        return libs
+
     def run(self, conf):
-        libs = packages.build_srcs(conf, self.libs)
+        libs = self.src_libs(conf)
         srcs = packages.build_srcs(conf, self.srcs)
 
         includes = set(self.includes)
