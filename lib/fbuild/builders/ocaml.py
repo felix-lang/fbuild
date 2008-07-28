@@ -277,10 +277,17 @@ class Ocamlyacc:
     def __call__(self, src, *,
             flags=[],
             buildroot=fbuild.buildroot):
-        dst = src.replace_ext('.ml').replace_root(buildroot)
+        # first, copy the src file into the buildroot
+        src_buildroot = src.replace_root(buildroot)
+
+        if src != src_buildroot:
+            src_buildroot.parent.make_dirs()
+            src.copy(src_buildroot)
+            src = src_buildroot
+
+        dst = src.replace_ext('.ml')
 
         cmd = [self.exe]
-        cmd.extend(('-o', dst))
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.append(src)
