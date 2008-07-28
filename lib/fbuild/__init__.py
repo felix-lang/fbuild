@@ -43,7 +43,7 @@ def execute(cmd,
         color=None,
         quieter=0,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stderr=subprocess.PIPE,
         **kwargs):
     if isinstance(cmd, str):
         cmd_string = cmd
