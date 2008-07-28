@@ -28,14 +28,13 @@ class Ocamldep:
         cmd = [self.exe]
         cmd.extend(self.module_flags)
 
-        for i in includes:
-            cmd.extend(('-I', i))
+        includes = set(includes)
+        includes.add(src.parent)
+        includes.add(dst.parent)
 
-        if src.parent and src.parent not in includes:
-            cmd.extend(('-I', src.parent))
-
-        if dst.parent and dst.parent not in includes:
-            cmd.extend(('-I', dst.parent))
+        for i in sorted(includes):
+            if Path.exists(i):
+                cmd.extend(('-I', i))
 
         cmd.extend(flags)
         cmd.append(src)
@@ -113,11 +112,12 @@ class Builder(AbstractCompilerBuilder):
         if debug:
             cmd.extend(self.debug_flags)
 
-        for i in includes:
-            cmd.extend(('-I', i))
+        includes = set(includes)
+        includes.add(dst.parent)
 
-        if dst.parent and dst.parent not in includes:
-            cmd.extend(('-I', dst.parent))
+        for i in sorted(includes):
+            if Path.exists(i):
+                cmd.extend(('-I', i))
 
         cmd.extend(flags)
         cmd.extend(('-o', dst))

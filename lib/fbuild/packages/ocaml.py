@@ -1,7 +1,7 @@
 from itertools import chain
 from functools import partial
 
-from fbuild import scheduler
+import fbuild
 import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
@@ -49,17 +49,25 @@ class _Linker(packages.SimplePackage):
         libs = packages.build_srcs(conf, self.libs)
         srcs = packages.build_srcs(conf, self.srcs)
 
+        # make sure that we include the parent of the src and the dst in the
+        # include paths
+        includes = set(self.includes)
+        for src in srcs:
+            if src.parent:
+                includes.add(src.parent)
+                includes.add(src.parent.replace_root(fbuild.buildroot))
+
         #  Note that we don't need the -modules flag since at the point
         # all of the source files will have been evaluated
-        objs = scheduler.map_with_dependencies(
-            partial(conf['ocaml']['ocamldep'], includes=self.includes),
-            partial(self.compiler(conf),       includes=self.includes),
+        objs = fbuild.scheduler.map_with_dependencies(
+            partial(conf['ocaml']['ocamldep'], includes=includes),
+            partial(self.compiler(conf),       includes=includes),
             srcs)
 
         objs = [obj for obj in objs if not obj.endswith('cmi')]
 
         return super(_Linker, self).run(conf, objs,
-            includes=self.includes,
+            includes=includes,
             libs=libs)
 
 class BytecodeLibrary(_Linker):
