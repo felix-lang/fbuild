@@ -17,11 +17,17 @@ class SharedObject(packages.OneToOnePackage):
 # -----------------------------------------------------------------------------
 
 class _Linker(packages.ManyToOnePackage):
-    def __init__(self, dst, srcs, *, includes=[], libs=[], **kwargs):
-        super().__init__(dst, packages.glob_paths(srcs), **kwargs)
+    def __init__(self, dst, srcs, *,
+            includes=[],
+            libs=[],
+            cflags={},
+            lflags={}):
+        super().__init__(dst, packages.glob_paths(srcs))
 
         self.includes = includes
         self.libs = libs
+        self.cflags = cflags
+        self.lflags = lflags
 
     def dependencies(self, conf):
         return chain(self.srcs, self.libs)
@@ -31,11 +37,14 @@ class _Linker(packages.ManyToOnePackage):
         srcs = packages.build_srcs(conf, self.srcs)
 
         objs = scheduler.map(
-            partial(self.compiler, conf, includes=self.includes),
+            partial(self.compiler, conf,
+                includes=self.includes,
+                **self.cflags),
             srcs)
 
         return self.command(conf, packages.build(conf, self.dst), objs,
-            libs=libs)
+            libs=libs,
+            **self.lflags)
 
 class StaticLibrary(_Linker):
     def compiler(self, conf, *args, **kwargs):
