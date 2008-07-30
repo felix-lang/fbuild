@@ -16,8 +16,9 @@ class Linker:
             flags=[],
             ranlib_flags=[],
             destdir=None,
+            buildroot=fbuild.buildroot,
             **kwargs):
-        dst = dst.parent / self.prefix + dst.name + self.suffix
+        dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
         srcs = Path.glob_all(srcs)
 
         assert srcs, 'no sources passed into ar'
