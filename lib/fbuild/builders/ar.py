@@ -12,6 +12,7 @@ class Linker:
         self.suffix = suffix
 
     def __call__(self, dst, srcs, *,
+            libs=[],
             flags=[],
             ranlib_flags=[],
             destdir=None,
@@ -30,6 +31,7 @@ class Linker:
         cmd.extend(flags)
         cmd.append(dst)
         cmd.extend(srcs)
+        cmd.extend(libs)
 
         execute(cmd,
             msg1=self.ar,
