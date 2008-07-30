@@ -103,7 +103,10 @@ class Compiler:
         if debug:    cmd_flags.extend(self.debug_flags)
         if optimize: cmd_flags.extend(self.optimize_flags)
 
-        cmd_flags.extend('-I' + i for i in includes)
+        includes = set(includes)
+        includes.add(src.parent)
+
+        cmd_flags.extend('-I' + i for i in sorted(includes) if i)
         cmd_flags.extend('-D' + d for d in macros)
         cmd_flags.extend('-W' + w for w in warnings)
         cmd_flags.extend(flags)
@@ -162,7 +165,7 @@ class Linker:
         cmd_flags.extend('-L' + p for p in libpaths)
 
         extra_srcs = []
-        for lib in libs:
+        for lib in sorted(set(libs)):
             if lib.exists():
                 extra_srcs.append(lib)
             else:
