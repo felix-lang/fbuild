@@ -44,7 +44,10 @@ c_optional_tests = [
     'fbuild.builders.c.gcc.config_extensions',
 ]
 
-cxx_tests = []
+cxx_tests = [
+    'fbuild.builders.cxx.std.config',
+    'fbuild.builders.c.config_little_endian',
+]
 
 cxx_optional_tests = [
     'fbuild.builders.cxx.cmath.config',
