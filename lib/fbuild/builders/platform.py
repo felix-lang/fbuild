@@ -40,11 +40,6 @@ archmap = {
 # -----------------------------------------------------------------------------
 
 def config(env, platform=None):
-    try:
-        return env['platform']
-    except KeyError:
-        pass
-
     logger.check('determining platform')
     if platform is None:
         try:
@@ -55,11 +50,11 @@ def config(env, platform=None):
             platform = stdout.decode('utf-8').strip().lower()
 
     try:
-        env['platform'] = archmap[platform]
+        platform = archmap[platform]
     except KeyError:
         logger.failed()
         raise UnknownPlatform(platform)
     else:
-        logger.passed(env['platform'])
+        logger.passed(platform)
 
-    return env['platform']
+    return platform
