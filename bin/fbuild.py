@@ -3,6 +3,13 @@
 import os
 import sys
 import pickle
+from optparse import OptionParser, make_option
+import pprint
+
+import fbuild
+import fbuild.scheduler
+
+import fbuildroot
 
 # -----------------------------------------------------------------------------
 
@@ -10,7 +17,6 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    from optparse import OptionParser, make_option
     parser = OptionParser(option_list=[
         make_option('-v', '--verbose',
             action='count',
@@ -63,7 +69,9 @@ def main(argv=None):
             help='delete a key in the config'),
     ])
 
-    import fbuildroot
+    # -------------------------------------------------------------------------
+    # let the fbuildroot modify the optparse parser before parsing
+
     try:
         pre_options = fbuildroot.pre_options
     except AttributeError:
@@ -73,7 +81,8 @@ def main(argv=None):
 
     options, args = parser.parse_args(argv)
 
-    options.config_file = os.path.join(options.buildroot, options.config_file)
+    # -------------------------------------------------------------------------
+    # let the fbuildroot modify the optparse parser after parsing
 
     try:
         post_options = fbuildroot.post_options
@@ -82,21 +91,49 @@ def main(argv=None):
     else:
         options, args = post_options(options, args) or (options, args)
 
-    import fbuild
-    fbuild.buildroot = fbuild.Path(options.buildroot)
+    # -------------------------------------------------------------------------
+    # prepare all the global variables
+
+    # convert the option paths into Path objects
+    options.buildroot = fbuild.Path(options.buildroot)
+    options.config_file = options.buildroot / options.config_file
+
+    # make sure the buildroot exists before running
+    fbuild.buildroot = options.buildroot
     fbuild.buildroot.make_dirs()
+
+    # load the logger options into the logger
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
     fbuild.logger.show_threads = options.show_threads
 
-    import fbuild.scheduler
+    # construct the global scheduler
     fbuild.scheduler = fbuild.scheduler.Scheduler(options.threadcount)
 
     # -------------------------------------------------------------------------
+    # get the configuration
 
     try:
-        config = configure_package(fbuildroot, options)
+        if options.force_configuration or not options.config_file.exists():
+            # we need to reconfigure, so just use a empty root configuration
+            config = {}
 
+            # make sure the configuration directory exists
+            options.config_file.parent.make_dirs()
+
+            fbuildroot.configure(config, options)
+
+            fbuild.logger.log('saving config')
+
+            with open(options.config_file, 'wb') as f:
+                pickle.dump(config, f)
+
+            fbuild.logger.log('-' * 79, color='blue')
+
+        else:
+            # reuse the config from the last run
+            with open(options.config_file, 'rb') as f:
+                config = pickle.load(f)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
@@ -104,13 +141,14 @@ def main(argv=None):
     # -------------------------------------------------------------------------
 
     try:
+        # check if we're viewing or manipulating the config
         if options.config_dump:
-            import pprint
+            # print out the entire config
             pprint.pprint(config)
             return 0
 
         if options.config_query:
-            import pprint
+            # print out just a subset of the configuration
             d = config
             try:
                 for key in options.config_query.split():
@@ -136,7 +174,7 @@ def main(argv=None):
                 return 1
 
         # ---------------------------------------------------------------------
-
+        # finally, do the build
         fbuildroot.build(config, options)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
@@ -147,29 +185,6 @@ def main(argv=None):
             pickle.dump(config, f)
 
     return 0
-
-def configure_package(package, options):
-    import fbuild
-
-    if options.force_configuration or not os.path.exists(options.config_file):
-        config = {}
-        package.configure(config, options)
-
-        fbuild.logger.log('saving config')
-
-        config_dir = os.path.dirname(options.config_file)
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
-
-        with open(options.config_file, 'wb') as f:
-            pickle.dump(config, f)
-
-        fbuild.logger.log('-' * 79, color='blue')
-    else:
-        with open(options.config_file, 'rb') as f:
-            config = pickle.load(f)
-
-    return config
 
 # -----------------------------------------------------------------------------
 
