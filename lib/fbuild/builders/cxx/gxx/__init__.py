@@ -1,5 +1,3 @@
-from functools import partial
-
 from fbuild import Record
 import fbuild.builders
 from ...c import MissingHeader
