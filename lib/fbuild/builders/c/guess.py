@@ -1,18 +1,34 @@
-from fbuild import ConfigFailed
+from fbuild import ConfigFailed, Record
 
 # -----------------------------------------------------------------------------
 
-def config(env, *, platform=None, **kwargs):
+def guess_config(env, name, functions, *args, platform=None, **kwargs):
     platform = env.config('fbuild.builders.platform.config', platform)
 
-    if 'darwin' in platform:
-        from .gcc.darwin import config
-        return config(env, **kwargs)
-    elif 'posix' in platform:
-        from .gcc import config
-        return config(env, **kwargs)
-    elif 'windows' in platform:
-        from .msvc import config
-        return config(env, **kwargs)
-    else:
-        raise ConfigFailed('cannot find c compiler for %s' % platform)
+    for subplatform, function in functions:
+        if subplatform <= platform:
+            return env.config(function, *args, **kwargs)
+
+    raise ConfigFailed('cannot find a %s builder for %s' % (name, platform))
+
+# -----------------------------------------------------------------------------
+
+def config_static(env, *args, **kwargs):
+    return guess_config(env, 'c static', [
+        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.config_static'),
+        ({'posix'}, 'fbuild.builders.c.gcc.config_static'),
+        ({'windows'}, 'fbuild.builders.c.msvc.config_static'),
+    ], *args, **kwargs)
+
+def config_shared(env, *args, **kwargs):
+    return guess_config(env, 'c shared', [
+        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.config_shared'),
+        ({'posix'}, 'fbuild.builders.c.gcc.config_shared'),
+        ({'windows'}, 'fbuild.builders.c.msvc.config_shared'),
+    ], *args, **kwargs)
+
+def config(env, *args, **kwargs):
+    return Record(
+        static=env.config(config_static, *args, **kwargs),
+        shared=env.config(config_shared, *args, **kwargs),
+    )
