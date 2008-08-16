@@ -2,7 +2,7 @@ import io
 import textwrap
 
 import fbuild
-from fbuild import logger, execute, ConfigFailed, ExecutionError
+from fbuild import logger, execute, ConfigFailed, ExecutionError, Record
 from fbuild.temp import tempdir
 from fbuild.path import Path
 from fbuild.builders import find_program, AbstractCompilerBuilder
@@ -80,7 +80,7 @@ class Ocamldep:
 def config_ocamldep(env, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
     exe = exe or find_program(default_exes)
 
-    env.setdefault('ocaml', {})['ocamldep'] = Ocamldep(exe)
+    return Ocamldep(exe)
 
 # -----------------------------------------------------------------------------
 
@@ -249,7 +249,7 @@ def config_bytecode(env,
         exe=None,
         default_exes=['ocamlc.opt', 'ocamlc'],
         **kwargs):
-    env.setdefault('ocaml', {})['bytecode'] = make_builder(exe, default_exes,
+    return make_builder(exe, default_exes,
         obj_suffix='.cmo',
         lib_suffix='.cma',
         exe_suffix='',
@@ -259,7 +259,7 @@ def config_native(env,
         exe=None,
         default_exes=['ocamlopt.opt', 'ocamlopt'],
         **kwargs):
-    env.setdefault('ocaml', {})['native'] = make_builder(exe, default_exes,
+    return make_builder(exe, default_exes,
         obj_suffix='.cmx',
         lib_suffix='.cmxa',
         exe_suffix='',
@@ -304,7 +304,7 @@ class Ocamllex:
 def config_ocamllex(env, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
     exe = exe or find_program(default_exes)
 
-    env.setdefault('ocaml', {})['ocamllex'] = Ocamllex(exe)
+    return Ocamllex(exe)
 
 # -----------------------------------------------------------------------------
 
@@ -353,17 +353,20 @@ def config_ocamlyacc(env,
         default_exes=['ocamlyacc.opt', 'ocamlyacc']):
     exe = exe or find_program(default_exes)
 
-    env.setdefault('ocaml', {})['ocamlyacc'] = Ocamlyacc(exe)
+    return Ocamlyacc(exe)
 
 # -----------------------------------------------------------------------------
 
-def config(env,
+def config(env, *,
+        ocamldep=None,
         ocamlc=None,
         ocamlopt=None,
         ocamllex=None,
         ocamlyacc=None):
-    config_ocamldep(env, ocamlc)
-    config_bytecode(env, ocamlc)
-    config_native(env, ocamlopt)
-    config_ocamllex(env, ocamllex)
-    config_ocamlyacc(env, ocamlyacc)
+    return Record(
+        ocamldep=env.config(config_ocamldep, ocamldep),
+        bytecode=env.config(config_bytecode, ocamlc),
+        native=env.config(config_native, ocamlopt),
+        ocamllex=env.config(config_ocamllex, ocamllex),
+        ocamlyacc=env.config(config_ocamlyacc, ocamlyacc),
+    )
