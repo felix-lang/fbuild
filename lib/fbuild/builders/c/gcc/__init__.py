@@ -6,8 +6,10 @@ from fbuild.builders import MissingProgram, find_program, c
 # -----------------------------------------------------------------------------
 
 class Gcc:
-    def __init__(self, exe):
-        self.exe = exe
+    def __init__(self, exe, flags=[]):
+        # we split exe in case extra arguments were specified in the name
+        self.exe, *self.flags = exe.split()
+        self.flags.extend(flags)
 
     def __call__(self, srcs, dst=None, flags=[], *, pre_flags=[], **kwargs):
         cmd = [self.exe]
@@ -19,10 +21,11 @@ class Gcc:
         else:
             msg2 = ' '.join(srcs)
 
+        cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return execute(cmd, self.exe, msg2, **kwargs)
+        return execute(cmd, str(self), msg2, **kwargs)
 
     def check_flags(self, flags=[]):
         if flags:
@@ -43,10 +46,13 @@ class Gcc:
         return True
 
     def __str__(self):
-        return self.exe
+        return ' '.join([self.exe] + self.flags)
 
     def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.exe)
+        return '%s(%r%s)' % (
+            self.__class__.__name__,
+            self.exe,
+            ', flags=%r' % self.flags if self.flags else '')
 
     def __eq__(self, other):
         return isinstance(other, Gcc) and self.exe == other.exe
