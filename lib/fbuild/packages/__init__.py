@@ -8,23 +8,23 @@ class Package:
     def __init__(self):
         self._is_dirty = None
 
-    def data(self, conf):
-        return conf.setdefault(
+    def data(self, env):
+        return env.setdefault(
             'packages', {}).setdefault(
                 '%s:%s' % (self.__module__, self.__class__.__name__), {})
 
-    def is_dirty(self, conf):
+    def is_dirty(self, env):
         if self._is_dirty is not None:
             return self._is_dirty
 
         try:
-            timestamp = self.data(conf)['timestamp']
+            timestamp = self.data(env)['timestamp']
         except KeyError:
             self._is_dirty = True
             return True
 
-        for dependency in self.dependencies(conf):
-            if self.is_dependency_dirty(conf, dependency, timestamp):
+        for dependency in self.dependencies(env):
+            if self.is_dependency_dirty(env, dependency, timestamp):
                 self._is_dirty = True
                 return True
 
@@ -32,9 +32,9 @@ class Package:
 
         return False
 
-    def is_dependency_dirty(self, conf, dependency, timestamp):
+    def is_dependency_dirty(self, env, dependency, timestamp):
         if isinstance(dependency, Package):
-            return dependency.is_dirty(conf)
+            return dependency.is_dirty(env)
         elif isinstance(dependency, fbuild.Path):
             return timestamp < dependency.mtime
         elif isinstance(dependency, str):
@@ -43,13 +43,13 @@ class Package:
         else:
             raise ValueError('Bad argument: %r' % dependency)
 
-    def build(self, conf):
-        data = self.data(conf)
+    def build(self, env):
+        data = self.data(env)
 
-        if not self.is_dirty(conf):
+        if not self.is_dirty(env):
             return data['result']
 
-        result = self.run(conf)
+        result = self.run(env)
         self._is_dirty = False
 
         data['timestamp'] = time.time()
@@ -57,7 +57,7 @@ class Package:
 
         return result
 
-    def run(self, conf):
+    def run(self, env):
         raise NotImplementedError
 
 # -----------------------------------------------------------------------------
@@ -69,16 +69,16 @@ class SimplePackage(Package):
         self.target = target
         self.kwargs = kwargs
 
-    def dependencies(self, conf):
+    def dependencies(self, env):
         return [self.target]
 
-    def data(self, conf):
-        return super().data(conf).setdefault(self.target, {})
+    def data(self, env):
+        return super().data(env).setdefault(self.target, {})
 
-    def run(self, conf):
-        return self.command(conf, build(conf, self.target), **self.kwargs)
+    def run(self, env):
+        return self.command(env, build(env, self.target), **self.kwargs)
 
-    def command(self, conf):
+    def command(self, env):
         raise NotImplementedError
 
     def __repr__(self):
@@ -92,19 +92,19 @@ class OneToOnePackage(Package):
         self.src = src
         self.kwargs = kwargs
 
-    def dependencies(self, conf):
+    def dependencies(self, env):
         return [self.src]
 
-    def data(self, conf):
-        return super().data(conf).setdefault(self.dst, {})
+    def data(self, env):
+        return super().data(env).setdefault(self.dst, {})
 
-    def run(self, conf):
-        return self.command(conf,
-            build(conf, self.dst),
-            build(conf, self.src),
+    def run(self, env):
+        return self.command(env,
+            build(env, self.dst),
+            build(env, self.src),
             **self.kwargs)
 
-    def command(self, conf):
+    def command(self, env):
         raise NotImplementedError
 
     def __repr__(self):
@@ -118,19 +118,19 @@ class ManyToOnePackage(Package):
         self.srcs = srcs
         self.kwargs = kwargs
 
-    def dependencies(self, conf):
+    def dependencies(self, env):
         return self.srcs
 
-    def data(self, conf):
-        return super().data(conf).setdefault(self.dst, {})
+    def data(self, env):
+        return super().data(env).setdefault(self.dst, {})
 
-    def run(self, conf):
-        return self.command(conf,
-            build(conf, self.dst),
-            build_srcs(conf, self.srcs),
+    def run(self, env):
+        return self.command(env,
+            build(env, self.dst),
+            build_srcs(env, self.srcs),
             **self.kwargs)
 
-    def command(self, conf):
+    def command(self, env):
         raise NotImplementedError
 
     def __repr__(self):
@@ -139,28 +139,28 @@ class ManyToOnePackage(Package):
 # -----------------------------------------------------------------------------
 
 class Copy(OneToOnePackage):
-    def command(self, conf, dst, src):
+    def command(self, env, dst, src):
         fbuild.logger.check(' * copy', '%s -> %s' % (src, dst), color='yellow')
         src.copy(dst)
         return dst
 
 class Move(OneToOnePackage):
-    def command(self, conf, dst, src):
+    def command(self, env, dst, src):
         fbuild.logger.check(' * move', '%s -> %s' % (src, dst), color='yellow')
         src.move(dst)
         return dst
 
 # -----------------------------------------------------------------------------
 
-def build(conf, src):
+def build(env, src):
     if isinstance(src, Package):
-        return src.build(conf)
+        return src.build(env)
     return src
 
-def build_srcs(conf, srcs):
+def build_srcs(env, srcs):
     results = []
     for src in srcs:
-        result = build(conf, src)
+        result = build(env, src)
         if isinstance(result, str):
             results.append(result)
         else:

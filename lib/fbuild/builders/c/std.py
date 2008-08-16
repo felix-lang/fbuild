@@ -113,12 +113,12 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_types(conf,
+def config_types(env,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc):
-    std = conf.setdefault('std', {})
-    static = conf['static']
+    std = env.setdefault('std', {})
+    static = env['static']
     std['types'] = get_types_data(static, types_int, int_type=True)
     std['types'].update(get_types_data(static, types_float))
     std['types'].update(get_types_data(static, types_misc))
@@ -134,45 +134,45 @@ def config_types(conf,
     else:
         logger.passed()
 
-def config_stddef_h(conf):
-    static = conf['static']
+def config_stddef_h(env):
+    static = env['static']
     if not static.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
-    stddef_h = conf.setdefault('headers', {}).setdefault('stddef_h', {})
+    stddef_h = env.setdefault('headers', {}).setdefault('stddef_h', {})
     stddef_h['types'] = get_types_data(static, default_types_stddef_h,
         int_type=True)
 
-def config(conf):
-    config_types(conf)
-    config_stddef_h(conf)
+def config(env):
+    config_types(env)
+    config_stddef_h(env)
 
 # -----------------------------------------------------------------------------
 
-def types_int(conf):
-    return (t for t in default_types_int if t in conf['std']['types'])
+def types_int(env):
+    return (t for t in default_types_int if t in env['std']['types'])
 
-def types_float(conf):
-    return (t for t in default_types_float if t in conf['std']['types'])
+def types_float(env):
+    return (t for t in default_types_float if t in env['std']['types'])
 
-def type_aliases_int(conf):
+def type_aliases_int(env):
     d = {}
-    for t in types_int(conf):
-        data = conf['std']['types'][t]
+    for t in types_int(env):
+        data = env['std']['types'][t]
         d.setdefault((data['size'], data['signed']), t)
 
     return d
 
-def type_aliases_float(conf):
+def type_aliases_float(env):
     d = {}
-    for t in types_float(conf):
-        data = conf['std']['types'][t]
+    for t in types_float(env):
+        data = env['std']['types'][t]
         d.setdefault(data['size'], t)
 
     return d
 
-def type_conversions_int(conf):
-    aliases = type_aliases_int(conf)
-    int_type_conversions = conf['std']['int_type_conversions']
+def type_conversions_int(env):
+    aliases = type_aliases_int(env)
+    int_type_conversions = env['std']['int_type_conversions']
     return {type_pair: aliases[size_signed]
         for type_pair, size_signed in int_type_conversions.items()}

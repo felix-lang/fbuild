@@ -51,77 +51,77 @@ cxx_optional_tests = [
     'fbuild.builders.cxx.gxx.config_extensions',
 ]
 
-def make_c_builder(conf, **kwargs):
+def make_c_builder(env, **kwargs):
     from fbuild.builders.c.guess import config
-    c = config(conf, **kwargs)
+    c = config(env, **kwargs)
 
     run_tests(c, c_tests)
     run_optional_tests(c, c_optional_tests)
 
-def make_cxx_builder(conf, **kwargs):
+def make_cxx_builder(env, **kwargs):
     from fbuild.builders.cxx.guess import config
-    cxx = config(conf, **kwargs)
+    cxx = config(env, **kwargs)
 
     run_tests(cxx, c_tests)
     run_tests(cxx, cxx_tests)
     run_optional_tests(cxx, c_optional_tests)
     run_optional_tests(cxx, cxx_optional_tests)
 
-def config_build(conf, options):
+def config_build(env, options):
     logger.log('configuring build phase', color='cyan')
 
-    platform.config(conf, options.host_platform)
-    make_c_builder(conf, exe=options.build_cc)
-    make_cxx_builder(conf, exe=options.build_cxx)
+    platform.config(env, options.host_platform)
+    make_c_builder(env, exe=options.build_cc)
+    make_cxx_builder(env, exe=options.build_cxx)
 
-def config_host(conf, options, build):
+def config_host(env, options, build):
     logger.log('configuring host phase', color='cyan')
 
-    platform.config(conf, options.host_platform)
+    platform.config(env, options.host_platform)
 
-    if conf['platform'] == build['platform']:
+    if env['platform'] == build['platform']:
         logger.log("using build's c and cxx compiler")
-        conf['c']   = build['c']
-        conf['cxx'] = build['cxx']
+        env['c']   = build['c']
+        env['cxx'] = build['cxx']
     else:
-        make_c_builder(conf, exe=options.host_cc)
-        make_cxx_builder(conf, exe=options.host_cxx)
+        make_c_builder(env, exe=options.host_cc)
+        make_cxx_builder(env, exe=options.host_cxx)
 
     import fbuild.builders.ocaml as ocaml
-    ocaml.config(conf,
+    ocaml.config(env,
         ocamlc=options.ocamlc,
         ocamlopt=options.ocamlopt,
         ocamllex=options.ocamllex,
         ocamlyacc=options.ocamlyacc)
 
-def config_target(conf, options, host):
+def config_target(env, options, host):
     logger.log('configuring target phase', color='cyan')
 
-    platform.config(conf, options.target_platform)
+    platform.config(env, options.target_platform)
 
-    if conf['platform'] == host['platform']:
+    if env['platform'] == host['platform']:
         logger.log("using host's c and cxx compiler")
-        conf['c']   = host['c']
-        conf['cxx'] = host['cxx']
+        env['c']   = host['c']
+        env['cxx'] = host['cxx']
     else:
-        make_c_builder(conf, exe=options.target_cc)
-        make_cxx_builder(conf, exe=options.target_cxx)
+        make_c_builder(env, exe=options.target_cc)
+        make_cxx_builder(env, exe=options.target_cxx)
 
 # -----------------------------------------------------------------------------
 
-def configure(conf, options):
-    config_build(conf.setdefault('build', {}), options)
-    config_host(conf.setdefault('host', {}), options, conf['build'])
-    config_target(conf.setdefault('target', {}), options, conf['host'])
+def configure(env, options):
+    config_build(env.setdefault('build', {}), options)
+    config_host(env.setdefault('host', {}), options, env['build'])
+    config_target(env.setdefault('target', {}), options, env['host'])
 
 
-def build(conf, options):
-    conf = conf['target']
-    pprint.pprint(c99.type_aliases_stdint_h(conf['c']))
+def build(env, options):
+    env = env['target']
+    pprint.pprint(c99.type_aliases_stdint_h(env['c']))
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':
-            builder = conf[lang][mode]
+            builder = env[lang][mode]
 
             d = Path(lang, mode)
             try:

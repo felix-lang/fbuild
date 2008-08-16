@@ -4,14 +4,14 @@ from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_dlfcn_h(conf):
-    static = conf['static']
-    shared = conf['shared']
+def config_dlfcn_h(env):
+    static = env['static']
+    shared = env['shared']
 
     if not static.check_header_exists('dlfcn.h'):
         raise MissingHeader('dlfcn.h')
 
-    dlfcn_h = conf.setdefault('headers', {}).setdefault('dlfcn_h', {})
+    dlfcn_h = env.setdefault('headers', {}).setdefault('dlfcn_h', {})
 
     lib_code = '''
         #ifdef __cplusplus
@@ -46,12 +46,12 @@ def config_dlfcn_h(conf):
 
 # -----------------------------------------------------------------------------
 
-def config_sys_mman_h(conf):
-    static = conf['static']
+def config_sys_mman_h(env):
+    static = env['static']
     if not static.check_header_exists('sys/mman.h'):
         raise MissingHeader('sys/mman.h')
 
-    mman_h = conf.setdefault('headers', {}) \
+    mman_h = env.setdefault('headers', {}) \
                  .setdefault('sys', {}) \
                  .setdefault('mman_h', {})
     mman_h['macros'] = {m: static.check_macro_exists(m, headers=['sys/mman.h'])
@@ -65,22 +65,22 @@ def config_sys_mman_h(conf):
 
 # -----------------------------------------------------------------------------
 
-def config_poll_h(conf):
-    static = conf['static']
+def config_poll_h(env):
+    static = env['static']
     if not static.check_header_exists('poll.h'):
         raise MissingHeader('poll.h')
 
     # just check if the header exists for now
-    conf.setdefault('headers', {}).setdefault('poll_h', {})
+    env.setdefault('headers', {}).setdefault('poll_h', {})
 
 # -----------------------------------------------------------------------------
 
-def config_pthread_h(conf):
-    static = conf['static']
+def config_pthread_h(env):
+    static = env['static']
     if not static.check_header_exists('pthread.h'):
         raise MissingHeader('pthread.h')
 
-    pthread_h = conf.setdefault('headers', {}).setdefault('pthread_h', {})
+    pthread_h = env.setdefault('headers', {}).setdefault('pthread_h', {})
 
     code = '''
         #include <pthread.h>
@@ -110,12 +110,12 @@ def config_pthread_h(conf):
 
 # -----------------------------------------------------------------------------
 
-def config_sys_socket_h(conf):
-    static = conf['static']
+def config_sys_socket_h(env):
+    static = env['static']
     if not static.check_header_exists('sys/socket.h'):
         raise MissingHeader('sys/socket.h')
 
-    socket_h = conf.setdefault('headers', {}) \
+    socket_h = env.setdefault('headers', {}) \
                    .setdefault('sys', {}) \
                    .setdefault('socket_h', {})
 
@@ -150,26 +150,26 @@ default_types_unistd_h = (
     'uuid_t',
 )
 
-def config_unistd_h(conf):
-    static = conf['static']
+def config_unistd_h(env):
+    static = env['static']
     if not static.check_header_exists('unistd.h'):
         raise MissingHeader('unistd.h')
 
-    unistd_h = conf.setdefault('headers', {}).setdefault('unistd_h', {})
+    unistd_h = env.setdefault('headers', {}).setdefault('unistd_h', {})
     unistd_h['types'] = std.get_types_data(static, default_types_unistd_h,
         headers=['unistd.h'])
 
 # -----------------------------------------------------------------------------
 
-def config(conf):
-    config_dlfcn_h(conf)
-    config_poll_h(conf)
-    config_pthread_h(conf)
-    config_sys_mman_h(conf)
-    config_sys_socket_h(conf)
-    config_unistd_h(conf)
+def config(env):
+    config_dlfcn_h(env)
+    config_poll_h(env)
+    config_pthread_h(env)
+    config_sys_mman_h(env)
+    config_sys_socket_h(env)
+    config_unistd_h(env)
 
 # -----------------------------------------------------------------------------
 
-def types_unistd_h(conf):
-    return (t for t in default_types_unistd_h if t in conf.posix.unistd.types)
+def types_unistd_h(env):
+    return (t for t in default_types_unistd_h if t in env.posix.unistd.types)

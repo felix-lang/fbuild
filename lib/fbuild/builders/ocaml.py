@@ -63,10 +63,10 @@ class Ocamldep:
 
         return paths
 
-def config_ocamldep(conf, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
+def config_ocamldep(env, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
     exe = exe or find_program(default_exes)
 
-    conf.setdefault('ocaml', {})['ocamldep'] = Ocamldep(exe)
+    env.setdefault('ocaml', {})['ocamldep'] = Ocamldep(exe)
 
 # -----------------------------------------------------------------------------
 
@@ -217,21 +217,21 @@ def make_builder(exe, default_exes, *args, **kwargs):
 
     return builder
 
-def config_bytecode(conf,
+def config_bytecode(env,
         exe=None,
         default_exes=['ocamlc.opt', 'ocamlc'],
         **kwargs):
-    conf.setdefault('ocaml', {})['bytecode'] = make_builder(exe, default_exes,
+    env.setdefault('ocaml', {})['bytecode'] = make_builder(exe, default_exes,
         obj_suffix='.cmo',
         lib_suffix='.cma',
         exe_suffix='',
         **kwargs)
 
-def config_native(conf,
+def config_native(env,
         exe=None,
         default_exes=['ocamlopt.opt', 'ocamlopt'],
         **kwargs):
-    conf.setdefault('ocaml', {})['native'] = make_builder(exe, default_exes,
+    env.setdefault('ocaml', {})['native'] = make_builder(exe, default_exes,
         obj_suffix='.cmx',
         lib_suffix='.cmxa',
         exe_suffix='',
@@ -262,10 +262,10 @@ class Ocamllex:
 
         return dst
 
-def config_ocamllex(conf, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
+def config_ocamllex(env, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
     exe = exe or find_program(default_exes)
 
-    conf.setdefault('ocaml', {})['ocamllex'] = Ocamllex(exe)
+    env.setdefault('ocaml', {})['ocamllex'] = Ocamllex(exe)
 
 # -----------------------------------------------------------------------------
 
@@ -298,22 +298,22 @@ class Ocamlyacc:
 
         return (dst, dst + 'i')
 
-def config_ocamlyacc(conf,
+def config_ocamlyacc(env,
         exe=None,
         default_exes=['ocamlyacc.opt', 'ocamlyacc']):
     exe = exe or find_program(default_exes)
 
-    conf.setdefault('ocaml', {})['ocamlyacc'] = Ocamlyacc(exe)
+    env.setdefault('ocaml', {})['ocamlyacc'] = Ocamlyacc(exe)
 
 # -----------------------------------------------------------------------------
 
-def config(conf,
+def config(env,
         ocamlc=None,
         ocamlopt=None,
         ocamllex=None,
         ocamlyacc=None):
-    config_ocamldep(conf, ocamlc)
-    config_bytecode(conf, ocamlc)
-    config_native(conf, ocamlopt)
-    config_ocamllex(conf, ocamllex)
-    config_ocamlyacc(conf, ocamlyacc)
+    config_ocamldep(env, ocamlc)
+    config_bytecode(env, ocamlc)
+    config_native(env, ocamlopt)
+    config_ocamllex(env, ocamllex)
+    config_ocamlyacc(env, ocamlyacc)

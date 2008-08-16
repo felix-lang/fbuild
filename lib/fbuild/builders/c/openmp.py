@@ -2,8 +2,8 @@ from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_builder(conf, builder):
-    if not conf[builder].check_header_exists('omp.h'):
+def config_builder(env, builder):
+    if not env[builder].check_header_exists('omp.h'):
         raise MissingHeader('omp.h')
 
     code = '''
@@ -30,24 +30,24 @@ def config_builder(conf, builder):
 
     logger.check('checking if supports omp_get_thread_num')
     for flags in [], ['-openmp'], ['-fopenmp'], ['/openmp']:
-        if conf[builder].try_run(code, lflags={'flags': flags}):
+        if env[builder].try_run(code, lflags={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
 
-            omp_h = conf.setdefault('headers', {}) \
-                        .setdefault('omp_h', {}) \
-                        .setdefault('flags', {})
+            omp_h = env.setdefault('headers', {}) \
+                       .setdefault('omp_h', {}) \
+                       .setdefault('flags', {})
             omp_h[builder] = flags
             break
     else:
         logger.failed()
         raise ConfigFailed('failed to link openmp program')
 
-def config_static(conf):
-    config_builder(conf, 'static')
+def config_static(env):
+    config_builder(env, 'static')
 
-def config_shared(conf):
-    config_builder(conf, 'shared')
+def config_shared(env):
+    config_builder(env, 'shared')
 
-def config(conf):
-    config_static(conf)
-    config_shared(conf)
+def config(env):
+    config_static(env)
+    config_shared(env)

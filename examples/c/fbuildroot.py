@@ -1,10 +1,10 @@
-def configure(conf, options):
+def configure(env, options):
     from fbuild.builders.c.guess import config
-    config(conf)
+    config(env)
 
-def build(conf, options):
+def build(env, options):
     import fbuild.packages.c as c
 
     lib = c.SharedLibrary('library', ['lib.c'])
     exe = c.Executable('executable', ['exe.c'], libs=[lib])
-    exe.build(conf)
+    exe.build(env)

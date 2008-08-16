@@ -2,12 +2,12 @@ from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_port_h(conf):
-    if not conf['static'].check_header_exists('port.h'):
+def config_port_h(env):
+    if not env['static'].check_header_exists('port.h'):
         raise MissingHeader('port.h')
 
-    port_h = conf.setdefault('headers', {}).setdefault('port_h', {})
-    port_h['port_create'] = conf['static'].check_run('''
+    port_h = env.setdefault('headers', {}).setdefault('port_h', {})
+    port_h['port_create'] = env['static'].check_run('''
         #include <port.h>
         int main(int argc, char** argv) {
             int port = port_create();
@@ -17,5 +17,5 @@ def config_port_h(conf):
         }
     ''', 'checking if evtports is supported')
 
-def config(conf):
-    config_port_h(conf)
+def config(env):
+    config_port_h(env)

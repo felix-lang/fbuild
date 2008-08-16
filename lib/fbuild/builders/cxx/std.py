@@ -12,16 +12,16 @@ default_types = default_types_int + default_types_float + default_types_misc
 
 # -----------------------------------------------------------------------------
 
-def config_types(conf):
-    return c_std.config_types(conf,
+def config_types(env):
+    return c_std.config_types(env,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc)
 
-def config_class_member_initialization(conf):
-    tests = conf.setdefault('tests', {})
+def config_class_member_initialization(env):
+    tests = env.setdefault('tests', {})
 
-    tests['class_member_intialization'] = conf['static'].check_compile('''
+    tests['class_member_intialization'] = env['static'].check_compile('''
         struct X {
             static const int i = 1;
         };
@@ -31,7 +31,7 @@ def config_class_member_initialization(conf):
         }
     ''', 'checking class member initialization')
 
-def config(conf):
-    config_types(conf)
-    config_class_member_initialization(conf)
-    c_std.config_stddef_h(conf)
+def config(env):
+    config_types(env)
+    config_class_member_initialization(env)
+    c_std.config_stddef_h(env)

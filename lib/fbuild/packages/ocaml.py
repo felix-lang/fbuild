@@ -7,28 +7,28 @@ import fbuild.packages as packages
 # -----------------------------------------------------------------------------
 
 class BytecodeModule(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].compile(*args, **kwargs)
 
 class NativeModule(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].compile(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['native'].compile(*args, **kwargs)
 
 class BytecodeImplementation(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].compile_implementation(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].compile_implementation(*args, **kwargs)
 
 class NativeImplementation(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].compile_implementation(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['native'].compile_implementation(*args, **kwargs)
 
 class BytecodeInterface(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].compile_interface(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].compile_interface(*args, **kwargs)
 
 class NativeInterface(packages.OneToOnePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].compile_interface(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['native'].compile_interface(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -39,26 +39,26 @@ class _Linker(packages.ManyToOnePackage):
         self.includes = includes
         self.libs = libs
 
-    def dependencies(self, conf):
+    def dependencies(self, env):
         # filter out system libraries
-        return chain(super().dependencies(conf), (lib for lib in self.libs
+        return chain(super().dependencies(env), (lib for lib in self.libs
             if isinstance(lib, packages.Package)))
 
-    def src_includes(self, conf):
+    def src_includes(self, env):
         """
         Find all the include paths in each library. This will evaluate each
         source.
         """
 
         includes = set()
-        for src in packages.build_srcs(conf, self.srcs):
+        for src in packages.build_srcs(env, self.srcs):
             if src.parent:
                 includes.add(src.parent)
                 includes.add(src.parent.replace_root(fbuild.buildroot))
 
         return includes
 
-    def src_libs(self, conf):
+    def src_libs(self, env):
         """
         Recursively determine all of the library dependencies. This will
         evaluate each library.
@@ -70,72 +70,72 @@ class _Linker(packages.ManyToOnePackage):
         for lib in self.libs:
             # add all the sub-libraries of this library
             if isinstance(lib, _Linker):
-                libs.extend(l for l in lib.src_libs(conf) if l not in libs)
+                libs.extend(l for l in lib.src_libs(env) if l not in libs)
 
             # now, this library
-            lib = packages.build(conf, lib)
+            lib = packages.build(env, lib)
             if lib not in libs:
                 libs.append(lib)
 
         return libs
 
-    def run(self, conf):
-        libs = self.src_libs(conf)
-        srcs = packages.build_srcs(conf, self.srcs)
+    def run(self, env):
+        libs = self.src_libs(env)
+        srcs = packages.build_srcs(env, self.srcs)
 
         includes = set(self.includes)
 
         # make sure that we include the parent of the src and the dst in the
         # include paths
-        includes.update(self.src_includes(conf))
+        includes.update(self.src_includes(env))
 
         # add the include paths from each library so we don't need to specify
         # the "includes" explicitly. Note that we don't use the includes from
         # each library, as this shows what is directly used.
         for lib in self.libs:
             if isinstance(lib, _Linker):
-                includes.update(lib.src_includes(conf))
+                includes.update(lib.src_includes(env))
 
         #  Note that we don't need the -modules flag since at the point
         # all of the source files will have been evaluated
         objs = fbuild.scheduler.map_with_dependencies(
-            partial(conf['ocaml']['ocamldep'], includes=includes),
-            partial(self.compiler, conf, includes=includes),
+            partial(env['ocaml']['ocamldep'], includes=includes),
+            partial(self.compiler, env, includes=includes),
             srcs)
 
         objs = [obj for obj in objs if not obj.endswith('cmi')]
 
-        return self.command(conf, packages.build(conf, self.dst), objs,
+        return self.command(env, packages.build(env, self.dst), objs,
             includes=includes,
             libs=libs)
 
 class BytecodeLibrary(_Linker):
-    def compiler(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
+    def compiler(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].link_lib(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].link_lib(*args, **kwargs)
 
 class NativeLibrary(_Linker):
-    def compiler(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].compile(*args, **kwargs)
+    def compiler(self, env, *args, **kwargs):
+        return env['ocaml']['native'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].link_lib(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['native'].link_lib(*args, **kwargs)
 
 class BytecodeExecutable(_Linker):
-    def compiler(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].compile(*args, **kwargs)
+    def compiler(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['bytecode'].link_exe(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['bytecode'].link_exe(*args, **kwargs)
 
 class NativeExecutable(_Linker):
-    def compiler(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].compile(*args, **kwargs)
+    def compiler(self, env, *args, **kwargs):
+        return env['ocaml']['native'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['native'].link_exe(*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['native'].link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -145,37 +145,37 @@ class Library(_Linker):
     back to the bytecode compiler.
     '''
 
-    def compiler(self, conf, *args, **kwargs):
+    def compiler(self, env, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].compile(*args, **kwargs)
+            return env['ocaml']['native'].compile(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].compile(*args, **kwargs)
+            return env['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
+    def command(self, env, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].link_lib(*args, **kwargs)
+            return env['ocaml']['native'].link_lib(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].link_lib(*args, **kwargs)
+            return env['ocaml']['bytecode'].link_lib(*args, **kwargs)
 
 class Executable(_Linker):
-    def compiler(self, conf, *args, **kwargs):
+    def compiler(self, env, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].compile(*args, **kwargs)
+            return env['ocaml']['native'].compile(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].compile(*args, **kwargs)
+            return env['ocaml']['bytecode'].compile(*args, **kwargs)
 
-    def command(self, conf, *args, **kwargs):
+    def command(self, env, *args, **kwargs):
         try:
-            return conf['ocaml']['native'].link_exe(*args, **kwargs)
+            return env['ocaml']['native'].link_exe(*args, **kwargs)
         except KeyError:
-            return conf['ocaml']['bytecode'].link_exe(*args, **kwargs)
+            return env['ocaml']['bytecode'].link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
 class Ocamllex(packages.SimplePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['ocamllex'](*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['ocamllex'](*args, **kwargs)
 
 class Ocamlyacc(packages.SimplePackage):
-    def command(self, conf, *args, **kwargs):
-        return conf['ocaml']['ocamlyacc'](*args, **kwargs)
+    def command(self, env, *args, **kwargs):
+        return env['ocaml']['ocamlyacc'](*args, **kwargs)

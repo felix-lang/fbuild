@@ -4,9 +4,9 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config_function(conf, function):
-    cmath = conf.setdefault('headers', {}).setdefault('cmath', {})
-    cmath[function] = conf['static'].check_compile('''
+def config_function(env, function):
+    cmath = env.setdefault('headers', {}).setdefault('cmath', {})
+    cmath[function] = env['static'].check_compile('''
         #include <cmath>
         int main(int argc, char** argv) {
             std::%s(0.0);
@@ -14,33 +14,33 @@ def config_function(conf, function):
         }
     ''' % function, 'checking if %s is in cmath' % function)
 
-def config_fpclassify(conf):
-    return config_function(conf, 'fpclassify')
+def config_fpclassify(env):
+    return config_function(env, 'fpclassify')
 
-def config_isfinite(conf):
-    return config_function(conf, 'isfinite')
+def config_isfinite(env):
+    return config_function(env, 'isfinite')
 
-def config_isinf(conf):
-    return config_function(conf, 'isinf')
+def config_isinf(env):
+    return config_function(env, 'isinf')
 
-def config_isnan(conf):
-    return config_function(conf, 'isnan')
+def config_isnan(env):
+    return config_function(env, 'isnan')
 
-def config_isnormal(conf):
-    return config_function(conf, 'isnormal')
+def config_isnormal(env):
+    return config_function(env, 'isnormal')
 
-def config_signbit(conf):
-    return config_function(conf, 'signbit')
+def config_signbit(env):
+    return config_function(env, 'signbit')
 
 # -----------------------------------------------------------------------------
 
-def config(conf):
-    if not conf['static'].check_header_exists('cmath'):
+def config(env):
+    if not env['static'].check_header_exists('cmath'):
         raise ConfigFailed('missing cmath')
 
-    config_fpclassify(conf)
-    config_isfinite(conf)
-    config_isinf(conf)
-    config_isnan(conf)
-    config_isnormal(conf)
-    config_signbit(conf)
+    config_fpclassify(env)
+    config_isfinite(env)
+    config_isinf(env)
+    config_isnan(env)
+    config_isnormal(env)
+    config_signbit(env)

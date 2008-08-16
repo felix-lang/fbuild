@@ -115,25 +115,25 @@ def main(argv=None):
 
     try:
         if options.force_configuration or not options.config_file.exists():
-            # we need to reconfigure, so just use a empty root configuration
-            config = {}
+            # we need to reconfigure, so just use a empty root environment
+            env = {}
 
             # make sure the configuration directory exists
             options.config_file.parent.make_dirs()
 
-            fbuildroot.configure(config, options)
+            fbuildroot.configure(env, options)
 
             fbuild.logger.log('saving config')
 
             with open(options.config_file, 'wb') as f:
-                pickle.dump(config, f)
+                pickle.dump(env, f)
 
             fbuild.logger.log('-' * 79, color='blue')
 
         else:
-            # reuse the config from the last run
+            # reuse the environment from the last run
             with open(options.config_file, 'rb') as f:
-                config = pickle.load(f)
+                env = pickle.load(f)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
@@ -144,12 +144,12 @@ def main(argv=None):
         # check if we're viewing or manipulating the config
         if options.config_dump:
             # print out the entire config
-            pprint.pprint(config)
+            pprint.pprint(env)
             return 0
 
         if options.config_query:
             # print out just a subset of the configuration
-            d = config
+            d = env
             try:
                 for key in options.config_query.split():
                     d = d[key]
@@ -162,7 +162,7 @@ def main(argv=None):
 
         if options.config_remove:
             keys = options.config_remove.split()
-            d = config
+            d = env
             try:
                 for key in keys[:-1]:
                     d = d[key]
@@ -175,14 +175,14 @@ def main(argv=None):
 
         # ---------------------------------------------------------------------
         # finally, do the build
-        fbuildroot.build(config, options)
+        fbuildroot.build(env, options)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
     finally:
-        # re-save the config
+        # re-save the environment
         with open(options.config_file, 'wb') as f:
-            pickle.dump(config, f)
+            pickle.dump(env, f)
 
     return 0
 

@@ -74,9 +74,9 @@ def make_linker(ar=None, ranlib=None, *,
 
 # -----------------------------------------------------------------------------
 
-def config(conf, *args, **kwargs):
+def config(env, *args, **kwargs):
     try:
-        return conf['ar']
+        return env['ar']
     except KeyError:
-        ar = conf['ar'] = make_linker(*args, **kwargs)
+        ar = env['ar'] = make_linker(*args, **kwargs)
         return ar

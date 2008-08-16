@@ -6,9 +6,9 @@ from ...c import gcc
 
 # -----------------------------------------------------------------------------
 
-def config_gxx(conf, exe=None, default_exes=['g++', 'c++']):
+def config_gxx(env, exe=None, default_exes=['g++', 'c++']):
     try:
-        return conf.gxx
+        return env.gxx
     except AttributeError:
         pass
 
@@ -17,7 +17,7 @@ def config_gxx(conf, exe=None, default_exes=['g++', 'c++']):
     if not exe:
         raise ConfigFailed('cannot find g++')
 
-    gxx = conf['gxx'] = gcc.Gcc(exe)
+    gxx = env['gxx'] = gcc.Gcc(exe)
 
     if not gxx.check_flags([]):
         raise ConfigFailed('g++ failed to compile an exe')
@@ -32,7 +32,7 @@ def make_linker(*args, make_gcc=config_gxx, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_static(conf, *args,
+def config_static(env, *args,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c'],
@@ -40,46 +40,46 @@ def config_static(conf, *args,
         **kwargs):
     from ... import ar
 
-    conf.setdefault('cxx', {})['static'] = gcc.make_static(conf,
+    env.setdefault('cxx', {})['static'] = gcc.make_static(env,
         partial(make_compiler, flags=compile_flags),
         ar.config,
         make_linker,
         src_suffix=src_suffix,
         *args, **kwargs)
 
-def config_shared(conf, *args,
+def config_shared(env, *args,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c', '-fPIC'],
         lib_link_flags=['-shared'],
         src_suffix='.cc',
         **kwargs):
-    conf.setdefault('cxx', {})['shared'] = gcc.make_shared(conf,
+    env.setdefault('cxx', {})['shared'] = gcc.make_shared(env,
         partial(make_compiler, flags=compile_flags),
         partial(make_linker, flags=lib_link_flags),
         make_linker,
         src_suffix=src_suffix,
         *args, **kwargs)
 
-def config(conf, exe=None, *args,
+def config(env, exe=None, *args,
         config_gxx=config_gxx,
         config_static=config_static,
         config_shared=config_shared,
         **kwargs):
-    config_gxx(conf, exe)
-    config_static(conf, *args, **kwargs)
-    config_shared(conf, *args, **kwargs)
+    config_gxx(env, exe)
+    config_static(env, *args, **kwargs)
+    config_shared(env, *args, **kwargs)
 
-    return conf['cxx']
+    return env['cxx']
 
 # -----------------------------------------------------------------------------
 
-def config_ext_hash_map(conf):
-    if not conf['static'].check_header_exists('ext/hash_map'):
+def config_ext_hash_map(env):
+    if not env['static'].check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
 
-    gxx = conf.setdefault('gxx', {})
-    gxx['hash_map'] = conf['static'].check_compile('''
+    gxx = env.setdefault('gxx', {})
+    gxx['hash_map'] = env['static'].check_compile('''
         #include <ext/hash_map>
         using namespace __gnu_cxx;
 
@@ -88,5 +88,5 @@ def config_ext_hash_map(conf):
         }
     ''', 'checking if gnu hash_map is supported')
 
-def config_extensions(conf):
-    config_ext_hash_map(conf)
+def config_extensions(env):
+    config_ext_hash_map(env)
