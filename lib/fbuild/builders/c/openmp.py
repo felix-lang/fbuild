@@ -42,12 +42,12 @@ def config_builder(env, builder):
         logger.failed()
         raise ConfigFailed('failed to link openmp program')
 
-def config_static(env):
+def config_static(env, builder):
     config_builder(env, 'static')
 
-def config_shared(env):
+def config_shared(env, builder):
     config_builder(env, 'shared')
 
-def config(env):
-    config_static(env)
-    config_shared(env)
+def config(env, builder):
+    config_static(env, builder)
+    config_shared(env, builder)

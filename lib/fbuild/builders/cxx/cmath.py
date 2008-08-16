@@ -1,12 +1,14 @@
 from functools import partial
 
-from fbuild import ConfigFailed
+from fbuild import Record
+from fbuild.builders.c import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_function(env, function):
-    cmath = env.setdefault('headers', {}).setdefault('cmath', {})
-    cmath[function] = env['static'].check_compile('''
+def _config_function(builder, function):
+    record = Record()
+
+    record[function] = builder.check_compile('''
         #include <cmath>
         int main(int argc, char** argv) {
             std::%s(0.0);
@@ -14,33 +16,38 @@ def config_function(env, function):
         }
     ''' % function, 'checking if %s is in cmath' % function)
 
-def config_fpclassify(env):
-    return config_function(env, 'fpclassify')
+    return record
 
-def config_isfinite(env):
-    return config_function(env, 'isfinite')
+def config_fpclassify(env, builder):
+    return _config_function(builder, 'fpclassify')
 
-def config_isinf(env):
-    return config_function(env, 'isinf')
+def config_isfinite(env, builder):
+    return _config_function(builder, 'isfinite')
 
-def config_isnan(env):
-    return config_function(env, 'isnan')
+def config_isinf(env, builder):
+    return _config_function(builder, 'isinf')
 
-def config_isnormal(env):
-    return config_function(env, 'isnormal')
+def config_isnan(env, builder):
+    return _config_function(builder, 'isnan')
 
-def config_signbit(env):
-    return config_function(env, 'signbit')
+def config_isnormal(env, builder):
+    return _config_function(builder, 'isnormal')
+
+def config_signbit(env, builder):
+    return _config_function(builder, 'signbit')
 
 # -----------------------------------------------------------------------------
 
-def config(env):
-    if not env['static'].check_header_exists('cmath'):
-        raise ConfigFailed('missing cmath')
+def config(env, builder):
+    if not builder.check_header_exists('cmath'):
+        raise MissingHeader('cmath')
 
-    config_fpclassify(env)
-    config_isfinite(env)
-    config_isinf(env)
-    config_isnan(env)
-    config_isnormal(env)
-    config_signbit(env)
+    record = Record()
+    record.update(config_fpclassify(env, builder))
+    record.update(config_isfinite(env, builder))
+    record.update(config_isinf(env, builder))
+    record.update(config_isnan(env, builder))
+    record.update(config_isnormal(env, builder))
+    record.update(config_signbit(env, builder))
+
+    return record

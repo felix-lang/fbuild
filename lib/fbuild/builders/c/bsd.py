@@ -2,14 +2,14 @@ from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_sys_event_h(env):
-    if not env['static'].check_header_exists('sys/event.h'):
+def config_sys_event_h(env, builder):
+    if not builder.check_header_exists('sys/event.h'):
         raise MissingHeader('sys/event.h')
 
     event_h = env.setdefault('headers', {}) \
                   .setdefault('sys', {}) \
                   .setdefault('event_h', {})
-    event_h['kqueue'] = env['static'].check_run('''
+    event_h['kqueue'] = builder.check_run('''
         #include <sys/types.h>      // from the kqueue manpage
         #include <sys/event.h>      // kernel events
         #include <sys/time.h>       // timespec (kevent timeout)
@@ -20,5 +20,5 @@ def config_sys_event_h(env):
         }
     ''', 'checking if kqueue is supported')
 
-def config(env):
-    config_sys_event_h(env)
+def config(env, builder):
+    config_sys_event_h(env, builder)

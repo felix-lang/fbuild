@@ -160,7 +160,7 @@ def check_compiler(compiler, suffix):
 
 # -----------------------------------------------------------------------------
 
-def config_little_endian(env):
+def config_little_endian(env, builder):
     code = '''
         #include <stdio.h>
 
@@ -181,7 +181,7 @@ def config_little_endian(env):
 
     logger.check('checking if little endian')
     try:
-        stdout = 1 == int(env['static'].tempfile_run(code)[0])
+        stdout = 1 == int(builder.tempfile_run(code)[0])
     except ExecutionError:
         logger.failed()
         raise ConfigFailed('failed to detect endianness')

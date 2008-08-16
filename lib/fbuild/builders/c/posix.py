@@ -4,11 +4,8 @@ from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_dlfcn_h(env):
-    static = env['static']
-    shared = env['shared']
-
-    if not static.check_header_exists('dlfcn.h'):
+def config_dlfcn_h(env, builder):
+    if not builder.check_header_exists('dlfcn.h'):
         raise MissingHeader('dlfcn.h')
 
     dlfcn_h = env.setdefault('headers', {}).setdefault('dlfcn_h', {})
@@ -37,37 +34,36 @@ def config_dlfcn_h(env):
         }
     '''
 
-    with tempfile(lib_code, shared.src_suffix) as lib_src:
-        obj = shared.compile(lib_src, quieter=1)
-        lib = shared.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
+    with tempfile(lib_code, builder.src_suffix) as lib_src:
+        obj = builder.compile(lib_src, quieter=1)
+        lib = builder.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
 
-        dlfcn_h['dlopen'] = static.check_run(exe_code % lib,
+        dlfcn_h['dlopen'] = builder.check_run(exe_code % lib,
             'check if supports dlopen')
 
 # -----------------------------------------------------------------------------
 
-def config_sys_mman_h(env):
-    static = env['static']
-    if not static.check_header_exists('sys/mman.h'):
+def config_sys_mman_h(env, builder):
+    if not builder.check_header_exists('sys/mman.h'):
         raise MissingHeader('sys/mman.h')
 
     mman_h = env.setdefault('headers', {}) \
                  .setdefault('sys', {}) \
                  .setdefault('mman_h', {})
-    mman_h['macros'] = {m: static.check_macro_exists(m, headers=['sys/mman.h'])
-        for m in (
+    macros = mman_h['macros'] = {}
+
+    for macro in (
             'PROT_EXEC', 'PROT_READ', 'PROT_WRITE', 'MAP_DENYWRITE',
             'MAP_ANON', 'MAP_FILE', 'MAP_FIXED', 'MAP_HASSEMAPHORE',
             'MAP_SHARED', 'MAP_PRIVATE', 'MAP_NORESERVE', 'MAP_LOCKED',
-            'MAP_GROWSDOWN', 'MAP_32BIT', 'MAP_POPULATE', 'MAP_NONBLOCK',
-        )
-    }
+            'MAP_GROWSDOWN', 'MAP_32BIT', 'MAP_POPULATE', 'MAP_NONBLOCK'):
+        macros[macro] = builder.check_macro_exists(macro,
+            headers=['sys/mman.h'])
 
 # -----------------------------------------------------------------------------
 
-def config_poll_h(env):
-    static = env['static']
-    if not static.check_header_exists('poll.h'):
+def config_poll_h(env, builder):
+    if not builder.check_header_exists('poll.h'):
         raise MissingHeader('poll.h')
 
     # just check if the header exists for now
@@ -75,9 +71,8 @@ def config_poll_h(env):
 
 # -----------------------------------------------------------------------------
 
-def config_pthread_h(env):
-    static = env['static']
-    if not static.check_header_exists('pthread.h'):
+def config_pthread_h(env, builder):
+    if not builder.check_header_exists('pthread.h'):
         raise MissingHeader('pthread.h')
 
     pthread_h = env.setdefault('headers', {}).setdefault('pthread_h', {})
@@ -100,7 +95,7 @@ def config_pthread_h(env):
 
     logger.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
-        if static.try_run(code, lflags={'flags': flags}):
+        if builder.try_run(code, lflags={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
             pthread_h['flags'] = flags
             break
@@ -110,9 +105,8 @@ def config_pthread_h(env):
 
 # -----------------------------------------------------------------------------
 
-def config_sys_socket_h(env):
-    static = env['static']
-    if not static.check_header_exists('sys/socket.h'):
+def config_sys_socket_h(env, builder):
+    if not builder.check_header_exists('sys/socket.h'):
         raise MissingHeader('sys/socket.h')
 
     socket_h = env.setdefault('headers', {}) \
@@ -128,7 +122,7 @@ def config_sys_socket_h(env):
 
     logger.check('determing type of socklen_t')
     for t in 'socklen_t', 'unsigned int', 'int':
-        if static.try_compile(code % t):
+        if builder.try_compile(code % t):
             logger.passed('ok ' + t)
             socket_h['socklen_t'] = t
             break
@@ -150,24 +144,23 @@ default_types_unistd_h = (
     'uuid_t',
 )
 
-def config_unistd_h(env):
-    static = env['static']
-    if not static.check_header_exists('unistd.h'):
+def config_unistd_h(env, builder):
+    if not builder.check_header_exists('unistd.h'):
         raise MissingHeader('unistd.h')
 
     unistd_h = env.setdefault('headers', {}).setdefault('unistd_h', {})
-    unistd_h['types'] = std.get_types_data(static, default_types_unistd_h,
+    unistd_h['types'] = std.get_types_data(builder, default_types_unistd_h,
         headers=['unistd.h'])
 
 # -----------------------------------------------------------------------------
 
-def config(env):
-    config_dlfcn_h(env)
-    config_poll_h(env)
-    config_pthread_h(env)
-    config_sys_mman_h(env)
-    config_sys_socket_h(env)
-    config_unistd_h(env)
+def config(env, builder):
+    config_dlfcn_h(env, builder)
+    config_poll_h(env, builder)
+    config_pthread_h(env, builder)
+    config_sys_mman_h(env, builder)
+    config_sys_socket_h(env, builder)
+    config_unistd_h(env, builder)
 
 # -----------------------------------------------------------------------------
 

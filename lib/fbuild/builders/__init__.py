@@ -25,16 +25,16 @@ def find_program(names):
 
     raise ConfigFailed('failed to find any of ' + str(names))
 
-def run_tests(self, tests):
+def run_tests(env, tests, *args, **kwargs):
     for test in tests:
         test = import_function(test)
-        test(self)
+        test(env, *args, **kwargs)
 
-def run_optional_tests(self, tests):
+def run_optional_tests(env, tests, *args, **kwargs):
     for test in tests:
         test = import_function(test)
         try:
-            test(self)
+            test(env, *args, **kwargs)
         except ConfigFailed:
             pass
 

@@ -1,5 +1,6 @@
 from functools import partial
 
+from fbuild import Record
 import fbuild.builders
 from ...c import MissingHeader
 from ...c import gcc
@@ -40,7 +41,7 @@ def config_static(env, *args,
         **kwargs):
     from ... import ar
 
-    env.setdefault('cxx', {})['static'] = gcc.make_static(env,
+    return gcc.make_static(env,
         partial(make_compiler, flags=compile_flags),
         ar.config,
         make_linker,
@@ -54,7 +55,7 @@ def config_shared(env, *args,
         lib_link_flags=['-shared'],
         src_suffix='.cc',
         **kwargs):
-    env.setdefault('cxx', {})['shared'] = gcc.make_shared(env,
+    return gcc.make_shared(env,
         partial(make_compiler, flags=compile_flags),
         partial(make_linker, flags=lib_link_flags),
         make_linker,
@@ -67,19 +68,22 @@ def config(env, exe=None, *args,
         config_shared=config_shared,
         **kwargs):
     config_gxx(env, exe)
-    config_static(env, *args, **kwargs)
-    config_shared(env, *args, **kwargs)
+
+    env['cxx'] = Record(
+        static=config_static(env, *args, **kwargs),
+        shared=config_shared(env, *args, **kwargs),
+    )
 
     return env['cxx']
 
 # -----------------------------------------------------------------------------
 
-def config_ext_hash_map(env):
-    if not env['static'].check_header_exists('ext/hash_map'):
+def config_ext_hash_map(env, builder):
+    if not builder.check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
 
     gxx = env.setdefault('gxx', {})
-    gxx['hash_map'] = env['static'].check_compile('''
+    gxx['hash_map'] = builder.check_compile('''
         #include <ext/hash_map>
         using namespace __gnu_cxx;
 
@@ -88,5 +92,5 @@ def config_ext_hash_map(env):
         }
     ''', 'checking if gnu hash_map is supported')
 
-def config_extensions(env):
-    config_ext_hash_map(env)
+def config_extensions(env, builder):
+    config_ext_hash_map(env, builder)

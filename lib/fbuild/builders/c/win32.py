@@ -2,12 +2,12 @@ from fbuild import ConfigFailed
 
 # -----------------------------------------------------------------------------
 
-def config(env):
-    if not env['static'].check_header_exists('windows.h'):
+def config(env, builder):
+    if not builder.check_header_exists('windows.h'):
         raise ConfigFailed('cannot find windows.h')
 
     windows_h = env.setdefault('headers', {}).setdefault('windows_h', {})
-    windows_h['LoadLibrary'] = env['static'].check_compile('''
+    windows_h['LoadLibrary'] = builder.check_compile('''
         #include <windows.h>
         #include <stdlib.h>
 

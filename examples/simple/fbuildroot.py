@@ -55,17 +55,17 @@ def make_c_builder(env, **kwargs):
     from fbuild.builders.c.guess import config
     c = config(env, **kwargs)
 
-    run_tests(c, c_tests)
-    run_optional_tests(c, c_optional_tests)
+    run_tests(c, c_tests, c.shared)
+    run_optional_tests(c, c_optional_tests, c.shared)
 
 def make_cxx_builder(env, **kwargs):
     from fbuild.builders.cxx.guess import config
     cxx = config(env, **kwargs)
 
-    run_tests(cxx, c_tests)
-    run_tests(cxx, cxx_tests)
-    run_optional_tests(cxx, c_optional_tests)
-    run_optional_tests(cxx, cxx_optional_tests)
+    run_tests(cxx, c_tests, cxx.shared)
+    run_tests(cxx, cxx_tests, cxx.shared)
+    run_optional_tests(cxx, c_optional_tests, cxx.shared)
+    run_optional_tests(cxx, cxx_optional_tests, cxx.shared)
 
 def config_build(env, options):
     logger.log('configuring build phase', color='cyan')

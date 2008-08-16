@@ -1,7 +1,7 @@
 from functools import partial
 
 import fbuild
-from fbuild import logger, ExecutionError, ConfigFailed
+from fbuild import logger, ExecutionError, ConfigFailed, Record
 import fbuild.builders.c as c
 
 # -----------------------------------------------------------------------------
@@ -259,7 +259,7 @@ def config_static(env, *args,
         **kwargs):
     from ... import ar
 
-    env.setdefault('c', {})['static'] = make_static(env,
+    return make_static(env,
         partial(make_compiler, flags=compile_flags),
         ar.config,
         make_linker,
@@ -271,7 +271,7 @@ def config_shared(env, *args,
         compile_flags=['-c', '-fPIC'],
         lib_link_flags=['-shared'],
         **kwargs):
-    env.setdefault('c', {})['shared'] = make_shared(env,
+    return make_shared(env,
         partial(make_compiler, flags=compile_flags),
         partial(make_linker, flags=lib_link_flags),
         make_linker,
@@ -283,25 +283,28 @@ def config(env, exe=None, *args,
         config_shared=config_shared,
         **kwargs):
     config_gcc(env, exe)
-    config_static(env, *args, **kwargs)
-    config_shared(env, *args, **kwargs)
+
+    env['c'] = Record(
+        static=config_static(env, *args, **kwargs),
+        shared=config_shared(env, *args, **kwargs),
+    )
 
     return env['c']
 
 # -----------------------------------------------------------------------------
 
-def config_builtin_expect(env):
+def config_builtin_expect(env, builder):
     gcc = env.setdefault('gcc', {})
-    gcc['builtin_expect'] = env['static'].check_compile('''
+    gcc['builtin_expect'] = builder.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
             return 0;
         }
     ''', 'checking if supports builtin expect')
 
-def config_named_registers_x86(env):
+def config_named_registers_x86(env, builder):
     gcc = env.setdefault('gcc', {})
-    gcc['named_registers_x86'] = env['static'].check_compile('''
+    gcc['named_registers_x86'] = builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
 
@@ -311,9 +314,9 @@ def config_named_registers_x86(env):
         }
     ''', 'checking if supports x86 named registers')
 
-def config_named_registers_x86_64(env):
+def config_named_registers_x86_64(env, builder):
     gcc = env.setdefault('gcc', {})
-    gcc['named_registers_x86_64'] = env['static'].check_compile('''
+    gcc['named_registers_x86_64'] = builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
 
@@ -323,9 +326,9 @@ def config_named_registers_x86_64(env):
         }
     ''', 'checking if supports x86_64 named registers')
 
-def config_computed_gotos(env):
+def config_computed_gotos(env, builder):
     gcc = env.setdefault('gcc', {})
-    gcc['computed_gotos'] = env['static'].check_compile('''
+    gcc['computed_gotos'] = builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             goto *label;
@@ -336,9 +339,9 @@ def config_computed_gotos(env):
         }
     ''', 'checking if supports computed gotos')
 
-def config_asm_labels(env):
+def config_asm_labels(env, builder):
     gcc = env.setdefault('gcc', {})
-    gcc['asm_labels'] = env['static'].check_compile('''
+    gcc['asm_labels'] = builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             __asm__(".global fred");
@@ -352,9 +355,9 @@ def config_asm_labels(env):
         }
     ''', 'checking if supports asm labels')
 
-def config_extensions(env):
-    config_builtin_expect(env)
-    config_named_registers_x86(env)
-    config_named_registers_x86_64(env)
-    config_computed_gotos(env)
-    config_asm_labels(env)
+def config_extensions(env, builder):
+    config_builtin_expect(env, builder)
+    config_named_registers_x86(env, builder)
+    config_named_registers_x86_64(env, builder)
+    config_computed_gotos(env, builder)
+    config_asm_labels(env, builder)

@@ -113,39 +113,37 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_types(env,
+def config_types(env, builder,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc):
     std = env.setdefault('std', {})
-    static = env['static']
-    std['types'] = get_types_data(static, types_int, int_type=True)
-    std['types'].update(get_types_data(static, types_float))
-    std['types'].update(get_types_data(static, types_misc))
-    std['types']['enum'] = get_type_data(static, 'enum enum_t {tag}')
+    std['types'] = get_types_data(builder, types_int, int_type=True)
+    std['types'].update(get_types_data(builder, types_float))
+    std['types'].update(get_types_data(builder, types_misc))
+    std['types']['enum'] = get_type_data(builder, 'enum enum_t {tag}')
 
     pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
     logger.check('getting int type conversions')
     try:
-        std['int_type_conversions'] = get_type_conversions(static, pairs)
+        std['int_type_conversions'] = get_type_conversions(builder, pairs)
     except ConfigFailed:
         logger.failed()
     else:
         logger.passed()
 
-def config_stddef_h(env):
-    static = env['static']
-    if not static.check_header_exists('stddef.h'):
+def config_stddef_h(env, builder):
+    if not builder.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
     stddef_h = env.setdefault('headers', {}).setdefault('stddef_h', {})
-    stddef_h['types'] = get_types_data(static, default_types_stddef_h,
+    stddef_h['types'] = get_types_data(builder, default_types_stddef_h,
         int_type=True)
 
-def config(env):
-    config_types(env)
-    config_stddef_h(env)
+def config(env, builder):
+    config_types(env, builder)
+    config_stddef_h(env, builder)
 
 # -----------------------------------------------------------------------------
 

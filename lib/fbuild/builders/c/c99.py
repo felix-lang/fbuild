@@ -24,44 +24,40 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 
 # -----------------------------------------------------------------------------
 
-def config_types(env):
+def config_types(env, builder):
     c99 = env.setdefault('c99', {})
-    c99['types'] = std.get_types_data(env['static'], default_types)
+    c99['types'] = std.get_types_data(builder, default_types)
 
-def config_complex_h(env):
-    static = env['static']
-    if not static.check_header_exists('complex.h'):
+def config_complex_h(env, builder):
+    if not builder.check_header_exists('complex.h'):
         raise c.MissingHeader('complex.h')
 
     complex_h = env.setdefault('headers', {}).setdefault('complex_h', {})
-    complex_h['types'] = std.get_types_data(static, default_types_complex_h,
+    complex_h['types'] = std.get_types_data(builder, default_types_complex_h,
         headers=['complex.h'])
 
-def config_stdbool_h(env):
-    static = env['static']
-    if not static.check_header_exists('stdbool.h'):
+def config_stdbool_h(env, builder):
+    if not builder.check_header_exists('stdbool.h'):
         raise c.MissingHeader('stdbool.h')
 
     stdbool_h = env.setdefault('headers', {}).setdefault('stdbool_h', {})
-    stdbool_h['types'] = std.get_types_data(static, default_types_stdbool_h,
+    stdbool_h['types'] = std.get_types_data(builder, default_types_stdbool_h,
         headers=['stdbool.h'])
 
-def config_stdint_h(env):
-    static = env['static']
-    if not static.check_header_exists('stdint.h'):
+def config_stdint_h(env, builder):
+    if not builder.check_header_exists('stdint.h'):
         raise c.MissingHeader('stdint.h')
 
     stdint_h = env.setdefault('headers', {}).setdefault('stdint_h', {})
-    stdint_h['types'] = std.get_types_data(static, default_types_stdint_h,
+    stdint_h['types'] = std.get_types_data(builder, default_types_stdint_h,
         headers=['stdint.h'], int_type=True)
 
 # -----------------------------------------------------------------------------
 
-def config_stdio_h(env):
+def config_stdio_h(env, builder):
     stdio_h = env.setdefault('headers', {}).setdefault('stdio_h', {})
 
-    static = env['static']
-    stdio_h['snprintf'] = static.check_run('''
+    stdio_h['snprintf'] = builder.check_run('''
         #include <stdio.h>
 
         int main(int argc,char** argv) {
@@ -71,7 +67,7 @@ def config_stdio_h(env):
         }
     ''', 'checking if snprintf is in stdio.h')
 
-    stdio_h['vsnprintf'] = static.check_run('''
+    stdio_h['vsnprintf'] = builder.check_run('''
         #include <stdio.h>
         #include <stdarg.h>
 
@@ -91,12 +87,12 @@ def config_stdio_h(env):
 
 # -----------------------------------------------------------------------------
 
-def config(env):
-    config_stdio_h(env)
-    config_types(env)
-    config_complex_h(env)
-    config_stdbool_h(env)
-    config_stdint_h(env)
+def config(env, builder):
+    config_stdio_h(env, builder)
+    config_types(env, builder)
+    config_complex_h(env, builder)
+    config_stdbool_h(env, builder)
+    config_stdint_h(env, builder)
 
 # -----------------------------------------------------------------------------
 
