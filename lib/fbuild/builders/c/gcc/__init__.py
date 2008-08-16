@@ -136,13 +136,13 @@ def make_compiler(env, gcc, flags=[],
         debug_flags=['-g'],
         optimize_flags=['-O2'],
         **kwargs):
-    if flags and not gcc.check_flags(flags):
+    if flags and not env.test(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
 
-    if not gcc.check_flags(debug_flags):
+    if not env.test(gcc.check_flags, debug_flags):
         debug_flags = []
 
-    if not gcc.check_flags(optimize_flags):
+    if not env.test(gcc.check_flags, optimize_flags):
         optimize_flags = []
 
     return Compiler(gcc, flags,
@@ -211,7 +211,7 @@ class Linker:
                 self.suffix == other.suffix
 
 def make_linker(env, gcc, flags=[], **kwargs):
-    if flags and not gcc.check_flags(flags):
+    if flags and not env.test(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
 
     return Linker(gcc, flags, **kwargs)
