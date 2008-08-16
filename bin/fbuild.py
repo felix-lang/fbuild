@@ -49,10 +49,11 @@ def main(argv=None):
             action='store',
             default='build',
             help='where to store the build files (default build)'),
-        make_option('--config-file',
+        make_option('--state-file',
             action='store',
-            default='config.db',
-            help='the name of the config file (default buildroot/config.db)'),
+            default='fbuild-state.db',
+            help='the name of the state file ' \
+                 '(default buildroot/fbuild-state.db)'),
         make_option('--log-file',
             action='store',
             default='fbuild.log',
@@ -96,7 +97,7 @@ def main(argv=None):
 
     # convert the option paths into Path objects
     options.buildroot = fbuild.Path(options.buildroot)
-    options.config_file = options.buildroot / options.config_file
+    options.state_file = options.buildroot / options.state_file
 
     # make sure the buildroot exists before running
     fbuild.buildroot = options.buildroot
@@ -114,7 +115,7 @@ def main(argv=None):
     # get the configuration
 
     try:
-        if options.force_configuration or not options.config_file.exists():
+        if options.force_configuration or not options.state_file.exists():
             # we need to reconfigure, so just use a empty root environment
             env = {}
 
@@ -130,9 +131,12 @@ def main(argv=None):
 
             fbuild.logger.log('-' * 79, color='blue')
 
+
+            # make sure the state file directory exists
+            options.state_file.parent.make_dirs()
         else:
             # reuse the environment from the last run
-            with open(options.config_file, 'rb') as f:
+            with open(options.state_file, 'rb') as f:
                 env = pickle.load(f)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
@@ -180,8 +184,8 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
-        # re-save the environment
-        with open(options.config_file, 'wb') as f:
+        # save the state
+        with open(options.state_file, 'wb') as f:
             pickle.dump(env, f)
 
     return 0
