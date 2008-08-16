@@ -1,10 +1,9 @@
 from fbuild import ConfigFailed
-import fbuild.builders.platform
 
 # -----------------------------------------------------------------------------
 
-def config(env, **kwargs):
-    platform = fbuild.builders.platform.config(env)
+def config(env, *, platform=None, **kwargs):
+    platform = env.config('fbuild.builders.platform.config', platform)
 
     if 'darwin' in platform:
         from .gcc.darwin import config
