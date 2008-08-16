@@ -53,33 +53,6 @@ class Linker:
 
         return dst
 
-# -----------------------------------------------------------------------------
-
-def make_linker(ar=None, ranlib=None, *,
-        prefix='lib',
-        suffix='.a',
-        link_flags=['-rc'],
-        **kwargs):
-    ar = ar or fbuild.builders.find_program(['ar'])
-
-    if not ar:
-        raise ConfigFailed('cannot find ar')
-
-    ranlib = ranlib or fbuild.builders.find_program(['ranlib'])
-
-    return Linker(ar, ranlib, link_flags,
-        prefix=prefix,
-        suffix=suffix,
-        **kwargs)
-
-# -----------------------------------------------------------------------------
-
-def config(env, *args, **kwargs):
-    try:
-        return env['ar']
-    except KeyError:
-        ar = env['ar'] = make_linker(*args, **kwargs)
-        return ar
     def __str__(self):
         return ' '.join([self.ar] + self.flags)
 
@@ -100,3 +73,21 @@ def config(env, *args, **kwargs):
             self.prefix == other.prefix and \
             self.suffix == other.suffix
 
+# -----------------------------------------------------------------------------
+
+def config(env, ar=None, ranlib=None, *,
+        prefix='lib',
+        suffix='.a',
+        link_flags=['-rc'],
+        **kwargs):
+    ar = ar or fbuild.builders.find_program(['ar'])
+
+    if not ar:
+        raise ConfigFailed('cannot find ar')
+
+    ranlib = ranlib or fbuild.builders.find_program(['ranlib'])
+
+    return Linker(ar, ranlib, link_flags,
+        prefix=prefix,
+        suffix=suffix,
+        **kwargs)
