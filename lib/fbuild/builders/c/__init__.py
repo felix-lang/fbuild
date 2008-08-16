@@ -186,5 +186,7 @@ def config_little_endian(env, builder):
         logger.failed()
         raise ConfigFailed('failed to detect endianness')
 
-    env['little_endian'] = int(stdout) == 1
-    logger.passed(env['little_endian'])
+    little_endian = int(stdout) == 1
+    logger.passed(little_endian)
+
+    return little_endian

@@ -1,3 +1,4 @@
+from fbuild import Record
 from . import MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -6,10 +7,7 @@ def config_sys_epoll_h(env, builder):
     if not builder.check_header_exists('sys/epoll.h'):
         raise MissingHeader('sys/epoll.h')
 
-    epoll_h = env.setdefault('headers', {}) \
-                  .setdefault('sys', {}) \
-                  .setdefault('epoll_h', {})
-    epoll_h['epoll'] = builder.check_run('''
+    epoll = builder.check_run('''
         #include <sys/epoll.h>
 
         int main(int argc, char** argv) {
@@ -18,5 +16,18 @@ def config_sys_epoll_h(env, builder):
         }
     ''', 'checking if epoll is supported')
 
+    return Record(epoll=epoll)
+
+# -----------------------------------------------------------------------------
+
+def config_headers(env, builder):
+    return Record(
+        sys=Record(
+            epoll_h=env.config(config_sys_epoll_h, builder),
+        ),
+    )
+
 def config(env, builder):
-    config_sys_epoll_h(env, builder)
+    return Record(
+        headers=env.config(config_headers, builder),
+    )

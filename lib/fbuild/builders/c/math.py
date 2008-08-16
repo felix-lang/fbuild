@@ -24,7 +24,7 @@ def config_finite(env, builder):
     return _config_functions(builder, 'finite', 'finitef', 'finitel')
 
 def config_bsd(env, builder):
-    return config_finite(env, builder)
+    return env.config(config_finite, builder)
 
 # -----------------------------------------------------------------------------
 # c99 classification macros
@@ -49,12 +49,12 @@ def config_signbit(env, builder):
 
 def config_c99(env, builder):
     record = Record()
-    record.update(config_fpclassify(env, builder))
-    record.update(config_isfinite(env, builder))
-    record.update(config_isinf(env, builder))
-    record.update(config_isnan(env, builder))
-    record.update(config_isnormal(env, builder))
-    record.update(config_signbit(env, builder))
+    record.update(env.config(config_fpclassify, builder))
+    record.update(env.config(config_isfinite, builder))
+    record.update(env.config(config_isinf, builder))
+    record.update(env.config(config_isnan, builder))
+    record.update(env.config(config_isnormal, builder))
+    record.update(env.config(config_signbit, builder))
 
     return record
 
@@ -65,7 +65,7 @@ def config(env, builder):
         raise MissingHeader('math.h')
 
     record = Record()
-    record.update(config_bsd(env, builder))
-    record.update(config_c99(env, builder))
+    record.update(env.config(config_bsd, builder))
+    record.update(env.config(config_c99, builder))
 
     return record

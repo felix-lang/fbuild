@@ -1,3 +1,4 @@
+from fbuild import Record
 import fbuild.builders.c.std as c_std
 
 # -----------------------------------------------------------------------------
@@ -18,10 +19,13 @@ def config_types(env, builder):
         types_float=default_types_float,
         types_misc=default_types_misc)
 
-def config_class_member_initialization(env, builder):
-    tests = env.setdefault('tests', {})
+def config_compiler_bugs(env, builder):
+    """
+    Test for common c++ bugs.
+    """
 
-    tests['class_member_intialization'] = builder.check_compile('''
+    bugs = Record()
+    bugs.class_member_intialization = builder.check_compile('''
         struct X {
             static const int i = 1;
         };
@@ -31,7 +35,16 @@ def config_class_member_initialization(env, builder):
         }
     ''', 'checking class member initialization')
 
+    return bugs
+
+def config_headers(env, builder):
+    return Record(
+        stddef_h=env.config(c_std.config_stddef_h, builder),
+    )
+
 def config(env, builder):
-    config_types(env, builder)
-    config_class_member_initialization(env, builder)
-    c_std.config_stddef_h(env, builder)
+    return Record(
+        types=env.config(config_types, builder),
+        headers=env.config(config_headers, builder),
+        bugs=env.config(config_compiler_bugs, builder),
+    )

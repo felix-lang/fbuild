@@ -351,8 +351,7 @@ def config(env, exe=None, *args,
 # -----------------------------------------------------------------------------
 
 def config_builtin_expect(env, builder):
-    gcc = env.setdefault('gcc', {})
-    gcc['builtin_expect'] = builder.check_compile('''
+    return builder.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
             return 0;
@@ -360,8 +359,7 @@ def config_builtin_expect(env, builder):
     ''', 'checking if supports builtin expect')
 
 def config_named_registers_x86(env, builder):
-    gcc = env.setdefault('gcc', {})
-    gcc['named_registers_x86'] = builder.check_compile('''
+    return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
 
@@ -372,8 +370,7 @@ def config_named_registers_x86(env, builder):
     ''', 'checking if supports x86 named registers')
 
 def config_named_registers_x86_64(env, builder):
-    gcc = env.setdefault('gcc', {})
-    gcc['named_registers_x86_64'] = builder.check_compile('''
+    return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
 
@@ -384,8 +381,7 @@ def config_named_registers_x86_64(env, builder):
     ''', 'checking if supports x86_64 named registers')
 
 def config_computed_gotos(env, builder):
-    gcc = env.setdefault('gcc', {})
-    gcc['computed_gotos'] = builder.check_compile('''
+    return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             goto *label;
@@ -397,8 +393,7 @@ def config_computed_gotos(env, builder):
     ''', 'checking if supports computed gotos')
 
 def config_asm_labels(env, builder):
-    gcc = env.setdefault('gcc', {})
-    gcc['asm_labels'] = builder.check_compile('''
+    return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
             __asm__(".global fred");
@@ -413,8 +408,11 @@ def config_asm_labels(env, builder):
     ''', 'checking if supports asm labels')
 
 def config_extensions(env, builder):
-    config_builtin_expect(env, builder)
-    config_named_registers_x86(env, builder)
-    config_named_registers_x86_64(env, builder)
-    config_computed_gotos(env, builder)
-    config_asm_labels(env, builder)
+    return Record(
+        builtin_expect=env.config(config_builtin_expect, builder),
+        named_registers_x86=env.config(config_named_registers_x86, builder),
+        named_registers_x86_64=env.config(
+            config_named_registers_x86_64, builder),
+        computed_gotos=env.config(config_computed_gotos, builder),
+        asm_labels=env.config(config_asm_labels, builder),
+    )

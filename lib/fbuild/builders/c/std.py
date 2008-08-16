@@ -1,6 +1,6 @@
 from itertools import chain
 
-from fbuild import logger, ExecutionError, ConfigFailed
+from fbuild import logger, ExecutionError, ConfigFailed, Record
 from . import MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -117,60 +117,72 @@ def config_types(env, builder,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc):
-    std = env.setdefault('std', {})
-    std['types'] = get_types_data(builder, types_int, int_type=True)
-    std['types'].update(get_types_data(builder, types_float))
-    std['types'].update(get_types_data(builder, types_misc))
-    std['types']['enum'] = get_type_data(builder, 'enum enum_t {tag}')
+    types = get_types_data(builder, types_int, int_type=True)
+    types.update(get_types_data(builder, types_float))
+    types.update(get_types_data(builder, types_misc))
+    types['enum'] = get_type_data(builder, 'enum enum_t {tag}')
 
+    return types
+
+def config_int_type_conversions(env, builder, types_int=default_types_int):
     pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
     logger.check('getting int type conversions')
     try:
-        std['int_type_conversions'] = get_type_conversions(builder, pairs)
-    except ConfigFailed:
+        int_type_conversions = get_type_conversions(builder, pairs)
+    except ConfigFailed as e:
         logger.failed()
-    else:
-        logger.passed()
+        raise e from e
+
+    logger.passed()
+    return int_type_conversions
 
 def config_stddef_h(env, builder):
     if not builder.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
-    stddef_h = env.setdefault('headers', {}).setdefault('stddef_h', {})
-    stddef_h['types'] = get_types_data(builder, default_types_stddef_h,
-        int_type=True)
+    types = get_types_data(builder, default_types_stddef_h, int_type=True)
+    return Record(types=types)
+
+def config_headers(env, builder):
+    return Record(stddef_h=env.config(config_stddef_h, builder))
 
 def config(env, builder):
-    config_types(env, builder)
-    config_stddef_h(env, builder)
+    return Record(
+        types=env.config(config_types, builder),
+        int_type_conversions=env.config(config_int_type_conversions, builder),
+        headers=env.config(config_headers, builder))
 
 # -----------------------------------------------------------------------------
 
-def types_int(env):
-    return (t for t in default_types_int if t in env['std']['types'])
+def types_int(env, builder):
+    types = env.config(config_types, builder)
+    return (t for t in default_types_int if t in types)
 
-def types_float(env):
-    return (t for t in default_types_float if t in env['std']['types'])
+def types_float(env, builder):
+    types = env.config(config_types, builder)
+    return (t for t in default_types_float if t in types)
 
-def type_aliases_int(env):
+def type_aliases_int(env, builder):
+    types = env.config(config_types, builder)
     d = {}
-    for t in types_int(env):
-        data = env['std']['types'][t]
+    for t in types_int(env, builder):
+        data = types[t]
         d.setdefault((data['size'], data['signed']), t)
 
     return d
 
-def type_aliases_float(env):
+def type_aliases_float(env, builder):
+    types = env.config(config_types, builder)
     d = {}
-    for t in types_float(env):
-        data = env['std']['types'][t]
+    for t in types_float(env, builder):
+        data = types[t]
         d.setdefault(data['size'], t)
 
     return d
 
-def type_conversions_int(env):
-    aliases = type_aliases_int(env)
-    int_type_conversions = env['std']['int_type_conversions']
+def type_conversions_int(env, builder):
+    aliases = env.config(type_aliases_int, builder)
+    int_type_conversions = env.config(config_int_type_conversions, builder)
     return {type_pair: aliases[size_signed]
         for type_pair, size_signed in int_type_conversions.items()}

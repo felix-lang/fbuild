@@ -27,14 +27,12 @@ def find_program(names):
 
 def run_tests(env, tests, *args, **kwargs):
     for test in tests:
-        test = import_function(test)
-        test(env, *args, **kwargs)
+        env.config(test, *args, **kwargs)
 
 def run_optional_tests(env, tests, *args, **kwargs):
     for test in tests:
-        test = import_function(test)
         try:
-            test(env, *args, **kwargs)
+            env.config(test, *args, **kwargs)
         except ConfigFailed:
             pass
 

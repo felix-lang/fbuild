@@ -1,3 +1,4 @@
+from fbuild import Record
 from . import MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -6,10 +7,7 @@ def config_sys_event_h(env, builder):
     if not builder.check_header_exists('sys/event.h'):
         raise MissingHeader('sys/event.h')
 
-    event_h = env.setdefault('headers', {}) \
-                  .setdefault('sys', {}) \
-                  .setdefault('event_h', {})
-    event_h['kqueue'] = builder.check_run('''
+    kqueue = builder.check_run('''
         #include <sys/types.h>      // from the kqueue manpage
         #include <sys/event.h>      // kernel events
         #include <sys/time.h>       // timespec (kevent timeout)
@@ -20,5 +18,18 @@ def config_sys_event_h(env, builder):
         }
     ''', 'checking if kqueue is supported')
 
+    return Record(kqueue=kqueue)
+
+# -----------------------------------------------------------------------------
+
+def config_headers(env, builder):
+    return Record(
+        sys=Record(
+            event_h=env.config(config_sys_event_h, builder),
+        ),
+    )
+
 def config(env, builder):
-    config_sys_event_h(env, builder)
+    return Record(
+        headers=env.config(config_headers, builder),
+    )

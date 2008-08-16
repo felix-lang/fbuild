@@ -1,13 +1,13 @@
-from fbuild import ConfigFailed
+from fbuild import Record
+from . import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config(env, builder):
+def config_windows_h(env, builder):
     if not builder.check_header_exists('windows.h'):
-        raise ConfigFailed('cannot find windows.h')
+        raise MissingHeader('windows.h')
 
-    windows_h = env.setdefault('headers', {}).setdefault('windows_h', {})
-    windows_h['LoadLibrary'] = builder.check_compile('''
+    LoadLibrary = builder.check_compile('''
         #include <windows.h>
         #include <stdlib.h>
 
@@ -20,3 +20,15 @@ def config(env, builder):
             return 0;
         }
     ''', 'checking if supports LoadLibrary')
+
+    return Record(LoadLibrary=LoadLibrary)
+
+def config_headers(env, builder):
+    return Record(
+        windows_h=env.config(config_windows_h, builder),
+    )
+
+def config(env, builder):
+    return Record(
+        headers=env.config(config_headers, builder),
+    )

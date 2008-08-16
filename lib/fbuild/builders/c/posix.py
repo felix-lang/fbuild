@@ -1,14 +1,15 @@
-from fbuild import logger, ConfigFailed
+from fbuild import logger, ConfigFailed, Record
 from fbuild.temp import tempfile
 from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_dlfcn_h(env, builder):
+def config_dlfcn_h(env, builder, shared=None):
     if not builder.check_header_exists('dlfcn.h'):
         raise MissingHeader('dlfcn.h')
 
-    dlfcn_h = env.setdefault('headers', {}).setdefault('dlfcn_h', {})
+    if shared is None:
+        shared = env.config('fbuild.builders.c.guess.config_shared')
 
     lib_code = '''
         #ifdef __cplusplus
@@ -35,11 +36,13 @@ def config_dlfcn_h(env, builder):
     '''
 
     with tempfile(lib_code, builder.src_suffix) as lib_src:
-        obj = builder.compile(lib_src, quieter=1)
-        lib = builder.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
+        obj = shared.compile(lib_src, quieter=1)
+        lib = shared.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
 
-        dlfcn_h['dlopen'] = builder.check_run(exe_code % lib,
+        dlopen = builder.check_run(exe_code % lib,
             'check if supports dlopen')
+
+    return Record(dlopen=dlopen)
 
 # -----------------------------------------------------------------------------
 
@@ -47,18 +50,18 @@ def config_sys_mman_h(env, builder):
     if not builder.check_header_exists('sys/mman.h'):
         raise MissingHeader('sys/mman.h')
 
-    mman_h = env.setdefault('headers', {}) \
-                 .setdefault('sys', {}) \
-                 .setdefault('mman_h', {})
-    macros = mman_h['macros'] = {}
+    mman_h = Record()
+    mman_h.macros = {}
 
     for macro in (
             'PROT_EXEC', 'PROT_READ', 'PROT_WRITE', 'MAP_DENYWRITE',
             'MAP_ANON', 'MAP_FILE', 'MAP_FIXED', 'MAP_HASSEMAPHORE',
             'MAP_SHARED', 'MAP_PRIVATE', 'MAP_NORESERVE', 'MAP_LOCKED',
             'MAP_GROWSDOWN', 'MAP_32BIT', 'MAP_POPULATE', 'MAP_NONBLOCK'):
-        macros[macro] = builder.check_macro_exists(macro,
+        mman_h.macros[macro] = builder.check_macro_exists(macro,
             headers=['sys/mman.h'])
+
+    return mman_h
 
 # -----------------------------------------------------------------------------
 
@@ -67,7 +70,7 @@ def config_poll_h(env, builder):
         raise MissingHeader('poll.h')
 
     # just check if the header exists for now
-    env.setdefault('headers', {}).setdefault('poll_h', {})
+    return Record()
 
 # -----------------------------------------------------------------------------
 
@@ -75,7 +78,7 @@ def config_pthread_h(env, builder):
     if not builder.check_header_exists('pthread.h'):
         raise MissingHeader('pthread.h')
 
-    pthread_h = env.setdefault('headers', {}).setdefault('pthread_h', {})
+    pthread_h = Record()
 
     code = '''
         #include <pthread.h>
@@ -97,11 +100,13 @@ def config_pthread_h(env, builder):
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
         if builder.try_run(code, lflags={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
-            pthread_h['flags'] = flags
+            pthread_h.flags = flags
             break
     else:
         logger.failed()
         raise ConfigFailed('failed to link pthread program')
+
+    return pthread_h
 
 # -----------------------------------------------------------------------------
 
@@ -109,9 +114,7 @@ def config_sys_socket_h(env, builder):
     if not builder.check_header_exists('sys/socket.h'):
         raise MissingHeader('sys/socket.h')
 
-    socket_h = env.setdefault('headers', {}) \
-                   .setdefault('sys', {}) \
-                   .setdefault('socket_h', {})
+    socket_h = Record()
 
     code = '''
         #include <sys/types.h>
@@ -124,11 +127,13 @@ def config_sys_socket_h(env, builder):
     for t in 'socklen_t', 'unsigned int', 'int':
         if builder.try_compile(code % t):
             logger.passed('ok ' + t)
-            socket_h['socklen_t'] = t
+            socket_h.socklen_t = t
             break
     else:
         logger.failed()
         raise ConfigFailed('failed to detect type of socklen_t')
+
+    return socket_h
 
 # -----------------------------------------------------------------------------
 
@@ -148,19 +153,29 @@ def config_unistd_h(env, builder):
     if not builder.check_header_exists('unistd.h'):
         raise MissingHeader('unistd.h')
 
-    unistd_h = env.setdefault('headers', {}).setdefault('unistd_h', {})
-    unistd_h['types'] = std.get_types_data(builder, default_types_unistd_h,
-        headers=['unistd.h'])
+    return Record(
+        types=std.get_types_data(builder, default_types_unistd_h,
+            headers=['unistd.h']),
+    )
 
 # -----------------------------------------------------------------------------
 
-def config(env, builder):
-    config_dlfcn_h(env, builder)
-    config_poll_h(env, builder)
-    config_pthread_h(env, builder)
-    config_sys_mman_h(env, builder)
-    config_sys_socket_h(env, builder)
-    config_unistd_h(env, builder)
+def config_headers(env, builder, shared=None):
+    return Record(
+        dlfcn_h=env.config(config_dlfcn_h, builder, shared),
+        poll_h=env.config(config_poll_h, builder),
+        pthread_h=env.config(config_pthread_h, builder),
+        unistd_h=env.config(config_unistd_h, builder),
+        sys=Record(
+            mman_h=env.config(config_sys_mman_h, builder),
+            socket_h=env.config(config_sys_socket_h, builder),
+        ),
+    )
+
+def config(env, builder, shared=None):
+    return Record(
+        headers=env.config(config_headers, builder, shared),
+    )
 
 # -----------------------------------------------------------------------------
 

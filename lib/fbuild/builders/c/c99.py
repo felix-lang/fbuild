@@ -1,3 +1,4 @@
+from fbuild import Record
 from . import std, MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -25,39 +26,36 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 # -----------------------------------------------------------------------------
 
 def config_types(env, builder):
-    c99 = env.setdefault('c99', {})
-    c99['types'] = std.get_types_data(builder, default_types)
+    return std.get_types_data(builder, default_types)
 
 def config_complex_h(env, builder):
     if not builder.check_header_exists('complex.h'):
         raise c.MissingHeader('complex.h')
 
-    complex_h = env.setdefault('headers', {}).setdefault('complex_h', {})
-    complex_h['types'] = std.get_types_data(builder, default_types_complex_h,
-        headers=['complex.h'])
+    return Record(
+        types=std.get_types_data(builder, default_types_complex_h,
+            headers=['complex.h']))
 
 def config_stdbool_h(env, builder):
     if not builder.check_header_exists('stdbool.h'):
         raise c.MissingHeader('stdbool.h')
 
-    stdbool_h = env.setdefault('headers', {}).setdefault('stdbool_h', {})
-    stdbool_h['types'] = std.get_types_data(builder, default_types_stdbool_h,
-        headers=['stdbool.h'])
+    return Record(
+        types=std.get_types_data(builder, default_types_stdbool_h,
+            headers=['stdbool.h']))
 
 def config_stdint_h(env, builder):
     if not builder.check_header_exists('stdint.h'):
         raise c.MissingHeader('stdint.h')
 
-    stdint_h = env.setdefault('headers', {}).setdefault('stdint_h', {})
-    stdint_h['types'] = std.get_types_data(builder, default_types_stdint_h,
-        headers=['stdint.h'], int_type=True)
+    return Record(
+        types=std.get_types_data(builder, default_types_stdint_h,
+            headers=['stdint.h'], int_type=True))
 
 # -----------------------------------------------------------------------------
 
 def config_stdio_h(env, builder):
-    stdio_h = env.setdefault('headers', {}).setdefault('stdio_h', {})
-
-    stdio_h['snprintf'] = builder.check_run('''
+    snprintf = builder.check_run('''
         #include <stdio.h>
 
         int main(int argc,char** argv) {
@@ -67,7 +65,7 @@ def config_stdio_h(env, builder):
         }
     ''', 'checking if snprintf is in stdio.h')
 
-    stdio_h['vsnprintf'] = builder.check_run('''
+    vsnprintf = builder.check_run('''
         #include <stdio.h>
         #include <stdarg.h>
 
@@ -85,36 +83,46 @@ def config_stdio_h(env, builder):
         }
     ''', 'checking if vsnprintf is in stdio.h')
 
+    return Record(snprintf=snprintf, vsnprintf=vsnprintf)
+
 # -----------------------------------------------------------------------------
+
+def config_headers(env, builder):
+    return Record(
+        complex_h=env.config(config_complex_h, builder),
+        stdbool_h=env.config(config_stdbool_h, builder),
+        stdint_h=env.config(config_stdint_h, builder),
+        stdio_h=env.config(config_stdio_h, builder),
+    )
 
 def config(env, builder):
-    config_stdio_h(env, builder)
-    config_types(env, builder)
-    config_complex_h(env, builder)
-    config_stdbool_h(env, builder)
-    config_stdint_h(env, builder)
+    return Record(
+        types=env.config(config_types, builder),
+        headers=env.config(config_headers, builder),
+    )
 
 # -----------------------------------------------------------------------------
 
-def types(env):
-    return (t for t in default_types if t in env['c99']['types'])
+def types(env, builder):
+    types = env.config(config_types, builder)
+    return (t for t in default_types if t in types)
 
-def types_stdbool_h(env):
-    types = env['headers']['stdbool_h']['types']
+def types_stdbool_h(env, builder):
+    types = env.config(config_stdbool_h, builder).types
     return (t for t in default_types_stdbool_h if t in types)
 
-def types_stdint_h(env):
-    types = env['headers']['stdint_h']['types']
+def types_stdint_h(env, builder):
+    types = env.config(config_stdint_h, builder).types
     return (t for t in default_types_stdint_h if t in types)
 
-def type_aliases_stdint_h(env):
+def type_aliases_stdint_h(env, builder):
     try:
-        return {t:t for t in types_stdint_h(env)}
+        return {t:t for t in types_stdint_h(env, builder)}
     except AttributeError:
         pass
 
     # this compiler doesn't support stdint.h, so return some fake aliases
-    aliases = std.type_aliases_int(env)
+    aliases = std.type_aliases_int(env, builder)
 
     d = {}
     for size in 1, 2, 4, 8:

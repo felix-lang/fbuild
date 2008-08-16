@@ -82,8 +82,7 @@ def config_ext_hash_map(env, builder):
     if not builder.check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
 
-    gxx = env.setdefault('gxx', {})
-    gxx['hash_map'] = builder.check_compile('''
+    hash_map = builder.check_compile('''
         #include <ext/hash_map>
         using namespace __gnu_cxx;
 
@@ -92,5 +91,14 @@ def config_ext_hash_map(env, builder):
         }
     ''', 'checking if gnu hash_map is supported')
 
+    return Record(hash_map=hash_map)
+
+def config_ext_headers(env, builder):
+    return Record(
+        hash_map=env.config(config_ext_hash_map, builder),
+    )
+
 def config_extensions(env, builder):
-    config_ext_hash_map(env, builder)
+    return Record(
+        headers=env.config(config_ext_headers, builder),
+    )
