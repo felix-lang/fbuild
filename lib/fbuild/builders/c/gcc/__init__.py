@@ -1,5 +1,3 @@
-from functools import partial
-
 from fbuild import Record, ConfigFailed, ExecutionError, Path, buildroot, \
         execute, logger
 from fbuild.temp import tempfile
@@ -134,7 +132,7 @@ class Compiler:
                 self.debug_flags == other.debug_flags and \
                 self.optimize_flags == other.optimize_flags
 
-def make_compiler(gcc, flags=[],
+def make_compiler(env, gcc, flags=[],
         debug_flags=['-g'],
         optimize_flags=['-O2'],
         **kwargs):
@@ -212,7 +210,7 @@ class Linker:
                 self.prefix == other.prefix and \
                 self.suffix == other.suffix
 
-def make_linker(gcc, flags=[], **kwargs):
+def make_linker(env, gcc, flags=[], **kwargs):
     if flags and not gcc.check_flags(flags):
         raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
 
@@ -256,31 +254,31 @@ class Builder(c.Builder):
                 self.lib_linker == other.lib_linker and \
                 self.exe_linker == other.exe_linker
 
-def make_static(make_compiler, make_lib_linker, make_exe_linker,
-        src_suffix='.c',  obj_suffix='.o',
+# -----------------------------------------------------------------------------
+
+def config_static(env, exe=None, *args,
+        config_gcc=config_gcc,
+        make_compiler=make_compiler,
+        make_linker=make_linker,
+        compile_flags=['-c'],
+        src_suffix='.c', obj_suffix='.o',
         lib_prefix='lib', lib_suffix='.a',
         exe_suffix='',
         **kwargs):
+    gcc = env.config(config_gcc, exe)
+
     builder = Builder(
-            src_suffix=src_suffix,
-            compiler=make_compiler(suffix=obj_suffix, **kwargs),
-            lib_linker=make_lib_linker(prefix=lib_prefix, suffix=lib_suffix),
-            exe_linker=make_exe_linker(prefix='', suffix=exe_suffix))
-
-    c.check_builder(builder)
-
-    return builder
-
-def make_shared(make_compiler, make_lib_linker, make_exe_linker,
-        src_suffix='.c',  obj_suffix='.os',
-        lib_prefix='lib', lib_suffix='.so',
-        exe_suffix='',
-        **kwargs):
-    builder = Builder(
-            src_suffix=src_suffix,
-            compiler=make_compiler(suffix=obj_suffix, **kwargs),
-            lib_linker=make_lib_linker(prefix=lib_prefix, suffix=lib_suffix),
-            exe_linker=make_exe_linker(prefix='', suffix=exe_suffix))
+        compiler=env.config(make_compiler, gcc,
+            flags=compile_flags,
+            suffix=obj_suffix,
+            **kwargs),
+        lib_linker=env.config('fbuild.builders.ar.config',
+            prefix=lib_prefix,
+            suffix=lib_suffix),
+        exe_linker=env.config(make_linker, gcc,
+            prefix='',
+            suffix=exe_suffix),
+        src_suffix=src_suffix)
 
     c.check_builder(builder)
 
@@ -288,39 +286,35 @@ def make_shared(make_compiler, make_lib_linker, make_exe_linker,
 
 # -----------------------------------------------------------------------------
 
-def config_static(env, gcc, *args,
-        make_compiler=make_compiler,
-        make_linker=make_linker,
-        compile_flags=['-c'],
-        **kwargs):
-    return make_static(
-        partial(make_compiler, gcc, flags=compile_flags),
-        partial(env.config, 'fbuild.builders.ar.config'),
-        partial(make_linker, gcc),
-        *args, **kwargs)
-
-def config_shared(env, gcc, *args,
+def config_shared(env, exe=None, *args,
+        config_gcc=config_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c', '-fPIC'],
         lib_link_flags=['-shared'],
-        **kwargs):
-    return make_shared(
-        partial(make_compiler, gcc, flags=compile_flags),
-        partial(make_linker, gcc, flags=lib_link_flags),
-        partial(make_linker, gcc),
-        *args, **kwargs)
-
-def config(env, exe=None, *args,
-        config_gcc=config_gcc,
-        config_static=config_static,
-        config_shared=config_shared,
+        src_suffix='.c', obj_suffix='.os',
+        lib_prefix='lib', lib_suffix='.so',
+        exe_suffix='',
         **kwargs):
     gcc = env.config(config_gcc, exe)
 
-    return Record(
-        static=env.config(config_static, gcc, *args, **kwargs),
-        shared=env.config(config_shared, gcc, *args, **kwargs))
+    builder = Builder(
+        compiler=env.config(make_compiler, gcc,
+            flags=compile_flags,
+            suffix=obj_suffix,
+            **kwargs),
+        lib_linker=env.config(make_linker, gcc,
+            prefix=lib_prefix,
+            suffix=lib_suffix,
+            flags=lib_link_flags),
+        exe_linker=env.config(make_linker, gcc,
+            prefix='',
+            suffix=exe_suffix),
+        src_suffix=src_suffix)
+
+    c.check_builder(builder)
+
+    return builder
 
 # -----------------------------------------------------------------------------
 

@@ -26,21 +26,16 @@ def make_linker(*args, make_gcc=config_gxx, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_static(*args, src_suffix='.cc', **kwargs):
-    return gcc.config_static(src_suffix=src_suffix, *args, **kwargs)
-
-def config_shared(*args, src_suffix='.cc', **kwargs):
-    return gcc.config_shared(src_suffix=src_suffix, *args, **kwargs)
-
-def config(*args,
-        config_gxx=config_gxx,
-        config_static=config_static,
-        config_shared=config_shared,
-        **kwargs):
-    return gcc.config(
+def config_static(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
+    return gcc.config_static(
         config_gcc=config_gxx,
-        config_static=config_static,
-        config_shared=config_shared,
+        src_suffix=src_suffix,
+        *args, **kwargs)
+
+def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
+    return gcc.config_shared(
+        config_gcc=config_gxx,
+        src_suffix=src_suffix,
         *args, **kwargs)
 
 # -----------------------------------------------------------------------------
