@@ -1,7 +1,3 @@
-def configure(env, options):
-    from fbuild.builders.cxx.guess import config
-    config(env)
-
 def build(env, options):
     import fbuild.packages.cxx as cxx
 

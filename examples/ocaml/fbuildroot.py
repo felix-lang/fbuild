@@ -1,7 +1,3 @@
-def configure(env, options):
-    from fbuild.builders.ocaml import config
-    config(env)
-
 def build(env, options):
     import fbuild.packages.ocaml as ocaml
 

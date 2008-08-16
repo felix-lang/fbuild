@@ -120,19 +120,6 @@ def main(argv=None):
             # we need to reconfigure, so just use a empty root environment
             env = fbuild.env.Environment()
 
-            # make sure the configuration directory exists
-            options.config_file.parent.make_dirs()
-
-            fbuildroot.configure(env, options)
-
-            fbuild.logger.log('saving config')
-
-            with open(options.config_file, 'wb') as f:
-                pickle.dump(env, f)
-
-            fbuild.logger.log('-' * 79, color='blue')
-
-
             # make sure the state file directory exists
             options.state_file.parent.make_dirs()
         else:
