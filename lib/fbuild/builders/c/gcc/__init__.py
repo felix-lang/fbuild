@@ -10,9 +10,6 @@ class Gcc:
     def __init__(self, exe):
         self.exe = exe
 
-    def __str__(self):
-        return self.exe
-
     def __call__(self, srcs, dst=None, flags=[], *, pre_flags=[], **kwargs):
         cmd = [self.exe]
         cmd.extend(pre_flags)
@@ -48,6 +45,15 @@ class Gcc:
         logger.passed()
         return True
 
+    def __str__(self):
+        return self.exe
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.exe)
+
+    def __eq__(self, other):
+        return isinstance(other, Gcc) and self.exe == other.exe
+
 def config_gcc(env, exe=None, default_exes=['gcc', 'cc']):
     try:
         return env['gcc']
@@ -78,9 +84,6 @@ class Compiler:
         self.suffix = suffix
         self.debug_flags = debug_flags
         self.optimize_flags = optimize_flags
-
-    def __str__(self):
-        return ' '.join([str(self.gcc)] + self.flags)
 
     def __call__(self, src, dst=None, *,
             includes=[],
@@ -117,6 +120,26 @@ class Compiler:
             **kwargs)
 
         return dst
+
+    def __str__(self):
+        return ' '.join([str(self.gcc)] + self.flags)
+
+    def __repr__(self):
+        return '%s(%r, %r, debug_flags=%r, optimize_flags=%r, suffix=%r)' % (
+            self.__class__.__name__,
+            self.gcc,
+            self.flags,
+            self.debug_flags,
+            self.optimize_flags,
+            self.suffix)
+
+    def __eq__(self, other):
+        return isinstance(other, Compiler) and \
+                self.gcc == other.gcc and \
+                self.flags == other.flags and \
+                self.suffix == other.suffix and \
+                self.debug_flags == other.debug_flags and \
+                self.optimize_flags == other.optimize_flags
 
 def make_compiler(env, make_gcc=config_gcc, flags=[],
         debug_flags=['-g'],
@@ -180,6 +203,24 @@ class Linker:
 
         return dst
 
+    def __str__(self):
+        return ' '.join([str(self.gcc)] + self.flags)
+
+    def __repr__(self):
+        return '%s(%r, %r, prefix=%r, suffix=%r)' % (
+            self.__class__.__name__,
+            self.gcc,
+            self.flags,
+            self.prefix,
+            self.suffix)
+
+    def __eq__(self, other):
+        return isinstance(other, Linker) and \
+                self.gcc == other.gcc and \
+                self.flags == other.flags and \
+                self.prefix == other.prefix and \
+                self.suffix == other.suffix
+
 def make_linker(env, make_gcc=config_gcc, flags=[], **kwargs):
     gcc = make_gcc(env)
 
@@ -209,6 +250,22 @@ class Builder(c.Builder):
 
     def link_exe(self, *args, **kwargs):
         return self.exe_linker(*args, **kwargs)
+
+    def __str__(self):
+        return ' '.join([str(self.gcc)] + self.flags)
+
+    def __repr__(self):
+        return '%s(compiler=%r, lib_linker=%r, exe_linker=%r)' % (
+            self.__class__.__name__,
+            str(self.compiler),
+            str(self.lib_linker),
+            str(self.exe_linker))
+
+    def __eq__(self, other):
+        return isinstance(other, Builder) and \
+                self.compiler == other.compiler and \
+                self.lib_linker == other.lib_linker and \
+                self.exe_linker == other.exe_linker
 
 def make_static(env, make_compiler, make_lib_linker, make_exe_linker,
         src_suffix='.c',  obj_suffix='.o',

@@ -80,3 +80,23 @@ def config(env, *args, **kwargs):
     except KeyError:
         ar = env['ar'] = make_linker(*args, **kwargs)
         return ar
+    def __str__(self):
+        return ' '.join([self.ar] + self.flags)
+
+    def __repr__(self):
+        return '%s(%r, ranlib=%r, flags=%r, prefix=%r, suffix=%r)' % (
+            self.__class__.__name__,
+            self.ar,
+            self.ranlib,
+            self.flags,
+            self.prefix,
+            self.suffix)
+
+    def __eq__(self, other):
+        return isinstance(other, Linker) and \
+            self.ar == other.ar and \
+            self.ranlib == other.ranlib and \
+            self.flags == other.flags and \
+            self.prefix == other.prefix and \
+            self.suffix == other.suffix
+

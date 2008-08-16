@@ -63,6 +63,20 @@ class Ocamldep:
 
         return paths
 
+    def __str__(self):
+        return self.exe
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (
+            self.__class__.__name__,
+            self.exe,
+            self.module_flags)
+
+    def __eq__(self, other):
+        return isinstance(other, Ocamldep) and \
+            self.exe == other.exe and \
+            self.module_flags == other.module_flags
+
 def config_ocamldep(env, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
     exe = exe or find_program(default_exes)
 
@@ -163,6 +177,20 @@ class Builder(AbstractCompilerBuilder):
     def link_exe(self, dst, *args, **kwargs):
         return self._link(dst + self.exe_suffix, *args, **kwargs)
 
+    def __str__(self):
+        return self.exe
+
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.exe)
+
+    def __eq__(self, other):
+        return isinstance(other, Builder) and \
+            self.exe == other.exe and \
+            self.obj_suffix == other.obj_suffix and \
+            self.lib_suffix == other.lib_suffix and \
+            self.exe_suffix == other.exe_suffix and \
+            self.debug_flags == other.debug_flags
+
 # -----------------------------------------------------------------------------
 
 def check_builder(builder):
@@ -262,6 +290,17 @@ class Ocamllex:
 
         return dst
 
+    def __str__(self):
+        return self.exe
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
+
+    def __eq__(self, other):
+        return isinstance(other, Ocamllex) and \
+            self.exe == other.exe and \
+            self.flags == other.flags
+
 def config_ocamllex(env, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
     exe = exe or find_program(default_exes)
 
@@ -297,6 +336,17 @@ class Ocamlyacc:
             color='yellow')
 
         return (dst, dst + 'i')
+
+    def __str__(self):
+        return self.exe
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
+
+    def __eq__(self, other):
+        return isinstance(other, Ocamlyacc) and \
+            self.exe == other.exe and \
+            self.flags == other.flags
 
 def config_ocamlyacc(env,
         exe=None,
