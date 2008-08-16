@@ -7,6 +7,7 @@ from optparse import OptionParser, make_option
 import pprint
 
 import fbuild
+import fbuild.env
 import fbuild.scheduler
 
 import fbuildroot
@@ -117,7 +118,7 @@ def main(argv=None):
     try:
         if options.force_configuration or not options.state_file.exists():
             # we need to reconfigure, so just use a empty root environment
-            env = {}
+            env = fbuild.env.Environment()
 
             # make sure the configuration directory exists
             options.config_file.parent.make_dirs()
@@ -148,12 +149,12 @@ def main(argv=None):
         # check if we're viewing or manipulating the config
         if options.config_dump:
             # print out the entire config
-            pprint.pprint(env)
+            pprint.pprint(env._builder_state)
             return 0
 
         if options.config_query:
             # print out just a subset of the configuration
-            d = env
+            d = env._builder_state
             try:
                 for key in options.config_query.split():
                     d = d[key]
@@ -166,7 +167,7 @@ def main(argv=None):
 
         if options.config_remove:
             keys = options.config_remove.split()
-            d = env
+            d = env._builder_state
             try:
                 for key in keys[:-1]:
                     d = d[key]
