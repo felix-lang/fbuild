@@ -6,24 +6,42 @@ import fbuild.packages as packages
 
 # -----------------------------------------------------------------------------
 
-class StaticObject(packages.OneToOnePackage):
-    def command(self, env, *args, **kwargs):
-        return env['c']['static'].compile(*args, **kwargs)
+class _Object(packages.OneToOnePackage):
+    _default_builder = 'fbuild.builders.c.guess.config'
 
-class SharedObject(packages.OneToOnePackage):
+    def __init__(self, *args, builder=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.builder = builder
+
+    def _builder(self, env):
+        'Return the passed in builder or use the default one'
+        if self.builder is None:
+            return env.config(self._default_builder)
+        return self.builder
+
+class StaticObject(_Object):
     def command(self, env, *args, **kwargs):
-        return env['c']['shared'].compile(*args, **kwargs)
+        return self._builder(env).static.compile(*args, **kwargs)
+
+class SharedObject(_Object):
+    def command(self, env, *args, **kwargs):
+        return self._builder(env).shared.compile(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
 class _Linker(packages.ManyToOnePackage):
+    _default_builder = 'fbuild.builders.c.guess.config'
+
     def __init__(self, dst, srcs, *,
+            builder=None,
             includes=[],
             libs=[],
             cflags={},
             lflags={}):
         super().__init__(dst, packages.glob_paths(srcs))
 
+        self.builder = builder
         self.includes = includes
         self.libs = libs
         self.cflags = cflags
@@ -46,23 +64,29 @@ class _Linker(packages.ManyToOnePackage):
             libs=libs,
             **self.lflags)
 
+    def _builder(self, env):
+        'Return the passed in builder or use the default one'
+        if self.builder is None:
+            return env.config(self._default_builder)
+        return self.builder
+
 class StaticLibrary(_Linker):
     def compiler(self, env, *args, **kwargs):
-        return env['c']['static'].compile(*args, **kwargs)
+        return self._builder(env).static.compile(*args, **kwargs)
 
     def command(self, env, *args, **kwargs):
-        return env['c']['static'].link_lib(*args, **kwargs)
+        return self._builder(env).static.link_lib(*args, **kwargs)
 
 class SharedLibrary(_Linker):
     def compiler(self, env, *args, **kwargs):
-        return env['c']['shared'].compile(*args, **kwargs)
+        return self._builder(env).shared.compile(*args, **kwargs)
 
     def command(self, env, *args, **kwargs):
-        return env['c']['shared'].link_lib(*args, **kwargs)
+        return self._builder(env).shared.link_lib(*args, **kwargs)
 
 class Executable(_Linker):
     def compiler(self, env, *args, **kwargs):
-        return env['c']['static'].compile(*args, **kwargs)
+        return self._builder(env).static.compile(*args, **kwargs)
 
     def command(self, env, *args, **kwargs):
-        return env['c']['static'].link_exe(*args, **kwargs)
+        return self._builder(env).static.link_exe(*args, **kwargs)

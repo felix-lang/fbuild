@@ -7,28 +7,40 @@ import fbuild.packages as packages
 # -----------------------------------------------------------------------------
 
 class BytecodeModule(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_bytecode'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].compile(*args, **kwargs)
+        return self.config(env).compile(*args, **kwargs)
 
 class NativeModule(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_native'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['native'].compile(*args, **kwargs)
+        return self.config(env).compile(*args, **kwargs)
 
 class BytecodeImplementation(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_bytecode'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].compile_implementation(*args, **kwargs)
+        return self.config(env).compile_implementation(*args, **kwargs)
 
 class NativeImplementation(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_native'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['native'].compile_implementation(*args, **kwargs)
+        return self.config(env).compile_implementation(*args, **kwargs)
 
 class BytecodeInterface(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_bytecode'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].compile_interface(*args, **kwargs)
+        return self.config(env).compile_interface(*args, **kwargs)
 
 class NativeInterface(packages.OneToOnePackage):
+    default_config = 'fbuild.builders.ocaml.config_native'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['native'].compile_interface(*args, **kwargs)
+        return self.config(env).compile_interface(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -96,10 +108,12 @@ class _Linker(packages.ManyToOnePackage):
             if isinstance(lib, _Linker):
                 includes.update(lib.src_includes(env))
 
+        ocaml = env.config('fbuild.builders.ocaml.config')
+
         #  Note that we don't need the -modules flag since at the point
         # all of the source files will have been evaluated
         objs = fbuild.scheduler.map_with_dependencies(
-            partial(env['ocaml']['ocamldep'], includes=includes),
+            partial(ocaml.ocamldep, includes=includes),
             partial(self.compiler, env, includes=includes),
             srcs)
 
@@ -109,73 +123,72 @@ class _Linker(packages.ManyToOnePackage):
             includes=includes,
             libs=libs)
 
-class BytecodeLibrary(_Linker):
     def compiler(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].compile(*args, **kwargs)
+        return self.config(env).compile(*args, **kwargs)
+
+class BytecodeLibrary(_Linker):
+    default_config = 'fbuild.builders.ocaml.config_bytecode'
 
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].link_lib(*args, **kwargs)
+        return self.config(env).link_lib(*args, **kwargs)
 
 class NativeLibrary(_Linker):
-    def compiler(self, env, *args, **kwargs):
-        return env['ocaml']['native'].compile(*args, **kwargs)
+    default_config = 'fbuild.builders.ocaml.config_native'
 
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['native'].link_lib(*args, **kwargs)
+        return self.config(env).link_lib(*args, **kwargs)
 
 class BytecodeExecutable(_Linker):
-    def compiler(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].compile(*args, **kwargs)
+    default_config = 'fbuild.builders.ocaml.config_bytecode'
 
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['bytecode'].link_exe(*args, **kwargs)
+        return self.config(env).link_exe(*args, **kwargs)
 
 class NativeExecutable(_Linker):
-    def compiler(self, env, *args, **kwargs):
-        return env['ocaml']['native'].compile(*args, **kwargs)
+    default_config = 'fbuild.builders.ocaml.config_native'
 
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['native'].link_exe(*args, **kwargs)
+        return self.config(env).link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
-class Library(_Linker):
+class _Linker(_Linker):
     '''
     Choose the native compiler if it is available, or if not available, fall
     back to the bytecode compiler.
     '''
 
-    def compiler(self, env, *args, **kwargs):
-        try:
-            return env['ocaml']['native'].compile(*args, **kwargs)
-        except KeyError:
-            return env['ocaml']['bytecode'].compile(*args, **kwargs)
+    def config(self, env):
+        c = super().config(env)
+        if c is not None:
+            return c
 
-    def command(self, env, *args, **kwargs):
         try:
-            return env['ocaml']['native'].link_lib(*args, **kwargs)
-        except KeyError:
-            return env['ocaml']['bytecode'].link_lib(*args, **kwargs)
+            return env.config('fbuild.builders.ocaml.config_native')
+        except ConfigFailed:
+            return env.config('fbuild.builders.ocaml.config_bytecode')
+
+    def compiler(self, env, *args, **kwargs):
+        return self.config(env).compile(*args, **kwargs)
+
+class Library(_Linker):
+    def command(self, env, *args, **kwargs):
+        return self.config(env).link_lib(*args, **kwargs)
 
 class Executable(_Linker):
-    def compiler(self, env, *args, **kwargs):
-        try:
-            return env['ocaml']['native'].compile(*args, **kwargs)
-        except KeyError:
-            return env['ocaml']['bytecode'].compile(*args, **kwargs)
-
     def command(self, env, *args, **kwargs):
-        try:
-            return env['ocaml']['native'].link_exe(*args, **kwargs)
-        except KeyError:
-            return env['ocaml']['bytecode'].link_exe(*args, **kwargs)
+        return self.config(env).link_exe(*args, **kwargs)
 
 # -----------------------------------------------------------------------------
 
 class Ocamllex(packages.SimplePackage):
+    default_config = 'fbuild.builders.ocaml.config_ocamllex'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['ocamllex'](*args, **kwargs)
+        return self.config(env)(*args, **kwargs)
 
 class Ocamlyacc(packages.SimplePackage):
+    default_config = 'fbuild.builders.ocaml.config_ocamlyacc'
+
     def command(self, env, *args, **kwargs):
-        return env['ocaml']['ocamlyacc'](*args, **kwargs)
+        return self.config(env)(*args, **kwargs)

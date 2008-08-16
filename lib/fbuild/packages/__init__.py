@@ -1,25 +1,26 @@
 import time
 
-import fbuild
+from fbuild import logger, Path, Record
 
 # -----------------------------------------------------------------------------
 
 class Package:
-    def __init__(self):
-        self._is_dirty = None
+    default_config = None
 
-    def data(self, env):
-        return env.setdefault(
-            'packages', {}).setdefault(
-                '%s:%s' % (self.__module__, self.__class__.__name__), {})
+    def __init__(self, *, config=None):
+        self._is_dirty = None
+        self._config = config
+
+    def state(self, env):
+        return env.package_state(self)
 
     def is_dirty(self, env):
         if self._is_dirty is not None:
             return self._is_dirty
 
         try:
-            timestamp = self.data(env)['timestamp']
-        except KeyError:
+            timestamp = self.state(env).timestamp
+        except AttributeError:
             self._is_dirty = True
             return True
 
@@ -35,25 +36,30 @@ class Package:
     def is_dependency_dirty(self, env, dependency, timestamp):
         if isinstance(dependency, Package):
             return dependency.is_dirty(env)
-        elif isinstance(dependency, fbuild.Path):
+        elif isinstance(dependency, Path):
             return timestamp < dependency.mtime
         elif isinstance(dependency, str):
             # assume it's a path
-            return timestamp < fbuild.Path(dependency).mtime
+            return timestamp < Path(dependency).mtime
         else:
             raise ValueError('Bad argument: %r' % dependency)
 
+    def config(self, env):
+        if self._config is None and self.default_config:
+            return env.config(self.default_config)
+        return self._config
+
     def build(self, env):
-        data = self.data(env)
+        state = self.state(env)
 
         if not self.is_dirty(env):
-            return data['result']
+            return state.result
 
         result = self.run(env)
         self._is_dirty = False
 
-        data['timestamp'] = time.time()
-        data['result'] = result
+        state.timestamp = time.time()
+        state.result = result
 
         return result
 
@@ -63,8 +69,8 @@ class Package:
 # -----------------------------------------------------------------------------
 
 class SimplePackage(Package):
-    def __init__(self, target, **kwargs):
-        super().__init__()
+    def __init__(self, target, *, config=None, **kwargs):
+        super().__init__(config=config)
 
         self.target = target
         self.kwargs = kwargs
@@ -72,8 +78,8 @@ class SimplePackage(Package):
     def dependencies(self, env):
         return [self.target]
 
-    def data(self, env):
-        return super().data(env).setdefault(self.target, {})
+    def state(self, env):
+        return super().state(env).setdefault(self.target, Record())
 
     def run(self, env):
         return self.command(env, build(env, self.target), **self.kwargs)
@@ -85,8 +91,8 @@ class SimplePackage(Package):
         return '%s(%r)' % (self.__class__.__name__, self.target)
 
 class OneToOnePackage(Package):
-    def __init__(self, dst, src, **kwargs):
-        super().__init__()
+    def __init__(self, dst, src, *, config=None, **kwargs):
+        super().__init__(config=config)
 
         self.dst = dst
         self.src = src
@@ -95,8 +101,8 @@ class OneToOnePackage(Package):
     def dependencies(self, env):
         return [self.src]
 
-    def data(self, env):
-        return super().data(env).setdefault(self.dst, {})
+    def state(self, env):
+        return super().state(env).setdefault(self.dst, Record())
 
     def run(self, env):
         return self.command(env,
@@ -111,8 +117,8 @@ class OneToOnePackage(Package):
         return '%s(%r, %r)' % (self.__class__.__name__, self.dst, self.src)
 
 class ManyToOnePackage(Package):
-    def __init__(self, dst, srcs, **kwargs):
-        super().__init__()
+    def __init__(self, dst, srcs, *, config=None, **kwargs):
+        super().__init__(config=config)
 
         self.dst = dst
         self.srcs = srcs
@@ -121,8 +127,8 @@ class ManyToOnePackage(Package):
     def dependencies(self, env):
         return self.srcs
 
-    def data(self, env):
-        return super().data(env).setdefault(self.dst, {})
+    def state(self, env):
+        return super().state(env).setdefault(self.dst, Record())
 
     def run(self, env):
         return self.command(env,
@@ -140,13 +146,13 @@ class ManyToOnePackage(Package):
 
 class Copy(OneToOnePackage):
     def command(self, env, dst, src):
-        fbuild.logger.check(' * copy', '%s -> %s' % (src, dst), color='yellow')
+        logger.check(' * copy', '%s -> %s' % (src, dst), color='yellow')
         src.copy(dst)
         return dst
 
 class Move(OneToOnePackage):
     def command(self, env, dst, src):
-        fbuild.logger.check(' * move', '%s -> %s' % (src, dst), color='yellow')
+        logger.check(' * move', '%s -> %s' % (src, dst), color='yellow')
         src.move(dst)
         return dst
 
@@ -174,9 +180,9 @@ def glob_paths(srcs):
         if isinstance(src, Package):
             paths.append(src)
         elif isinstance(src, str):
-            paths.extend(fbuild.Path(src).glob())
+            paths.extend(Path(src).glob())
         else:
             # assume it's a list-like object
-            paths.extend(fbuild.Path.glob_all(src))
+            paths.extend(Path.glob_all(src))
 
     return paths
