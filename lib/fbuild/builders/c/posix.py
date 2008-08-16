@@ -5,6 +5,19 @@ from . import std, MissingHeader
 # -----------------------------------------------------------------------------
 
 def config_dlfcn_h(env, builder, shared=None):
+    '''
+    Test for the posix dlfcn.h header, which provides for dynamically loading
+    libraries.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    @param shared: C builder that can create dynamically loadable libraries.
+                   If none is provided, try to configure a standard c shared
+                   builder.
+    '''
+
     if not builder.check_header_exists('dlfcn.h'):
         raise MissingHeader('dlfcn.h')
 
@@ -47,6 +60,15 @@ def config_dlfcn_h(env, builder, shared=None):
 # -----------------------------------------------------------------------------
 
 def config_sys_mman_h(env, builder):
+    '''
+    Test for the posix sys/mman.h header, which provides memory mapped files.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    '''
+
     if not builder.check_header_exists('sys/mman.h'):
         raise MissingHeader('sys/mman.h')
 
@@ -66,6 +88,15 @@ def config_sys_mman_h(env, builder):
 # -----------------------------------------------------------------------------
 
 def config_poll_h(env, builder):
+    '''
+    Test for the posix poll.h header, which provides asynchronous io.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    '''
+
     if not builder.check_header_exists('poll.h'):
         raise MissingHeader('poll.h')
 
@@ -75,6 +106,15 @@ def config_poll_h(env, builder):
 # -----------------------------------------------------------------------------
 
 def config_pthread_h(env, builder):
+    '''
+    Test for the posix pthread.h header, which provides posix threads.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    '''
+
     if not builder.check_header_exists('pthread.h'):
         raise MissingHeader('pthread.h')
 
@@ -111,6 +151,15 @@ def config_pthread_h(env, builder):
 # -----------------------------------------------------------------------------
 
 def config_sys_socket_h(env, builder):
+    '''
+    Test for the posix sys/socket.h header, which provides network sockets.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    '''
+
     if not builder.check_header_exists('sys/socket.h'):
         raise MissingHeader('sys/socket.h')
 
@@ -150,6 +199,15 @@ default_types_unistd_h = (
 )
 
 def config_unistd_h(env, builder):
+    '''
+    Test for the posix unistd.h header, which provides standard posix types.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    '''
+
     if not builder.check_header_exists('unistd.h'):
         raise MissingHeader('unistd.h')
 
@@ -161,6 +219,16 @@ def config_unistd_h(env, builder):
 # -----------------------------------------------------------------------------
 
 def config_headers(env, builder, shared=None):
+    '''
+    Test if the builder supports the posix headers.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    @param shared: C builder that can create dynamically loadable libraries
+    '''
+
     return Record(
         dlfcn_h=env.config(config_dlfcn_h, builder, shared),
         poll_h=env.config(config_poll_h, builder),
@@ -173,6 +241,16 @@ def config_headers(env, builder, shared=None):
     )
 
 def config(env, builder, shared=None):
+    '''
+    Test if the builder is posix-compatible.
+
+    @param env: The environment
+    @type env: fbuild.env.Environment
+
+    @param builder: C builder
+    @param shared: C builder that can create dynamically loadable libraries
+    '''
+
     return Record(
         headers=env.config(config_headers, builder, shared),
     )
