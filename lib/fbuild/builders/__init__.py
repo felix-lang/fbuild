@@ -5,11 +5,14 @@ from fbuild.path import find_in_paths, import_function
 # -----------------------------------------------------------------------------
 
 class MissingProgram(ConfigFailed):
-    def __init__(self, program):
+    def __init__(self, program=None):
         self.program = program
 
     def __str__(self):
-        return 'cannot find "%s"' % self.program
+        if self.program is None:
+            return 'cannot find program'
+        else:
+            return 'cannot find "%s"' % self.program
 
 # -----------------------------------------------------------------------------
 

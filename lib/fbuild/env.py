@@ -37,11 +37,21 @@ class Environment:
             # search the states for the args and kwargs
             for b, value in states:
                 if bound_args == b:
+                    # if the value is an exception, raise it
+                    if isinstance(value, Exception):
+                        raise value
                     return value
 
         # We didn't find this function and arguments, so evaluate it and add it
         # to the list.
-        value = function(*args, **kwargs)
+        try:
+            value = function(*args, **kwargs)
+        except Exception as e:
+            # cache the exception, store it in the cache, then reraise it
+            value = e
+            self._builder_state.setdefault(key, []).append((bound_args, value))
+            raise e from e
+
         self._builder_state.setdefault(key, []).append((bound_args, value))
 
         return value

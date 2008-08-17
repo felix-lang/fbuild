@@ -5,11 +5,14 @@ import fbuild.builders
 # -----------------------------------------------------------------------------
 
 class MissingHeader(ConfigFailed):
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         self.filename = filename
 
     def __str__(self):
-        return 'missing header %r' % self.filename
+        if self.filename is None:
+            return 'missing header'
+        else:
+            return 'missing header %r' % self.filename
 
 # -----------------------------------------------------------------------------
 
