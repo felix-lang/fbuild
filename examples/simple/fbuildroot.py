@@ -40,6 +40,7 @@ c_optional_tests = [
     'fbuild.builders.c.solaris.config',
     'fbuild.builders.c.win32.config',
     'fbuild.builders.c.gcc.config_extensions',
+    'fbuild.builders.c.openmp.config',
 ]
 
 c_optional_shared_tests = [
