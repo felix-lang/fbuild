@@ -1,7 +1,7 @@
 from optparse import make_option
 import pprint
 
-from fbuild import Record, Path, logger, execute
+from fbuild import Path, Record, logger, execute
 from fbuild.builders import run_tests, run_optional_tests
 import fbuild.builders.c.c99 as c99
 
@@ -76,7 +76,7 @@ def make_cxx_builder(env, **kwargs):
 
     return cxx
 
-def config_build(env, *args, platform, cc, cxx):
+def config_build(env, *, platform, cc, cxx):
     logger.log('configuring build phase', color='cyan')
 
     return Record(
