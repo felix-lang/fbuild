@@ -1,12 +1,11 @@
 from fbuild import Record
-import fbuild.builders
-from ...c import MissingHeader
-from ...c import gcc
+from fbuild.builders import find_program
+from fbuild.builders.c import MissingHeader, gcc
 
 # -----------------------------------------------------------------------------
 
 def config_gxx(env, exe=None, default_exes=['g++', 'c++']):
-    exe = exe or fbuild.builders.find_program(default_exes)
+    exe = exe or find_program(default_exes)
 
     if not exe:
         raise ConfigFailed('cannot find g++')
