@@ -29,6 +29,10 @@ class Path(str):
     '''
     Implement a simple interface for working with the filesystem. This library
     is designed to be used as either Path('foo').glob(), or Path.glob('foo').
+
+    By default, it's also possible to specify paths using '/' as the path
+    separator, which will be replaced with the native separator during
+    construction.
     '''
 
     def __new__(cls, *paths):
@@ -36,7 +40,7 @@ class Path(str):
 
         for path in paths:
             if isinstance(path, str):
-                s = os.path.join(s, path)
+                s = os.path.join(s, path.replace('/', os.sep))
             else:
                 s = os.path.join(s, *path)
 
