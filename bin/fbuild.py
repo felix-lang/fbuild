@@ -172,9 +172,13 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
-        # save the state
+        # Compiling the pickle string could raise an exception, so we'll pickle
+        # to a string first, then write it out to the state file.
+        s = pickle.dumps(env)
+
+        # Save the state to the state file.
         with open(options.state_file, 'wb') as f:
-            pickle.dump(env, f)
+            f.write(s)
 
     return 0
 
