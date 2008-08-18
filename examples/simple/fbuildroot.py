@@ -2,7 +2,6 @@ from optparse import make_option
 import pprint
 
 from fbuild import Path, Record, logger, execute
-from fbuild.builders import run_tests, run_optional_tests
 import fbuild.builders.c.c99 as c99
 
 # -----------------------------------------------------------------------------
@@ -56,6 +55,17 @@ cxx_optional_tests = [
     'fbuild.builders.cxx.cmath.config',
     'fbuild.builders.cxx.gxx.config_extensions',
 ]
+
+def run_tests(env, tests, *args, **kwargs):
+    for test in tests:
+        env.config(test, *args, **kwargs)
+
+def run_optional_tests(env, tests, *args, **kwargs):
+    for test in tests:
+        try:
+            env.config(test, *args, **kwargs)
+        except ConfigFailed:
+            pass
 
 def make_c_builder(env, **kwargs):
     c = env.config('fbuild.builders.c.guess.config', **kwargs)

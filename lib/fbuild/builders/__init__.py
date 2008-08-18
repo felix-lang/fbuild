@@ -28,17 +28,6 @@ def find_program(names):
 
     raise ConfigFailed('failed to find any of ' + str(names))
 
-def run_tests(env, tests, *args, **kwargs):
-    for test in tests:
-        env.config(test, *args, **kwargs)
-
-def run_optional_tests(env, tests, *args, **kwargs):
-    for test in tests:
-        try:
-            env.config(test, *args, **kwargs)
-        except ConfigFailed:
-            pass
-
 # -----------------------------------------------------------------------------
 
 class AbstractCompilerBuilder:
