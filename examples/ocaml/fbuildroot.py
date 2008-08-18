@@ -1,4 +1,4 @@
-def build(env, options):
+def build(env):
     import fbuild.packages.ocaml as ocaml
 
     lib = ocaml.BytecodeLibrary('lib', ['lib*.ml{,i}'])

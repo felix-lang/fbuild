@@ -1,4 +1,4 @@
-def build(env, options):
+def build(env):
     import fbuild.packages.cxx as cxx
 
     lib = cxx.SharedLibrary('library', ['lib.cpp'])

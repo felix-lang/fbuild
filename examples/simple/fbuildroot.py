@@ -126,7 +126,9 @@ def config_target(env, host, *, platform, cc, cxx):
 
 # -----------------------------------------------------------------------------
 
-def build(env, options):
+def build(env):
+    from fbuild import options
+
     # configure the phases
     build = env.config(config_build,
         platform=options.build_platform,

@@ -112,6 +112,9 @@ def main(argv=None):
     # construct the global scheduler
     fbuild.scheduler = fbuild.scheduler.Scheduler(options.threadcount)
 
+    # store the options in fbuild
+    fbuild.options = options
+
     # -------------------------------------------------------------------------
     # get the configuration
 
@@ -167,7 +170,7 @@ def main(argv=None):
 
         # ---------------------------------------------------------------------
         # finally, do the build
-        fbuildroot.build(env, options)
+        fbuildroot.build(env)
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
