@@ -11,6 +11,24 @@ class Package:
         self._is_dirty = None
         self._config = config
 
+    def __getstate__(self):
+        'Prepare data for serialization'
+
+        # We can't cache the _is_dirty flag, or else we'd never recompute it.
+        d = dict(self.__dict__)
+        try:
+            del d['_is_dirty']
+        except KeyError:
+            pass
+        return d
+
+    def __setstate__(self, state):
+        'Load data from serializaton'
+        self.__dict__.update(state)
+
+        # We didn't cache the _is_dirty, so we need to manually set it
+        self._is_dirty = None
+
     def state(self, env):
         return env.package_state(self)
 
