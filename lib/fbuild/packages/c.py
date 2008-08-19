@@ -39,7 +39,7 @@ class _Linker(packages.ManyToOnePackage):
             libs=[],
             cflags={},
             lflags={}):
-        super().__init__(dst, packages.glob_paths(srcs))
+        super().__init__(dst, srcs)
 
         self.builder = builder
         self.includes = includes
@@ -48,11 +48,11 @@ class _Linker(packages.ManyToOnePackage):
         self.lflags = lflags
 
     def dependencies(self, env):
-        return chain(self.srcs, self.libs)
+        return chain(packages.glob_paths(self.srcs), self.libs)
 
     def run(self, env):
         libs = packages.build_srcs(env, self.libs)
-        srcs = packages.build_srcs(env, self.srcs)
+        srcs = packages.build_srcs(env, packages.glob_paths(self.srcs))
 
         objs = scheduler.map(
             partial(self.compiler, env,

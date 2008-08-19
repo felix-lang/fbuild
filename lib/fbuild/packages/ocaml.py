@@ -46,15 +46,16 @@ class NativeInterface(packages.OneToOnePackage):
 
 class _Linker(packages.ManyToOnePackage):
     def __init__(self, dst, srcs, *, includes=[], libs=[], **kwargs):
-        super().__init__(dst, packages.glob_paths(srcs), **kwargs)
+        super().__init__(dst, srcs, **kwargs)
 
         self.includes = includes
         self.libs = libs
 
     def dependencies(self, env):
         # filter out system libraries
-        return chain(super().dependencies(env), (lib for lib in self.libs
-            if isinstance(lib, packages.Package)))
+        return chain(
+            packages.glob_paths(self.srcs),
+            (lib for lib in self.libs if isinstance(lib, packages.Package)))
 
     def src_includes(self, env):
         """
@@ -63,7 +64,7 @@ class _Linker(packages.ManyToOnePackage):
         """
 
         includes = set()
-        for src in packages.build_srcs(env, self.srcs):
+        for src in packages.build_srcs(env, packages.glob_paths(self.srcs)):
             if src.parent:
                 includes.add(src.parent)
                 includes.add(src.parent.replace_root(fbuild.buildroot))
@@ -93,7 +94,7 @@ class _Linker(packages.ManyToOnePackage):
 
     def run(self, env):
         libs = self.src_libs(env)
-        srcs = packages.build_srcs(env, self.srcs)
+        srcs = packages.build_srcs(env, packages.glob_paths(self.srcs))
 
         includes = set(self.includes)
 

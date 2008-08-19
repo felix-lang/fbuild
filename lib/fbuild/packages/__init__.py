@@ -139,7 +139,7 @@ class ManyToOnePackage(Package):
         super().__init__(config=config)
 
         self.dst = dst
-        self.srcs = srcs
+        self.srcs = list(srcs)
         self.kwargs = kwargs
 
     def dependencies(self, env):
