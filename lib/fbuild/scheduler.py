@@ -92,6 +92,10 @@ class Scheduler:
             count -= 1
             task.done = True
             if task.exc is not None:
+                # clear the ready queue
+                with self.__ready_queue.mutex:
+                    self.__ready_queue.queue.clear()
+
                 raise task.exc
             results.append(task)
 
