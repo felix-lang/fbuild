@@ -51,7 +51,7 @@ def execute(cmd,
         cmd_string = ' '.join(cmd)
 
     logger.write('%-10s: starting %r\n' %
-        (threading.current_thread().get_name(), cmd_string),
+        (threading.current_thread().name, cmd_string),
         verbose=4,
         buffer=False)
 

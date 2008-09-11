@@ -91,10 +91,7 @@ class Log:
 
     def check(self, msg, result=None, color=None, verbose=0):
         if self.show_threads:
-            msg = '%-10s: %s' % (
-                threading.current_thread().get_name(),
-                msg,
-            )
+            msg = '%-10s: %s' % (threading.current_thread().name, msg)
 
         d = len(msg)
         if d >= self.maxlen:

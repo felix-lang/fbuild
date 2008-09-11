@@ -116,7 +116,7 @@ class Scheduler:
 class WorkerThread(threading.Thread):
     def __init__(self, ready_queue):
         super().__init__()
-        self.set_daemon(True)
+        self.daemon = True
 
         self.__ready_queue = ready_queue
         self.__finished = False
