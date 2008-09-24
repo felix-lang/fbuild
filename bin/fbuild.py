@@ -176,12 +176,12 @@ def main(argv=None):
         return 1
     finally:
         # Compiling the pickle string could raise an exception, so we'll pickle
-        # to a string first, then write it out to the state file.
-        s = pickle.dumps(env)
+        # write to a temporary file first, then write it out to the state file.
+        with open(options.state_file + '.tmp', 'wb') as f:
+            pickle.dump(env, f)
 
         # Save the state to the state file.
-        with open(options.state_file, 'wb') as f:
-            f.write(s)
+        os.rename(options.state_file + '.tmp', options.state_file)
 
     return 0
 
