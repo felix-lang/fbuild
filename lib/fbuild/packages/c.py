@@ -36,6 +36,7 @@ class _Linker(packages.ManyToOnePackage):
     def __init__(self, dst, srcs, *,
             builder=None,
             includes=[],
+            macros=[],
             libs=[],
             cflags={},
             lflags={}):
@@ -43,6 +44,7 @@ class _Linker(packages.ManyToOnePackage):
 
         self.builder = builder
         self.includes = includes
+        self.macros = macros
         self.libs = libs
         self.cflags = cflags
         self.lflags = lflags
@@ -57,6 +59,7 @@ class _Linker(packages.ManyToOnePackage):
         objs = scheduler.map(
             partial(self.compiler, env,
                 includes=self.includes,
+                macros=self.macros,
                 **self.cflags),
             srcs)
 
