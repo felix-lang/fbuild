@@ -97,7 +97,7 @@ class SimplePackage(Package):
         return [self.target]
 
     def state(self, env):
-        return super().state(env).setdefault(self.target, Record())
+        return super().state(env).setdefault(build(env, self.target), Record())
 
     def run(self, env):
         return self.command(env, build(env, self.target), **self.kwargs)
