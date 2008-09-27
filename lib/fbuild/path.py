@@ -167,7 +167,7 @@ class Path(str):
     # path searching
 
     def find(self, name=None, include_dirs=True):
-        for root, dirs, files in os.walk(path):
+        for root, dirs, files in os.walk(self):
             if include_dirs:
                 files = itertools.chain(files, dirs)
 
@@ -175,7 +175,7 @@ class Path(str):
                 if name is not None and not Path.fnmatch(f, name):
                     continue
 
-                yield os.path.join(root, f)
+                yield Path(root, f)
 
     def fnmatch(self, pattern):
         import fbuild.fnmatch
