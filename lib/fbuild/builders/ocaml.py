@@ -33,7 +33,8 @@ class Ocamldep:
         includes.add(dst.parent)
 
         for i in sorted(includes):
-            if Path.exists(i):
+            i = Path(i)
+            if i.exists():
                 cmd.extend(('-I', i))
 
         cmd.extend(flags)
@@ -130,7 +131,8 @@ class Builder(AbstractCompilerBuilder):
         includes.add(dst.parent)
 
         for i in sorted(includes):
-            if Path.exists(i):
+            i = Path(i)
+            if i.exists():
                 cmd.extend(('-I', i))
 
         cmd.extend(flags)

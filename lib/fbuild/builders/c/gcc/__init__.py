@@ -107,7 +107,8 @@ class Compiler:
         includes = set(includes)
         includes.add(src.parent)
 
-        cmd_flags.extend('-I' + i for i in sorted(includes) if i)
+        # make sure that the path is converted into the native path format
+        cmd_flags.extend('-I' + Path(i) for i in sorted(includes) if i)
         cmd_flags.extend('-D' + d for d in macros)
         cmd_flags.extend('-W' + w for w in warnings)
         cmd_flags.extend(flags)
@@ -185,7 +186,7 @@ class Linker:
 
         extra_srcs = []
         for lib in sorted(set(libs)):
-            if lib.exists():
+            if Path(lib).exists():
                 extra_srcs.append(lib)
             else:
                 cmd_flags.append('-l' + lib)
