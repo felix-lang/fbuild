@@ -1,7 +1,10 @@
 from optparse import make_option
 import pprint
 
-from fbuild import Path, Record, logger, execute
+import fbuild
+from fbuild import ConfigFailed, execute, logger
+from fbuild.path import Path
+from fbuild.record import Record
 import fbuild.builders.c.c99 as c99
 
 # -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-from fbuild import Record
-from . import MissingHeader
+from fbuild.builders.c import MissingHeader
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

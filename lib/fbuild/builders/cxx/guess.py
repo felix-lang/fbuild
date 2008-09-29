@@ -1,5 +1,5 @@
-from fbuild import Record
 from fbuild.builders.c.guess import guess_config
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

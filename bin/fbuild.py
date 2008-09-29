@@ -9,6 +9,7 @@ import pprint
 import fbuild
 import fbuild.environment
 import fbuild.scheduler
+from fbuild.path import Path
 
 import fbuildroot
 
@@ -97,7 +98,7 @@ def main(argv=None):
     # prepare all the global variables
 
     # convert the option paths into Path objects
-    options.buildroot = fbuild.Path(options.buildroot)
+    options.buildroot = Path(options.buildroot)
     options.state_file = options.buildroot / options.state_file
 
     # make sure the buildroot exists before running

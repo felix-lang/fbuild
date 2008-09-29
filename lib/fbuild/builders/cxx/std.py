@@ -1,5 +1,5 @@
-from fbuild import Record
 import fbuild.builders.c.std as c_std
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

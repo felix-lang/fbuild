@@ -1,5 +1,6 @@
-from fbuild import Record, ConfigFailed, ExecutionError, Path, buildroot, \
-        execute, logger
+from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
+from fbuild.path import Path
+from fbuild.record import Record
 from fbuild.temp import tempfile
 from fbuild.builders import MissingProgram, find_program, c
 

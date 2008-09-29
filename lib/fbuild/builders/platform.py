@@ -1,6 +1,6 @@
 import os
 
-from fbuild import logger, execute, ConfigFailed, ExecutionError
+from fbuild import ConfigFailed, ExecutionError, execute, logger
 
 class UnknownPlatform(ConfigFailed):
     def __init__(self, platform=None):

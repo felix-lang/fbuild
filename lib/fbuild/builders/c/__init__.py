@@ -1,6 +1,7 @@
-from fbuild import logger, execute, ConfigFailed, ExecutionError
+import fbuild
 import fbuild.temp
 import fbuild.builders
+from fbuild import ConfigFailed, ExecutionError, execute, logger
 
 # -----------------------------------------------------------------------------
 

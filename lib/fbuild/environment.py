@@ -1,8 +1,8 @@
 import pickle
 import inspect
 
-from fbuild import Record
 from fbuild.path import import_function
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

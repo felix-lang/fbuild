@@ -2,9 +2,10 @@ import io
 import textwrap
 
 import fbuild
-from fbuild import logger, execute, ConfigFailed, ExecutionError, Record
-from fbuild.temp import tempdir
+from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
+from fbuild.record import Record
+from fbuild.temp import tempdir
 from fbuild.builders import find_program, AbstractCompilerBuilder
 
 # -----------------------------------------------------------------------------

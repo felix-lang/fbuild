@@ -1,6 +1,8 @@
 import time
 
-from fbuild import logger, Path, Record
+from fbuild import logger
+from fbuild.path import Path
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

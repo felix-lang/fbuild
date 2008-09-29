@@ -1,7 +1,8 @@
 from itertools import chain
 
-from fbuild import logger, ExecutionError, ConfigFailed, Record
-from . import MissingHeader
+from fbuild import ConfigFailed, ExecutionError, logger
+from fbuild.record import Record
+from fbuild.builders.c import MissingHeader
 
 # -----------------------------------------------------------------------------
 

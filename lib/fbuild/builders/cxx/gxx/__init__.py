@@ -1,6 +1,6 @@
-from fbuild import Record
 from fbuild.builders import find_program
 from fbuild.builders.c import MissingHeader, gcc
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

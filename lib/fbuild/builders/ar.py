@@ -1,5 +1,7 @@
-from fbuild import Path, execute
+import fbuild
 import fbuild.builders
+from fbuild import ConfigFailed, execute
+from fbuild.path import Path
 
 # -----------------------------------------------------------------------------
 

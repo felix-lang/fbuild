@@ -1,6 +1,7 @@
-from fbuild import logger, ConfigFailed, Record
+from fbuild import ConfigFailed, logger
+from fbuild.record import Record
 from fbuild.temp import tempfile
-from . import std, MissingHeader
+from fbuild.builders.c import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 

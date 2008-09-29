@@ -1,4 +1,5 @@
-from fbuild import ConfigFailed, Record
+from fbuild import ConfigFailed
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 

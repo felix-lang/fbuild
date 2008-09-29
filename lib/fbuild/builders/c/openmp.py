@@ -1,6 +1,6 @@
-from fbuild import Record, logger
-from fbuild.builders import ConfigFailed
+from fbuild import ConfigFailed, logger
 from fbuild.builders.c import MissingHeader
+from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
