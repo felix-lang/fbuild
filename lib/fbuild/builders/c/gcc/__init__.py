@@ -38,7 +38,7 @@ class Gcc:
 
         with tempfile(code, suffix='.c') as src:
             try:
-                self(flags + [src], quieter=1, cwd=src.parent)
+                self([src], flags=flags, quieter=1, cwd=src.parent)
             except ExecutionError:
                 logger.failed()
                 return False
