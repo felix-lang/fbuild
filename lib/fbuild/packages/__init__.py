@@ -198,6 +198,23 @@ class Move(_CopyMove):
 
 # -----------------------------------------------------------------------------
 
+class BuilderWrapper(Package):
+    def __init__(self, builder_class, packages, config=None, **kwargs):
+        super().__init__(config=config)
+
+        self.builder_class = builder_class
+        self.packages = packages
+        self.kwargs = kwargs
+
+    def dependencies(self):
+        return [p for p in self.packages if isinstance(p, (str, Package))]
+
+    def run(self):
+        packages = (build(package) for package in self.packages)
+        return self.builder_class(*packages, **self.kwargs)
+
+# -----------------------------------------------------------------------------
+
 def build(src):
     if isinstance(src, Package):
         return src.build()
