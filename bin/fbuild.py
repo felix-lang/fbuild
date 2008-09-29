@@ -10,8 +10,6 @@ import fbuild
 import fbuild.scheduler
 from fbuild.path import Path
 
-import fbuildroot
-
 # -----------------------------------------------------------------------------
 
 def main(argv=None):
@@ -73,6 +71,8 @@ def main(argv=None):
 
     # -------------------------------------------------------------------------
     # let the fbuildroot modify the optparse parser before parsing
+
+    import fbuildroot
 
     try:
         pre_options = fbuildroot.pre_options
