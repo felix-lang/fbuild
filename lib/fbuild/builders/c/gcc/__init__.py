@@ -200,9 +200,6 @@ class Linker:
 
         return dst
 
-    def __str__(self):
-        return ' '.join([str(self.gcc)] + self.flags)
-
     def __repr__(self):
         return '%s(%r, %r, prefix=%r, suffix=%r)' % (
             self.__class__.__name__,
@@ -245,9 +242,6 @@ class Builder(c.Builder):
 
     def link_exe(self, *args, **kwargs):
         return self.exe_linker(*args, **kwargs)
-
-    def __str__(self):
-        return ' '.join([str(self.gcc)] + self.flags)
 
     def __repr__(self):
         return '%s(compiler=%r, lib_linker=%r, exe_linker=%r)' % (
