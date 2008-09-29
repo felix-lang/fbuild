@@ -9,7 +9,7 @@ from fbuild.builders import MissingProgram, find_program, c
 class Gcc:
     def __init__(self, exe, flags=[]):
         # we split exe in case extra arguments were specified in the name
-        self.exe, *self.flags = exe.split()
+        self.exe, *self.flags = str.split(exe)
         self.flags.extend(flags)
 
     def __call__(self, srcs, dst=None, flags=[], *, pre_flags=[], **kwargs):
