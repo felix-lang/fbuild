@@ -7,7 +7,7 @@ from optparse import OptionParser, make_option
 import pprint
 
 import fbuild
-import fbuild.env
+import fbuild.environment
 import fbuild.scheduler
 
 import fbuildroot
@@ -121,7 +121,7 @@ def main(argv=None):
     try:
         if options.force_configuration or not options.state_file.exists():
             # we need to reconfigure, so just use a empty root environment
-            env = fbuild.env.Environment()
+            env = fbuild.environment.Environment()
 
             # make sure the state file directory exists
             options.state_file.parent.make_dirs()
