@@ -1,10 +1,15 @@
+import fbuild.packages.ocaml as ocaml
+
+blib = ocaml.BytecodeLibrary('lib', ['lib*.ml{,i}'])
+bexe = ocaml.BytecodeExecutable('exe.byte', ['exe.ml'], libs=[blib])
+
+nlib = ocaml.NativeLibrary('lib', ['lib*.ml{,i}'])
+nexe = ocaml.NativeExecutable('exe.native', ['exe.ml'], libs=[nlib])
+
+lib = ocaml.Library('lib', ['lib*.ml{,i}'])
+exe = ocaml.Executable('exe.native', ['exe.ml'], libs=[lib])
+
 def build():
-    import fbuild.packages.ocaml as ocaml
-
-    lib = ocaml.BytecodeLibrary('lib', ['lib*.ml{,i}'])
-    exe = ocaml.BytecodeExecutable('exe.byte', ['exe.ml'], libs=[lib])
-    exe.build()
-
-    lib = ocaml.NativeLibrary('lib', ['lib*.ml{,i}'])
-    exe = ocaml.NativeExecutable('exe.native', ['exe.ml'], libs=[lib])
+    bexe.build()
+    nexe.build()
     exe.build()
