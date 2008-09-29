@@ -96,7 +96,7 @@ class Compiler:
         if dst is None:
             dst = src.replace_ext(self.suffix)
 
-        dst = buildroot / dst
+        dst = dst.replace_root(buildroot)
         dst.parent.make_dirs()
 
         cmd_flags = []
@@ -176,8 +176,8 @@ class Linker:
 
         assert srcs or libs
 
-        dst = Path(dst)
-        dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
+        dst = Path(dst).replace_root(buildroot)
+        dst = dst.parent / self.prefix + dst.name + self.suffix
         dst.parent.make_dirs()
 
         cmd_flags = []
