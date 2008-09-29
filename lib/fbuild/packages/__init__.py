@@ -1,6 +1,6 @@
 import time
 
-from fbuild import logger
+from fbuild import env, logger
 from fbuild.path import Path
 from fbuild.record import Record
 
@@ -31,21 +31,21 @@ class Package:
         # We didn't cache the _is_dirty, so we need to manually set it
         self._is_dirty = None
 
-    def state(self, env):
+    def state(self):
         return env.package_state(self)
 
-    def is_dirty(self, env):
+    def is_dirty(self):
         if self._is_dirty is not None:
             return self._is_dirty
 
         try:
-            timestamp = self.state(env).timestamp
+            timestamp = self.state().timestamp
         except AttributeError:
             self._is_dirty = True
             return True
 
-        for dependency in self.dependencies(env):
-            if self.is_dependency_dirty(env, dependency, timestamp):
+        for dependency in self.dependencies():
+            if self.is_dependency_dirty(dependency, timestamp):
                 self._is_dirty = True
                 return True
 
@@ -53,29 +53,31 @@ class Package:
 
         return False
 
-    def is_dependency_dirty(self, env, dependency, timestamp):
+    def is_dependency_dirty(self, dependency, timestamp):
         if isinstance(dependency, Package):
-            return dependency.is_dirty(env)
+            return dependency.is_dirty()
         elif isinstance(dependency, Path):
-            return timestamp < dependency.mtime
+            return not dependency.exists() or timestamp < dependency.mtime
         elif isinstance(dependency, str):
+            path = Path(dependency)
             # assume it's a path
-            return timestamp < Path(dependency).mtime
+            return not path.exists() or timestamp < path.mtime
         else:
             raise ValueError('Bad argument: %r' % dependency)
 
-    def config(self, env):
+    @property
+    def config(self):
         if self._config is None and self.default_config:
-            return env.config(self.default_config)
+            return env.cache(self.default_config)
         return self._config
 
-    def build(self, env):
-        state = self.state(env)
+    def build(self):
+        state = self.state()
 
-        if not self.is_dirty(env):
+        if not self.is_dirty():
             return state.result
 
-        result = self.run(env)
+        result = self.run()
         self._is_dirty = False
 
         state.timestamp = time.time()
@@ -83,7 +85,7 @@ class Package:
 
         return result
 
-    def run(self, env):
+    def run(self):
         raise NotImplementedError
 
 # -----------------------------------------------------------------------------
@@ -95,16 +97,16 @@ class SimplePackage(Package):
         self.target = target
         self.kwargs = kwargs
 
-    def dependencies(self, env):
+    def dependencies(self):
         return [self.target]
 
-    def state(self, env):
-        return super().state(env).setdefault(build(env, self.target), Record())
+    def state(self):
+        return super().state().setdefault(build(self.target), Record())
 
-    def run(self, env):
-        return self.command(env, build(env, self.target), **self.kwargs)
+    def run(self):
+        return self.command(build(self.target), **self.kwargs)
 
-    def command(self, env):
+    def command(self):
         raise NotImplementedError
 
     def __repr__(self):
@@ -118,19 +120,16 @@ class OneToOnePackage(Package):
         self.src = src
         self.kwargs = kwargs
 
-    def dependencies(self, env):
+    def dependencies(self):
         return [self.src]
 
-    def state(self, env):
-        return super().state(env).setdefault(self.dst, Record())
+    def state(self):
+        return super().state().setdefault(self.dst, Record())
 
-    def run(self, env):
-        return self.command(env,
-            build(env, self.dst),
-            build(env, self.src),
-            **self.kwargs)
+    def run(self):
+        return self.command(build(self.dst), build(self.src), **self.kwargs)
 
-    def command(self, env):
+    def command(self):
         raise NotImplementedError
 
     def __repr__(self):
@@ -144,19 +143,19 @@ class ManyToOnePackage(Package):
         self.srcs = list(srcs)
         self.kwargs = kwargs
 
-    def dependencies(self, env):
+    def dependencies(self):
         return self.srcs
 
-    def state(self, env):
-        return super().state(env).setdefault(self.dst, Record())
+    def state(self):
+        return super().state().setdefault(self.dst, Record())
 
-    def run(self, env):
-        return self.command(env,
-            build(env, self.dst),
-            build_srcs(env, self.srcs),
+    def run(self):
+        return self.command(
+            build(self.dst),
+            build_srcs(self.srcs),
             **self.kwargs)
 
-    def command(self, env):
+    def command(self):
         raise NotImplementedError
 
     def __repr__(self):
@@ -164,29 +163,50 @@ class ManyToOnePackage(Package):
 
 # -----------------------------------------------------------------------------
 
-class Copy(OneToOnePackage):
-    def command(self, env, dst, src):
-        logger.check(' * copy', '%s -> %s' % (src, dst), color='yellow')
+class _CopyMove(OneToOnePackage):
+    def state(self):
+        src = Path(build(self.src))
+        dst = Path(build(self.dst))
+        if dst.isdir():
+            dst = dst / src.name
+
+        return super().state().setdefault(dst, Record())
+
+    def run(self):
+        src = Path(build(self.src))
+        dst = Path(build(self.dst))
+
+        dst.parent.make_dirs()
+        if dst.isdir():
+            dst = dst / src.name
+
+        return self.command(dst, src)
+
+class Copy(_CopyMove):
+    def command(self, dst, src):
+        logger.check(' * copy', '%s -> %s' % (src, dst),
+            color='yellow')
         src.copy(dst)
         return dst
 
-class Move(OneToOnePackage):
-    def command(self, env, dst, src):
-        logger.check(' * move', '%s -> %s' % (src, dst), color='yellow')
+class Move(_CopyMove):
+    def command(self, dst, src):
+        logger.check(' * move', '%s -> %s' % (src, dst),
+            color='yellow')
         src.move(dst)
         return dst
 
 # -----------------------------------------------------------------------------
 
-def build(env, src):
+def build(src):
     if isinstance(src, Package):
-        return src.build(env)
+        return src.build()
     return src
 
-def build_srcs(env, srcs):
+def build_srcs(srcs):
     results = []
     for src in srcs:
-        result = build(env, src)
+        result = build(src)
         if isinstance(result, str):
             results.append(result)
         else:

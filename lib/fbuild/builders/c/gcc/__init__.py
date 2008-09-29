@@ -58,7 +58,7 @@ class Gcc:
     def __eq__(self, other):
         return isinstance(other, Gcc) and self.exe == other.exe
 
-def config_gcc(env, exe=None, default_exes=['gcc', 'cc']):
+def config_gcc(exe=None, default_exes=['gcc', 'cc']):
     exe = exe or find_program(default_exes)
 
     if not exe:
@@ -139,17 +139,17 @@ class Compiler:
                 self.debug_flags == other.debug_flags and \
                 self.optimize_flags == other.optimize_flags
 
-def make_compiler(env, gcc, flags=[],
+def make_compiler(gcc, flags=[],
         debug_flags=['-g'],
         optimize_flags=['-O2'],
         **kwargs):
-    if flags and not env.test(gcc.check_flags, flags):
+    if flags and not env.cache(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
 
-    if not env.test(gcc.check_flags, debug_flags):
+    if not env.cache(gcc.check_flags, debug_flags):
         debug_flags = []
 
-    if not env.test(gcc.check_flags, optimize_flags):
+    if not env.cache(gcc.check_flags, optimize_flags):
         optimize_flags = []
 
     return Compiler(gcc, flags,
@@ -217,8 +217,8 @@ class Linker:
                 self.prefix == other.prefix and \
                 self.suffix == other.suffix
 
-def make_linker(env, gcc, flags=[], **kwargs):
-    if flags and not env.test(gcc.check_flags, flags):
+def make_linker(gcc, flags=[], **kwargs):
+    if flags and not env.cache(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
 
     return Linker(gcc, flags, **kwargs)
@@ -263,7 +263,7 @@ class Builder(c.Builder):
 
 # -----------------------------------------------------------------------------
 
-def config_static(env, exe=None, *args,
+def config_static(exe=None, *args,
         config_gcc=config_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
@@ -272,17 +272,17 @@ def config_static(env, exe=None, *args,
         lib_prefix='lib', lib_suffix='.a',
         exe_suffix='',
         **kwargs):
-    gcc = env.config(config_gcc, exe)
+    gcc = env.cache(config_gcc, exe)
 
     builder = Builder(
-        compiler=env.config(make_compiler, gcc,
+        compiler=env.cache(make_compiler, gcc,
             flags=compile_flags,
             suffix=obj_suffix,
             **kwargs),
-        lib_linker=env.config('fbuild.builders.ar.config',
+        lib_linker=env.cache('fbuild.builders.ar.config',
             prefix=lib_prefix,
             suffix=lib_suffix),
-        exe_linker=env.config(make_linker, gcc,
+        exe_linker=env.cache(make_linker, gcc,
             prefix='',
             suffix=exe_suffix),
         src_suffix=src_suffix)
@@ -293,7 +293,7 @@ def config_static(env, exe=None, *args,
 
 # -----------------------------------------------------------------------------
 
-def config_shared(env, exe=None, *args,
+def config_shared(exe=None, *args,
         config_gcc=config_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
@@ -303,18 +303,18 @@ def config_shared(env, exe=None, *args,
         lib_prefix='lib', lib_suffix='.so',
         exe_suffix='',
         **kwargs):
-    gcc = env.config(config_gcc, exe)
+    gcc = env.cache(config_gcc, exe)
 
     builder = Builder(
-        compiler=env.config(make_compiler, gcc,
+        compiler=env.cache(make_compiler, gcc,
             flags=compile_flags,
             suffix=obj_suffix,
             **kwargs),
-        lib_linker=env.config(make_linker, gcc,
+        lib_linker=env.cache(make_linker, gcc,
             prefix=lib_prefix,
             suffix=lib_suffix,
             flags=lib_link_flags),
-        exe_linker=env.config(make_linker, gcc,
+        exe_linker=env.cache(make_linker, gcc,
             prefix='',
             suffix=exe_suffix),
         src_suffix=src_suffix)
@@ -325,7 +325,7 @@ def config_shared(env, exe=None, *args,
 
 # -----------------------------------------------------------------------------
 
-def config_builtin_expect(env, builder):
+def config_builtin_expect(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
@@ -333,7 +333,7 @@ def config_builtin_expect(env, builder):
         }
     ''', 'checking if supports builtin expect')
 
-def config_named_registers_x86(env, builder):
+def config_named_registers_x86(builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
@@ -344,7 +344,7 @@ def config_named_registers_x86(env, builder):
         }
     ''', 'checking if supports x86 named registers')
 
-def config_named_registers_x86_64(env, builder):
+def config_named_registers_x86_64(builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
@@ -355,7 +355,7 @@ def config_named_registers_x86_64(env, builder):
         }
     ''', 'checking if supports x86_64 named registers')
 
-def config_computed_gotos(env, builder):
+def config_computed_gotos(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -367,7 +367,7 @@ def config_computed_gotos(env, builder):
         }
     ''', 'checking if supports computed gotos')
 
-def config_asm_labels(env, builder):
+def config_asm_labels(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -382,12 +382,12 @@ def config_asm_labels(env, builder):
         }
     ''', 'checking if supports asm labels')
 
-def config_extensions(env, builder):
+def config_extensions(builder):
     return Record(
-        builtin_expect=env.config(config_builtin_expect, builder),
-        named_registers_x86=env.config(config_named_registers_x86, builder),
-        named_registers_x86_64=env.config(
+        builtin_expect=env.cache(config_builtin_expect, builder),
+        named_registers_x86=env.cache(config_named_registers_x86, builder),
+        named_registers_x86_64=env.cache(
             config_named_registers_x86_64, builder),
-        computed_gotos=env.config(config_computed_gotos, builder),
-        asm_labels=env.config(config_asm_labels, builder),
+        computed_gotos=env.cache(config_computed_gotos, builder),
+        asm_labels=env.cache(config_asm_labels, builder),
     )

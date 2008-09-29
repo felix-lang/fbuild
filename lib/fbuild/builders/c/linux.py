@@ -1,9 +1,10 @@
+from fbuild import env
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
-def config_sys_epoll_h(env, builder):
+def config_sys_epoll_h(builder):
     if not builder.check_header_exists('sys/epoll.h'):
         raise MissingHeader('sys/epoll.h')
 
@@ -20,14 +21,14 @@ def config_sys_epoll_h(env, builder):
 
 # -----------------------------------------------------------------------------
 
-def config_headers(env, builder):
+def config_headers(builder):
     return Record(
         sys=Record(
-            epoll_h=env.config(config_sys_epoll_h, builder),
+            epoll_h=env.cache(config_sys_epoll_h, builder),
         ),
     )
 
-def config(env, builder):
+def config(builder):
     return Record(
-        headers=env.config(config_headers, builder),
+        headers=env.cache(config_headers, builder),
     )

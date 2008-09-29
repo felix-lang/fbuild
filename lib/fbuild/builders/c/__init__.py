@@ -164,7 +164,7 @@ def check_compiler(compiler, suffix):
 
 # -----------------------------------------------------------------------------
 
-def config_little_endian(env, builder):
+def config_little_endian(builder):
     code = '''
         #include <stdio.h>
 

@@ -1,3 +1,4 @@
+from fbuild import env
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
@@ -20,52 +21,52 @@ def _config_functions(builder, *functions):
 # -----------------------------------------------------------------------------
 # bsd functions
 
-def config_finite(env, builder):
+def config_finite(builder):
     return _config_functions(builder, 'finite', 'finitef', 'finitel')
 
-def config_bsd(env, builder):
-    return env.config(config_finite, builder)
+def config_bsd(builder):
+    return env.cache(config_finite, builder)
 
 # -----------------------------------------------------------------------------
 # c99 classification macros
 
-def config_fpclassify(env, builder):
+def config_fpclassify(builder):
     return _config_functions(builder, 'fpclassify')
 
-def config_isfinite(env, builder):
+def config_isfinite(builder):
     return _config_functions(builder, 'isfinite', 'isfinitef', 'isfinitel')
 
-def config_isinf(env, builder):
+def config_isinf(builder):
     return _config_functions(builder, 'isinf', 'isinff', 'isinfl')
 
-def config_isnan(env, builder):
+def config_isnan(builder):
     return _config_functions(builder, 'isnan', 'isnanf', 'isnanl')
 
-def config_isnormal(env, builder):
+def config_isnormal(builder):
     return _config_functions(builder, 'isnormal', 'isnormalf', 'isnormall')
 
-def config_signbit(env, builder):
+def config_signbit(builder):
     return _config_functions(builder, 'signbit', 'signbitf', 'signbitl')
 
-def config_c99(env, builder):
+def config_c99(builder):
     record = Record()
-    record.update(env.config(config_fpclassify, builder))
-    record.update(env.config(config_isfinite, builder))
-    record.update(env.config(config_isinf, builder))
-    record.update(env.config(config_isnan, builder))
-    record.update(env.config(config_isnormal, builder))
-    record.update(env.config(config_signbit, builder))
+    record.update(env.cache(config_fpclassify, builder))
+    record.update(env.cache(config_isfinite, builder))
+    record.update(env.cache(config_isinf, builder))
+    record.update(env.cache(config_isnan, builder))
+    record.update(env.cache(config_isnormal, builder))
+    record.update(env.cache(config_signbit, builder))
 
     return record
 
 # -----------------------------------------------------------------------------
 
-def config(env, builder):
+def config(builder):
     if not builder.check_header_exists('math.h'):
         raise MissingHeader('math.h')
 
     record = Record()
-    record.update(env.config(config_bsd, builder))
-    record.update(env.config(config_c99, builder))
+    record.update(env.cache(config_bsd, builder))
+    record.update(env.cache(config_c99, builder))
 
     return record

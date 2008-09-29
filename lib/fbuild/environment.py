@@ -1,6 +1,7 @@
 import pickle
 import inspect
 
+from fbuild import ConfigFailed
 from fbuild.path import import_function
 from fbuild.record import Record
 
@@ -12,15 +13,38 @@ class Environment:
     exposing routines that allow you to treat items as attributes, or
     automatically memoize results.
     '''
-    __slots__ = ['_builder_state', '_package_state']
+
+    __slots__ = ['_builder_state', '_runtime_state', '_package_state']
 
     def __init__(self):
         self._builder_state = {}
+        self._runtime_state = {}
         self._package_state = {}
 
-    def test(self, function, *args, **kwargs):
-        'Return the cached value or compute and store it in the cache.'
+    def __getstate__(self):
+        from fbuild.packages import Package
 
+        # We don't want to cache exceptions and packages, as we want them
+        # recomputed on the next run.
+        builder_state = {}
+        for key, value in self._builder_state.items():
+            value = [v for v in value
+                if isinstance(v[1], ConfigFailed)
+                or not isinstance(v[1], (Exception, Package))]
+            if value:
+                builder_state[key] = value
+
+        return dict(
+            _builder_state=builder_state,
+            _package_state=self._package_state,
+        )
+
+    def __setstate__(self, state):
+        self._builder_state = state['_builder_state']
+        self._runtime_state = {}
+        self._package_state = state['_package_state']
+
+    def _cache(self, cache, function, *args, **kwargs):
         function = import_function(function)
 
         # Add self to the arg list, then remove it so that it doesn't get
@@ -30,7 +54,7 @@ class Environment:
         key = '%s.%s' % (function.__module__, function.__name__)
 
         try:
-            states = self._builder_state[key]
+            states = cache[key]
         except KeyError:
             pass
         else:
@@ -49,21 +73,24 @@ class Environment:
         except Exception as e:
             # cache the exception, store it in the cache, then reraise it
             value = e
-            self._builder_state.setdefault(key, []).append((bound_args, value))
+            cache.setdefault(key, []).append((bound_args, value))
             raise e from e
 
-        self._builder_state.setdefault(key, []).append((bound_args, value))
+        cache.setdefault(key, []).append((bound_args, value))
 
         return value
 
-    def config(self, function, *args, **kwargs):
+    def cache(self, function, *args, **kwargs):
         '''
         Return the cached value or compute and store it in the cache.
 
         Function will be passed the environment in case it has other
         subfunctions to configure.
         '''
-        return self.test(function, self, *args, **kwargs)
+        return self._cache(self._builder_state, function, *args, **kwargs)
+
+    def run(self, function, *args, **kwargs):
+        return self._cache(self._runtime_state, function, *args, **kwargs)
 
     def package_state(self, package):
         key = '%s.%s' % (package.__module__, package.__class__.__name__)

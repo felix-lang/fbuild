@@ -1,8 +1,7 @@
 import io
 import textwrap
 
-import fbuild
-from fbuild import ConfigFailed, ExecutionError, execute, logger
+from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
 from fbuild.temp import tempdir
@@ -22,7 +21,7 @@ class Ocamldep:
     def __call__(self, src, *,
             includes=[],
             flags=[],
-            buildroot=fbuild.buildroot):
+            buildroot=buildroot):
         dst = (src + '.depends').replace_root(buildroot)
         dst.parent.make_dirs()
 
@@ -78,7 +77,7 @@ class Ocamldep:
             self.exe == other.exe and \
             self.module_flags == other.module_flags
 
-def config_ocamldep(env, exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
+def config_ocamldep(exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
     exe = exe or find_program(default_exes)
 
     return Ocamldep(exe)
@@ -105,7 +104,7 @@ class Builder(AbstractCompilerBuilder):
             pre_flags=[],
             flags=[],
             debug=False,
-            buildroot=fbuild.buildroot,
+            buildroot=buildroot,
             **kwargs):
         # we need to make sure libraries are built first before we compile
         # the sources
@@ -246,7 +245,7 @@ def make_builder(exe, default_exes, *args, **kwargs):
 
     return builder
 
-def config_bytecode(env,
+def config_bytecode(
         exe=None,
         default_exes=['ocamlc.opt', 'ocamlc'],
         **kwargs):
@@ -256,7 +255,7 @@ def config_bytecode(env,
         exe_suffix='',
         **kwargs)
 
-def config_native(env,
+def config_native(
         exe=None,
         default_exes=['ocamlopt.opt', 'ocamlopt'],
         **kwargs):
@@ -275,7 +274,7 @@ class Ocamllex:
 
     def __call__(self, src, *,
             flags=[],
-            buildroot=fbuild.buildroot):
+            buildroot=buildroot):
         dst = src.replace_ext('.ml').replace_root(buildroot)
         dst.parent.make_dirs()
 
@@ -302,7 +301,7 @@ class Ocamllex:
             self.exe == other.exe and \
             self.flags == other.flags
 
-def config_ocamllex(env, exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
+def config_ocamllex(exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
     exe = exe or find_program(default_exes)
 
     return Ocamllex(exe)
@@ -316,7 +315,7 @@ class Ocamlyacc:
 
     def __call__(self, src, *,
             flags=[],
-            buildroot=fbuild.buildroot):
+            buildroot=buildroot):
         # first, copy the src file into the buildroot
         src_buildroot = src.replace_root(buildroot)
 
@@ -349,7 +348,7 @@ class Ocamlyacc:
             self.exe == other.exe and \
             self.flags == other.flags
 
-def config_ocamlyacc(env,
+def config_ocamlyacc(
         exe=None,
         default_exes=['ocamlyacc.opt', 'ocamlyacc']):
     exe = exe or find_program(default_exes)
@@ -358,16 +357,16 @@ def config_ocamlyacc(env,
 
 # -----------------------------------------------------------------------------
 
-def config(env, *,
+def config(*,
         ocamldep=None,
         ocamlc=None,
         ocamlopt=None,
         ocamllex=None,
         ocamlyacc=None):
     return Record(
-        ocamldep=env.config(config_ocamldep, ocamldep),
-        bytecode=env.config(config_bytecode, ocamlc),
-        native=env.config(config_native, ocamlopt),
-        ocamllex=env.config(config_ocamllex, ocamllex),
-        ocamlyacc=env.config(config_ocamlyacc, ocamlyacc),
+        ocamldep=env.cache(config_ocamldep, ocamldep),
+        bytecode=env.cache(config_bytecode, ocamlc),
+        native=env.cache(config_native, ocamlopt),
+        ocamllex=env.cache(config_ocamllex, ocamllex),
+        ocamlyacc=env.cache(config_ocamlyacc, ocamlyacc),
     )

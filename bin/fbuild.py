@@ -7,7 +7,6 @@ from optparse import OptionParser, make_option
 import pprint
 
 import fbuild
-import fbuild.environment
 import fbuild.scheduler
 from fbuild.path import Path
 
@@ -121,15 +120,14 @@ def main(argv=None):
 
     try:
         if options.force_configuration or not options.state_file.exists():
-            # we need to reconfigure, so just use a empty root environment
-            env = fbuild.environment.Environment()
+            # we need to reconfigure, so don't try to load the environment.
 
             # make sure the state file directory exists
             options.state_file.parent.make_dirs()
         else:
             # reuse the environment from the last run
             with open(options.state_file, 'rb') as f:
-                env = pickle.load(f)
+                fbuild.env.__setstate__(pickle.load(f))
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
@@ -140,12 +138,12 @@ def main(argv=None):
         # check if we're viewing or manipulating the config
         if options.config_dump:
             # print out the entire config
-            pprint.pprint(env._builder_state)
+            pprint.pprint(fbuild.env._builder_state)
             return 0
 
         if options.config_query:
             # print out just a subset of the configuration
-            d = env._builder_state
+            d = fbuild.env._builder_state
             try:
                 for key in options.config_query.split():
                     d = d[key]
@@ -158,7 +156,7 @@ def main(argv=None):
 
         if options.config_remove:
             keys = options.config_remove.split()
-            d = env._builder_state
+            d = fbuild.env._builder_state
             try:
                 for key in keys[:-1]:
                     d = d[key]
@@ -171,7 +169,7 @@ def main(argv=None):
 
         # ---------------------------------------------------------------------
         # finally, do the build
-        fbuildroot.build(env)
+        fbuildroot.build()
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
@@ -179,7 +177,7 @@ def main(argv=None):
         # Compiling the pickle string could raise an exception, so we'll pickle
         # write to a temporary file first, then write it out to the state file.
         with open(options.state_file + '.tmp', 'wb') as f:
-            pickle.dump(env, f)
+            pickle.dump(fbuild.env.__getstate__(), f)
 
         # Save the state to the state file.
         os.rename(options.state_file + '.tmp', options.state_file)

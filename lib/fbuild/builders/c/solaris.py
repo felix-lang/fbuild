@@ -1,9 +1,10 @@
+from fbuild import env
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
 # -----------------------------------------------------------------------------
 
-def config_port_h(env, builder):
+def config_port_h(builder):
     if not builder.check_header_exists('port.h'):
         raise MissingHeader('port.h')
 
@@ -21,12 +22,12 @@ def config_port_h(env, builder):
 
 # -----------------------------------------------------------------------------
 
-def config_headers(env, builder):
+def config_headers(builder):
     return Record(
-        port_h=env.config(config_port_h, builder),
+        port_h=env.cache(config_port_h, builder),
     )
 
-def config(env, builder):
+def config(builder):
     return Record(
-        headers=env.config(config_headers, builder),
+        headers=env.cache(config_headers, builder),
     )

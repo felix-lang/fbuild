@@ -77,7 +77,7 @@ class Linker:
 
 # -----------------------------------------------------------------------------
 
-def config(env, ar=None, ranlib=None, *,
+def config(ar=None, ranlib=None, *,
         prefix='lib',
         suffix='.a',
         link_flags=['-rc'],

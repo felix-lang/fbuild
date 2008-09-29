@@ -1,4 +1,5 @@
 import fbuild.builders.c.std as c_std
+from fbuild import env
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
@@ -13,13 +14,13 @@ default_types = default_types_int + default_types_float + default_types_misc
 
 # -----------------------------------------------------------------------------
 
-def config_types(env, builder):
-    return c_std.config_types(env, builder,
+def config_types(builder):
+    return c_std.config_types(builder,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc)
 
-def config_compiler_bugs(env, builder):
+def config_compiler_bugs(builder):
     """
     Test for common c++ bugs.
     """
@@ -37,14 +38,14 @@ def config_compiler_bugs(env, builder):
 
     return bugs
 
-def config_headers(env, builder):
+def config_headers(builder):
     return Record(
-        stddef_h=env.config(c_std.config_stddef_h, builder),
+        stddef_h=env.cache(c_std.config_stddef_h, builder),
     )
 
-def config(env, builder):
+def config(builder):
     return Record(
-        types=env.config(config_types, builder),
-        headers=env.config(config_headers, builder),
-        bugs=env.config(config_compiler_bugs, builder),
+        types=env.cache(config_types, builder),
+        headers=env.cache(config_headers, builder),
+        bugs=env.cache(config_compiler_bugs, builder),
     )

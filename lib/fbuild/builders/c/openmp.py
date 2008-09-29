@@ -1,10 +1,10 @@
-from fbuild import ConfigFailed, logger
+from fbuild import ConfigFailed, env, logger
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
-def config_omp_h(env, builder):
+def config_omp_h(builder):
     if not builder.check_header_exists('omp.h'):
         raise MissingHeader('omp.h')
 
@@ -43,9 +43,9 @@ def config_omp_h(env, builder):
         raise ConfigFailed('failed to link openmp program')
 
 
-def config(env, builder):
+def config(builder):
     return Record(
         headers=Record(
-            omp_h=env.config(config_omp_h, builder),
+            omp_h=env.cache(config_omp_h, builder),
         )
     )

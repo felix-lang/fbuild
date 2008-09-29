@@ -1,6 +1,6 @@
 import os
 
-from fbuild import ConfigFailed, ExecutionError, execute, logger
+from fbuild import ConfigFailed, ExecutionError, env, execute, logger
 
 class UnknownPlatform(ConfigFailed):
     def __init__(self, platform=None):
@@ -39,7 +39,7 @@ archmap = {
 
 # -----------------------------------------------------------------------------
 
-def config(env, platform=None):
+def config(platform=None):
     logger.check('determining platform')
     if platform is None:
         try:

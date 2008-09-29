@@ -1,6 +1,6 @@
 from itertools import chain
 
-from fbuild import ConfigFailed, ExecutionError, logger
+from fbuild import ConfigFailed, ExecutionError, env, logger
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
@@ -114,7 +114,7 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_types(env, builder,
+def config_types(builder,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc):
@@ -125,7 +125,7 @@ def config_types(env, builder,
 
     return types
 
-def config_int_type_conversions(env, builder, types_int=default_types_int):
+def config_int_type_conversions(builder, types_int=default_types_int):
     pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
     logger.check('getting int type conversions')
@@ -138,52 +138,52 @@ def config_int_type_conversions(env, builder, types_int=default_types_int):
     logger.passed()
     return int_type_conversions
 
-def config_stddef_h(env, builder):
+def config_stddef_h(builder):
     if not builder.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
     types = get_types_data(builder, default_types_stddef_h, int_type=True)
     return Record(types=types)
 
-def config_headers(env, builder):
-    return Record(stddef_h=env.config(config_stddef_h, builder))
+def config_headers(builder):
+    return Record(stddef_h=env.cache(config_stddef_h, builder))
 
-def config(env, builder):
+def config(builder):
     return Record(
-        types=env.config(config_types, builder),
-        int_type_conversions=env.config(config_int_type_conversions, builder),
-        headers=env.config(config_headers, builder))
+        types=env.cache(config_types, builder),
+        int_type_conversions=env.cache(config_int_type_conversions, builder),
+        headers=env.cache(config_headers, builder))
 
 # -----------------------------------------------------------------------------
 
-def types_int(env, builder):
-    types = env.config(config_types, builder)
+def types_int(builder):
+    types = env.cache(config_types, builder)
     return (t for t in default_types_int if t in types)
 
-def types_float(env, builder):
-    types = env.config(config_types, builder)
+def types_float(builder):
+    types = env.cache(config_types, builder)
     return (t for t in default_types_float if t in types)
 
-def type_aliases_int(env, builder):
-    types = env.config(config_types, builder)
+def type_aliases_int(builder):
+    types = env.cache(config_types, builder)
     d = {}
-    for t in types_int(env, builder):
+    for t in types_int(builder):
         data = types[t]
         d.setdefault((data['size'], data['signed']), t)
 
     return d
 
-def type_aliases_float(env, builder):
-    types = env.config(config_types, builder)
+def type_aliases_float(builder):
+    types = env.cache(config_types, builder)
     d = {}
-    for t in types_float(env, builder):
+    for t in types_float(builder):
         data = types[t]
         d.setdefault(data['size'], t)
 
     return d
 
-def type_conversions_int(env, builder):
-    aliases = env.config(type_aliases_int, builder)
-    int_type_conversions = env.config(config_int_type_conversions, builder)
+def type_conversions_int(builder):
+    aliases = env.cache(type_aliases_int, builder)
+    int_type_conversions = env.cache(config_int_type_conversions, builder)
     return {type_pair: aliases[size_signed]
         for type_pair, size_signed in int_type_conversions.items()}

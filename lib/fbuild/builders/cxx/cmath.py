@@ -16,36 +16,36 @@ def _config_function(builder, function):
 
     return record
 
-def config_fpclassify(env, builder):
+def config_fpclassify(builder):
     return _config_function(builder, 'fpclassify')
 
-def config_isfinite(env, builder):
+def config_isfinite(builder):
     return _config_function(builder, 'isfinite')
 
-def config_isinf(env, builder):
+def config_isinf(builder):
     return _config_function(builder, 'isinf')
 
-def config_isnan(env, builder):
+def config_isnan(builder):
     return _config_function(builder, 'isnan')
 
-def config_isnormal(env, builder):
+def config_isnormal(builder):
     return _config_function(builder, 'isnormal')
 
-def config_signbit(env, builder):
+def config_signbit(builder):
     return _config_function(builder, 'signbit')
 
 # -----------------------------------------------------------------------------
 
-def config(env, builder):
+def config(builder):
     if not builder.check_header_exists('cmath'):
         raise MissingHeader('cmath')
 
     record = Record()
-    record.update(config_fpclassify(env, builder))
-    record.update(config_isfinite(env, builder))
-    record.update(config_isinf(env, builder))
-    record.update(config_isnan(env, builder))
-    record.update(config_isnormal(env, builder))
-    record.update(config_signbit(env, builder))
+    record.update(config_fpclassify(builder))
+    record.update(config_isfinite(builder))
+    record.update(config_isinf(builder))
+    record.update(config_isnan(builder))
+    record.update(config_isnormal(builder))
+    record.update(config_signbit(builder))
 
     return record

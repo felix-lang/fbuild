@@ -1,10 +1,11 @@
+from fbuild import env
 from fbuild.builders import find_program
 from fbuild.builders.c import MissingHeader, gcc
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
-def config_gxx(env, exe=None, default_exes=['g++', 'c++']):
+def config_gxx(exe=None, default_exes=['g++', 'c++']):
     exe = exe or find_program(default_exes)
 
     if not exe:
@@ -39,7 +40,7 @@ def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def config_ext_hash_map(env, builder):
+def config_ext_hash_map(builder):
     if not builder.check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
 
@@ -54,12 +55,12 @@ def config_ext_hash_map(env, builder):
 
     return Record(hash_map=hash_map)
 
-def config_ext_headers(env, builder):
+def config_ext_headers(builder):
     return Record(
-        hash_map=env.config(config_ext_hash_map, builder),
+        hash_map=env.cache(config_ext_hash_map, builder),
     )
 
-def config_extensions(env, builder):
+def config_extensions(builder):
     return Record(
-        headers=env.config(config_ext_headers, builder),
+        headers=env.cache(config_ext_headers, builder),
     )

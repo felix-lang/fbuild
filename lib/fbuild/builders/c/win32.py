@@ -1,9 +1,10 @@
+from fbuild import env
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
-def config_windows_h(env, builder):
+def config_windows_h(builder):
     if not builder.check_header_exists('windows.h'):
         raise MissingHeader('windows.h')
 
@@ -23,12 +24,12 @@ def config_windows_h(env, builder):
 
     return Record(LoadLibrary=LoadLibrary)
 
-def config_headers(env, builder):
+def config_headers(builder):
     return Record(
-        windows_h=env.config(config_windows_h, builder),
+        windows_h=env.cache(config_windows_h, builder),
     )
 
-def config(env, builder):
+def config(builder):
     return Record(
-        headers=env.config(config_headers, builder),
+        headers=env.cache(config_headers, builder),
     )
