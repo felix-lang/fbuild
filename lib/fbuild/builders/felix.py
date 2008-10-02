@@ -63,11 +63,12 @@ def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
 # -----------------------------------------------------------------------------
 
 class Felix(AbstractCompilerBuilder):
-    def __init__(self, flx, *, exe_suffix):
+    def __init__(self, flx, *, exe_suffix, lib_suffix):
         super().__init__(src_suffix='.flx')
 
         self.flx = flx
         self.exe_suffix = exe_suffix
+        self.lib_suffix = lib_suffix
 
     def compile(self, src, *,
             flags=[],
@@ -102,7 +103,7 @@ class Felix(AbstractCompilerBuilder):
 
 # -----------------------------------------------------------------------------
 
-def config(exe=None, *, flags=[], exe_suffix='', **kwargs):
+def config(exe=None, *, flags=[], exe_suffix='', lib_suffix='.dylib', **kwargs):
     flx = env.cache(config_flx, exe, flags=flags)
 
-    return Felix(flx, exe_suffix=exe_suffix)
+    return Felix(flx, exe_suffix=exe_suffix, lib_suffix=lib_suffix)
