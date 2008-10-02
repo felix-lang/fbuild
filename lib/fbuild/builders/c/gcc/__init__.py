@@ -97,10 +97,8 @@ class Compiler:
             buildroot=buildroot,
             **kwargs):
         src = Path(src)
-        if dst is None:
-            dst = src.replace_ext(self.suffix)
+        dst = (dst or src).replace_root(buildroot).replace_ext(self.suffix)
 
-        dst = dst.replace_root(buildroot)
         dst.parent.make_dirs()
 
         cmd_flags = []

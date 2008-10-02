@@ -147,8 +147,7 @@ class Builder(AbstractCompilerBuilder):
         return dst
 
     def _compile(self, src, dst=None, *args, obj_suffix, **kwargs):
-        if dst is None:
-            dst = src.replace_ext(obj_suffix)
+        dst = (dst or src).replace_ext(obj_suffix)
 
         return self._run(dst, [src],
             pre_flags=['-c'],
