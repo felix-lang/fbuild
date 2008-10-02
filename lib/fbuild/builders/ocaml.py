@@ -167,7 +167,10 @@ class Builder(AbstractCompilerBuilder):
             return self.compile_implementation(src, *args, **kwargs)
 
     def _link(self, dst, srcs, *args, libs=[], **kwargs):
-        srcs = Path.glob_all(srcs)
+        # Filter out the .cmi files, such as when we're using ocamlyacc source
+        # files.
+        srcs = Path.glob_all(srcs, exclude='*.cmi')
+
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
     def link_lib(self, dst, *args, libs=[], **kwargs):
