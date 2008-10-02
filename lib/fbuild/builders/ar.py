@@ -20,10 +20,15 @@ class Linker:
             destdir=None,
             buildroot=fbuild.buildroot,
             **kwargs):
+        dst = Path(dst)
         dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
         srcs = Path.glob_all(srcs)
 
         assert srcs, 'no sources passed into ar'
+
+        # exit early if not dirty
+        if not dst.is_dirty(srcs, libs):
+            return dst
 
         if destdir is not None:
             destdir.make_dirs()

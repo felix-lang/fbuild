@@ -112,6 +112,11 @@ class Builder(AbstractCompilerBuilder):
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
         dst = Path.replace_root(dst, buildroot)
+
+        # exit early if not dirty
+        if not dst.is_dirty(srcs, libs):
+            return dst
+
         dst.parent.make_dirs()
 
         extra_srcs = []
@@ -280,6 +285,10 @@ class Ocamllex:
             flags=[],
             buildroot=buildroot):
         dst = src.replace_ext('.ml').replace_root(buildroot)
+
+        if not dst.is_dirty(src):
+            return dst
+
         dst.parent.make_dirs()
 
         cmd = [self.exe]
@@ -326,6 +335,12 @@ class Ocamlyacc:
             src_buildroot.replace_ext('.ml'),
             src_buildroot.replace_ext('.mli'),
         )
+
+        for dst in dsts:
+            if dst.is_dirty(src):
+                break
+        else:
+            return dsts
 
         if src != src_buildroot:
             src_buildroot.parent.make_dirs()

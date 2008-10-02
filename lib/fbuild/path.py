@@ -243,3 +243,23 @@ class Path(str):
     @classmethod
     def replace_all_suffixes(cls, paths, suffixes):
         return [cls(path).replace_suffixes(suffixes) for path in paths]
+
+    # -------------------------------------------------------------------------
+
+    def is_dirty(self, *dependencies):
+        '''
+        L{is_dirty} returns True if this L{Path} object doesn't exist, or it
+        was modified less recently than any of it's dependencies.
+        '''
+
+        if not self.exists():
+            return True
+
+        timestamp = self.getmtime()
+
+        for dep in dependencies:
+            for d in (dep,) if isinstance(dep, str) else dep:
+                if isinstance(d, Path) and timestamp < os.path.getmtime(d):
+                    return True
+
+        return False

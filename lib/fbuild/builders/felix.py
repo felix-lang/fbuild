@@ -82,12 +82,13 @@ class Felix(AbstractCompilerBuilder):
         else:
             dst = src_buildroot.replace_ext(self.lib_suffix)
 
+        if not dst.is_dirty(src):
+            return dst
+
         if src != src_buildroot:
             src_buildroot.parent.make_dirs()
             src.copy(src_buildroot)
             src = src_buildroot
-
-        dst = src.replace_ext(self.exe_suffix)
 
         cmd_flags = ['-c', '--force']
         cmd_flags.extend(flags)

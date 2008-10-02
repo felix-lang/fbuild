@@ -99,6 +99,10 @@ class Compiler:
         src = Path(src)
         dst = (dst or src).replace_root(buildroot).replace_ext(self.suffix)
 
+        # exit early if not dirty
+        if not dst.is_dirty(src):
+            return dst
+
         dst.parent.make_dirs()
 
         cmd_flags = []
@@ -188,6 +192,11 @@ class Linker:
 
         dst = Path(dst).replace_root(buildroot)
         dst = dst.parent / self.prefix + dst.name + self.suffix
+
+        # exit early if not dirty
+        if not dst.is_dirty(srcs):
+            return dst
+
         dst.parent.make_dirs()
 
         cmd_flags = []
