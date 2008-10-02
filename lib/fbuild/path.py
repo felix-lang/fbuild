@@ -212,6 +212,8 @@ class Path(str):
             if not (os.path.exists(self) and os.path.isdir(self)):
                 raise e from e
 
+    remove = os.remove
+
     def rmtree(self):
         shutil.rmtree(self)
 
