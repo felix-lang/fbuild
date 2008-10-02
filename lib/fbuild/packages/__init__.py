@@ -57,11 +57,11 @@ class Package:
         if isinstance(dependency, Package):
             return dependency.is_dirty()
         elif isinstance(dependency, Path):
-            return not dependency.exists() or timestamp < dependency.mtime
+            return not dependency.exists() or timestamp < dependency.getmtime()
         elif isinstance(dependency, str):
             path = Path(dependency)
             # assume it's a path
-            return not path.exists() or timestamp < path.mtime
+            return not path.exists() or timestamp < path.getmtime()
         else:
             raise ValueError('Bad argument: %r' % dependency)
 

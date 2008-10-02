@@ -142,9 +142,9 @@ class Path(str):
     def normpath(self):
         return Path(os.path.normpath(self))
 
-    ctime = property(os.path.getctime)
-    mtime = property(os.path.getmtime)
-    atime = property(os.path.getatime)
+    getctime = os.path.getctime
+    getmtime = os.path.getmtime
+    getatime = os.path.getatime
 
     exists  = os.path.exists
     isdir   = os.path.isdir
