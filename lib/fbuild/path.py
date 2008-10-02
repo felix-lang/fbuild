@@ -230,8 +230,15 @@ class Path(str):
         return cls(os.getcwd())
 
     @classmethod
-    def glob_all(cls, patterns):
-        return [path for pattern in patterns for path in cls(pattern).glob()]
+    def glob_all(cls, patterns, *args, **kwargs):
+        paths = []
+        for pattern in patterns:
+            if isinstance(pattern, str):
+                paths.extend(cls(pattern).glob(*args, **kwargs))
+            else:
+                paths.extend(cls.glob_all(pattern))
+
+        return paths
 
     @classmethod
     def replace_all_suffixes(cls, paths, suffixes):
