@@ -319,24 +319,25 @@ class Ocamlyacc:
             buildroot=buildroot):
         # first, copy the src file into the buildroot
         src_buildroot = src.replace_root(buildroot)
+        dsts = (
+            src_buildroot.replace_ext('.ml'),
+            src_buildroot.replace_ext('.mli'),
+        )
 
         if src != src_buildroot:
             src_buildroot.parent.make_dirs()
             src.copy(src_buildroot)
             src = src_buildroot
 
-        dst = src.replace_ext('.ml')
-
         cmd = [self.exe]
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, self.exe,
-            '%s -> %s' % (src, dst),
+        execute(cmd, self.exe, '%s -> %s' % (src, ' '.join(dsts)),
             color='yellow')
 
-        return (dst, dst + 'i')
+        return dsts
 
     def __str__(self):
         return self.exe
