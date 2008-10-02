@@ -35,13 +35,13 @@ class AbstractCompilerBuilder:
         self.src_suffix = src_suffix
 
     def compile(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def link_lib(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def link_exe(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     # -------------------------------------------------------------------------
 

@@ -19,13 +19,14 @@ class MissingHeader(ConfigFailed):
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
     def compile(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def link_lib(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def link_exe(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
+
 
     # -------------------------------------------------------------------------
 
