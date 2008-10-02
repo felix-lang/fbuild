@@ -75,10 +75,14 @@ def config_gcc(exe=None, default_exes=['gcc', 'cc']):
 
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
+            debug=None,
+            optimize=None,
             debug_flags=[],
             optimize_flags=[]):
         self.gcc = gcc
         self.flags = flags
+        self.debug = debug
+        self.optimize = optimize
         self.suffix = suffix
         self.debug_flags = debug_flags
         self.optimize_flags = optimize_flags
@@ -88,8 +92,8 @@ class Compiler:
             warnings=[],
             macros=[],
             flags=[],
-            debug=False,
-            optimize=False,
+            debug=None,
+            optimize=None,
             buildroot=buildroot,
             **kwargs):
         src = Path(src)
@@ -101,8 +105,11 @@ class Compiler:
 
         cmd_flags = []
 
-        if debug:    cmd_flags.extend(self.debug_flags)
-        if optimize: cmd_flags.extend(self.optimize_flags)
+        if debug is None and self.debug or debug:
+            cmd_flags.extend(self.debug_flags)
+
+        if optimize is None and self.optimize or optimize:
+            cmd_flags.extend(self.optimize_flags)
 
         includes = set(includes)
         includes.add(src.parent)
@@ -140,9 +147,11 @@ class Compiler:
                 self.debug_flags == other.debug_flags and \
                 self.optimize_flags == other.optimize_flags
 
-def make_compiler(gcc, flags=[],
+def make_compiler(gcc, flags=[], *,
         debug_flags=['-g'],
         optimize_flags=['-O2'],
+        debug=False,
+        optimize=False,
         **kwargs):
     if flags and not env.cache(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
@@ -154,6 +163,8 @@ def make_compiler(gcc, flags=[],
         optimize_flags = []
 
     return Compiler(gcc, flags,
+        debug=debug,
+        optimize=optimize,
         debug_flags=debug_flags,
         optimize_flags=optimize_flags,
         **kwargs)
