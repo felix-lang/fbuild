@@ -71,10 +71,16 @@ class Felix(AbstractCompilerBuilder):
         self.lib_suffix = lib_suffix
 
     def compile(self, src, *,
+            static=False,
             flags=[],
             buildroot=buildroot,
             **kwargs):
         src_buildroot = src.replace_root(buildroot)
+
+        if static:
+            dst = src_buildroot.replace_ext(self.exe_suffix)
+        else:
+            dst = src_buildroot.replace_ext(self.lib_suffix)
 
         if src != src_buildroot:
             src_buildroot.parent.make_dirs()
@@ -94,7 +100,7 @@ class Felix(AbstractCompilerBuilder):
         return dst
 
     def run(self, src, *args, **kwargs):
-        return self.flx(src, *args, **kwargs)
+        return self.flx(src.replace_ext(''), *args, **kwargs)
 
     def __eq__(self, other):
         return isinstance(other, Felix) and \
