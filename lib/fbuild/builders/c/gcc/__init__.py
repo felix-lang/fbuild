@@ -261,6 +261,35 @@ class Builder(c.Builder):
     def link_exe(self, *args, **kwargs):
         return self.exe_linker(*args, **kwargs)
 
+    def _build_link(self, function, dst, srcs, *,
+            includes=[],
+            macros=[],
+            libs=[],
+            cflags={},
+            lflags={}):
+        objs = self.build_objects(srcs,
+            includes=includes,
+            macros=macros,
+            **cflags)
+
+        return function(dst, objs, libs=libs, **lflags)
+
+    def build_lib(self, *args, **kwargs):
+        '''
+        Compile all of the passed in L{srcs} in parallel, then link them into a
+        library.
+        '''
+
+        return self._build_link(self.link_lib, *args, **kwargs)
+
+    def build_exe(self, *args, **kwargs):
+        '''
+        Compile all of the passed in L{srcs} in parallel, then link them into
+        an executable.
+        '''
+
+        return self._build_link(self.link_exe, *args, **kwargs)
+
     def __repr__(self):
         return '%s(compiler=%r, lib_linker=%r, exe_linker=%r)' % (
             self.__class__.__name__,

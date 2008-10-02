@@ -1,7 +1,10 @@
+from functools import partial
+
 import fbuild
 import fbuild.temp
 import fbuild.builders
 from fbuild import ConfigFailed, ExecutionError, execute, logger
+from fbuild.path import Path
 
 # -----------------------------------------------------------------------------
 
@@ -27,6 +30,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def link_exe(self, *args, **kwargs):
         raise NotImplementedError
 
+    # -------------------------------------------------------------------------
+
+    def build_objects(self, srcs, **kwargs):
+        'Compile all of the passed in L{srcs} in parallel.'
+
+        srcs = Path.glob_all(srcs)
+        return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 
     # -------------------------------------------------------------------------
 
