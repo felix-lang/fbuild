@@ -1,6 +1,8 @@
 import io
 import textwrap
+from functools import partial
 
+import fbuild
 from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
@@ -91,13 +93,14 @@ def config_ocamldep(exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
 # -----------------------------------------------------------------------------
 
 class Builder(AbstractCompilerBuilder):
-    def __init__(self, exe, *,
+    def __init__(self, ocamldep, exe, *,
             obj_suffix,
             lib_suffix,
             exe_suffix,
             debug_flags=['-g']):
         super().__init__(src_suffix='.ml')
 
+        self.ocamldep = ocamldep
         self.exe = exe
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
@@ -191,6 +194,44 @@ class Builder(AbstractCompilerBuilder):
     def link_exe(self, dst, *args, **kwargs):
         return self._link(dst + self.exe_suffix, *args, **kwargs)
 
+    # -------------------------------------------------------------------------
+
+    def build_objects(self, srcs, *, includes=[], **kwargs):
+        'Compile all the L{srcs} in parallel.'
+
+        srcs = Path.glob_all(srcs)
+        includes = set(includes)
+        for src in srcs:
+            if src.parent:
+                includes.add(src.parent)
+                includes.add(src.parent.replace_root(fbuild.buildroot))
+
+        return fbuild.scheduler.map_with_dependencies(
+            partial(self.ocamldep, includes=includes),
+            partial(self.compile, includes=includes, **kwargs),
+            srcs)
+
+    def _build_link(self, function, dst, srcs, *, includes=[], libs=[]):
+        includes = set(includes)
+        for lib in libs:
+            if isinstance(lib, Path):
+                includes.add(lib.parent)
+
+        objs = self.build_objects(srcs, includes=includes)
+        return function(dst, objs, includes=includes, libs=libs)
+
+    def build_lib(self, *args, **kwargs):
+        'Compile all the L{srcs} and link into a library.'
+
+        return self._build_link(self.link_lib, *args, **kwargs)
+
+    def build_exe(self, *args, **kwargs):
+        'Compile all the L{srcs} and link into an executable.'
+
+        return self._build_link(self.link_exe, *args, **kwargs)
+
+    # -------------------------------------------------------------------------
+
     def __str__(self):
         return self.exe
 
@@ -253,27 +294,28 @@ def check_builder(builder):
 
 # -----------------------------------------------------------------------------
 
-def make_builder(exe, default_exes, *args, **kwargs):
-    builder = Builder(exe or find_program(default_exes), *args, **kwargs)
+def make_builder(ocamldep, exe, default_exes, *args, **kwargs):
+    exe = exe or find_program(default_exes)
+    builder = Builder(ocamldep, exe, *args, **kwargs)
     check_builder(builder)
 
     return builder
 
-def config_bytecode(
+def config_bytecode(ocamldep,
         exe=None,
         default_exes=['ocamlc.opt', 'ocamlc'],
         **kwargs):
-    return make_builder(exe, default_exes,
+    return make_builder(ocamldep, exe, default_exes,
         obj_suffix='.cmo',
         lib_suffix='.cma',
         exe_suffix='',
         **kwargs)
 
-def config_native(
+def config_native(ocamldep,
         exe=None,
         default_exes=['ocamlopt.opt', 'ocamlopt'],
         **kwargs):
-    return make_builder(exe, default_exes,
+    return make_builder(ocamldep, exe, default_exes,
         obj_suffix='.cmx',
         lib_suffix='.cmxa',
         exe_suffix='',
@@ -388,10 +430,11 @@ def config(*,
         ocamlopt=None,
         ocamllex=None,
         ocamlyacc=None):
+    ocamldep = env.cache(config_ocamldep, ocamldep)
     return Record(
-        ocamldep=env.cache(config_ocamldep, ocamldep),
-        bytecode=env.cache(config_bytecode, ocamlc),
-        native=env.cache(config_native, ocamlopt),
+        ocamldep=ocamldep,
+        bytecode=env.cache(config_bytecode, ocamldep, ocamlc),
+        native=env.cache(config_native, ocamldep, ocamlopt),
         ocamllex=env.cache(config_ocamllex, ocamllex),
         ocamlyacc=env.cache(config_ocamlyacc, ocamlyacc),
     )
