@@ -14,35 +14,28 @@ class Environment:
     automatically memoize results.
     '''
 
-    __slots__ = ['_builder_state', '_runtime_state', '_package_state']
+    __slots__ = ['_builder_state', '_runtime_state']
 
     def __init__(self):
         self._builder_state = {}
         self._runtime_state = {}
-        self._package_state = {}
 
     def __getstate__(self):
-        from fbuild.packages import Package
-
-        # We don't want to cache exceptions and packages, as we want them
-        # recomputed on the next run.
+        # We don't want to cache most exceptions, as we want them recomputed
+        # on the next run.
         builder_state = {}
         for key, value in self._builder_state.items():
             value = [v for v in value
                 if isinstance(v[1], ConfigFailed)
-                or not isinstance(v[1], (Exception, Package))]
+                or not isinstance(v[1], Exception)]
             if value:
                 builder_state[key] = value
 
-        return dict(
-            _builder_state=builder_state,
-            _package_state=self._package_state,
-        )
+        return builder_state
 
     def __setstate__(self, state):
-        self._builder_state = state['_builder_state']
+        self._builder_state = state
         self._runtime_state = {}
-        self._package_state = state['_package_state']
 
     def _cache(self, cache, function, *args, **kwargs):
         function = import_function(function)
@@ -91,10 +84,6 @@ class Environment:
 
     def run(self, function, *args, **kwargs):
         return self._cache(self._runtime_state, function, *args, **kwargs)
-
-    def package_state(self, package):
-        key = '%s.%s' % (package.__module__, package.__class__.__name__)
-        return self._package_state.setdefault(key, Record())
 
 # -----------------------------------------------------------------------------
 
