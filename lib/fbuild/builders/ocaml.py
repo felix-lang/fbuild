@@ -23,28 +23,32 @@ class Ocamldep:
             flags=[],
             buildroot=buildroot):
         dst = (src + '.depends').replace_root(buildroot)
-        dst.parent.make_dirs()
 
-        cmd = [self.exe]
-        cmd.extend(self.module_flags)
+        # only run ocamldoc if the src file changes
+        if dst.is_dirty(src):
+            dst.parent.make_dirs()
 
-        includes = set(includes)
-        includes.add(src.parent)
-        includes.add(dst.parent)
+            cmd = [self.exe]
+            cmd.extend(self.module_flags)
 
-        for i in sorted(includes):
-            i = Path(i)
-            if i.exists():
-                cmd.extend(('-I', i))
+            includes = set(includes)
+            includes.add(src.parent)
+            includes.add(dst.parent)
 
-        cmd.extend(flags)
-        cmd.append(src)
+            for i in sorted(includes):
+                i = Path(i)
+                if i.exists():
+                    cmd.extend(('-I', i))
 
-        with open(dst, 'w') as f:
-            execute(cmd, self.exe, '%s -> %s' % (src, dst),
-                stdout=f,
-                color='yellow')
+            cmd.extend(flags)
+            cmd.append(src)
 
+            with open(dst, 'w') as f:
+                execute(cmd, self.exe, '%s -> %s' % (src, dst),
+                    stdout=f,
+                    color='yellow')
+
+        # now, parse the output to determine the dependencies
         suffixes = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
         d = {}
         with open(dst) as f:
@@ -57,6 +61,7 @@ class Ocamldep:
 
                 d[name] = Path.replace_all_suffixes(deps, suffixes)
 
+        # return each path that this src file depends on.
         paths = []
         for path in d.get(src, []):
             if path not in paths:
