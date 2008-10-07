@@ -292,15 +292,17 @@ class Builder(c.Builder):
     def _build_link(self, function, dst, srcs, *,
             includes=[],
             macros=[],
+            cflags=[],
+            ckwargs={},
             libs=[],
-            cflags={},
-            lflags={}):
+            lflags=[],
+            lkwargs={}):
         objs = self.build_objects(srcs,
             includes=includes,
             macros=macros,
-            **cflags)
+            flags=cflags)
 
-        return function(dst, objs, libs=libs, **lflags)
+        return function(dst, objs, libs=libs, flags=lflags, **lkwargs)
 
     def build_lib(self, *args, **kwargs):
         '''
