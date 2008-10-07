@@ -7,13 +7,18 @@ import operator
 
 class Scheduler:
     def __init__(self, count=0):
+        self.__count = max(1, count)
         self.__ready_queue = queue.Queue()
         self.__threads = []
 
-        for i in range(max(1, count)):
+        for i in range(self.__count):
             thread = WorkerThread(self.__ready_queue)
             self.__threads.append(thread)
             thread.start()
+
+    @property
+    def count(self):
+        return self.__count
 
     def map(self, function, srcs):
         '''

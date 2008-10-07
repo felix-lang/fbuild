@@ -2,6 +2,8 @@ import sys
 import threading
 import contextlib
 
+import fbuild
+
 # -----------------------------------------------------------------------------
 
 colorcodes = {
@@ -57,7 +59,7 @@ class Log:
                     self._write(msg, **kwargs)
 
     def write(self, msg, *, buffer=True, **kwargs):
-        if not buffer:
+        if not buffer or fbuild.scheduler.count == 1:
             with self._lock:
                 self._write(msg, **kwargs)
         else:

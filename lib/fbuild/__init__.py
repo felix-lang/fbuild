@@ -50,6 +50,16 @@ def execute(cmd,
         verbose=4,
         buffer=False)
 
+    if msg1:
+        if msg2:
+            logger.check(' * ' + str(msg1), str(msg2),
+                color=color,
+                verbose=quieter)
+        else:
+            logger.check(' * ' + str(msg1),
+                color=color,
+                verbose=quieter)
+
     starttime = time.time()
     try:
         p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
@@ -60,16 +70,6 @@ def execute(cmd,
         logger.log('command failed: ' + cmd_string, color='red')
         raise e from e
     endtime = time.time()
-
-    if msg1:
-        if msg2:
-            logger.check(' * ' + str(msg1), str(msg2),
-                color=color,
-                verbose=quieter)
-        else:
-            logger.check(' * ' + str(msg1),
-                color=color,
-                verbose=quieter)
 
     if returncode:
         logger.log(' + ' + cmd_string, verbose=quieter)
