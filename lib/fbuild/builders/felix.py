@@ -71,19 +71,28 @@ def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
 # -----------------------------------------------------------------------------
 
 class Felix(AbstractCompilerBuilder):
-    def __init__(self, flx, *, exe_suffix, lib_suffix):
+    def __init__(self, flx, *, exe_suffix, lib_suffix,
+            static=False,
+            includes=[],
+            flags=[]):
         super().__init__(src_suffix='.flx')
 
         self.flx = flx
         self.exe_suffix = exe_suffix
         self.lib_suffix = lib_suffix
+        self.static = static
+        self.includes = includes
+        self.flags = flags
 
     def compile(self, src, *,
-            static=False,
+            static=None,
+            includes=[],
             flags=[],
             buildroot=buildroot,
             **kwargs):
         src_buildroot = src.replace_root(buildroot)
+
+        static = static or self.static
 
         if static:
             dst = src_buildroot.replace_ext(self.exe_suffix)
@@ -98,11 +107,16 @@ class Felix(AbstractCompilerBuilder):
             src.copy(src_buildroot)
             src = src_buildroot
 
+        includes = set(includes)
+        includes.update(self.includes)
+
         cmd_flags = ['-c']
+        cmd_flags.extend(self.flags)
         cmd_flags.extend(flags)
 
         self.flx(src, self.flx, '%s -> %s' % (src, dst),
             static=static,
+            includes=includes,
             flags=cmd_flags,
             color='green',
             **kwargs)

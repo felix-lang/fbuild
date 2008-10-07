@@ -75,29 +75,38 @@ def config_gcc(exe=None, default_exes=['gcc', 'cc']):
 
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
+            includes=[],
+            macros=[],
+            warnings=[],
             debug=None,
             optimize=None,
             debug_flags=[],
             optimize_flags=[]):
         self.gcc = gcc
+        self.suffix = suffix
+        self.includes = includes
+        self.macros = macros
+        self.warnings = warnings
         self.flags = flags
         self.debug = debug
         self.optimize = optimize
-        self.suffix = suffix
         self.debug_flags = debug_flags
         self.optimize_flags = optimize_flags
 
     def __call__(self, src, dst=None, *,
+            suffix=None,
             includes=[],
-            warnings=[],
             macros=[],
+            warnings=[],
             flags=[],
             debug=None,
             optimize=None,
             buildroot=buildroot,
             **kwargs):
         src = Path(src)
-        dst = (dst or src).replace_root(buildroot).replace_ext(self.suffix)
+
+        suffix = suffix or self.suffix
+        dst = (dst or src).replace_root(buildroot).replace_ext(suffix)
 
         # exit early if not dirty
         if not dst.is_dirty(src):
@@ -114,12 +123,20 @@ class Compiler:
             cmd_flags.extend(self.optimize_flags)
 
         includes = set(includes)
+        includes.update(self.includes)
         includes.add(src.parent)
+
+        macros = set(macros)
+        macros.update(self.macros)
+
+        warnings = set(warnings)
+        warnings.update(self.warnings)
 
         # make sure that the path is converted into the native path format
         cmd_flags.extend('-I' + Path(i) for i in sorted(includes) if i)
-        cmd_flags.extend('-D' + d for d in macros)
-        cmd_flags.extend('-W' + w for w in warnings)
+        cmd_flags.extend('-D' + d for d in sorted(macros))
+        cmd_flags.extend('-W' + w for w in sorted(warnings))
+        cmd_flags.extend(self.flags)
         cmd_flags.extend(flags)
 
         self.gcc([src], dst, cmd_flags,
@@ -152,8 +169,6 @@ class Compiler:
 def make_compiler(gcc, flags=[], *,
         debug_flags=['-g'],
         optimize_flags=['-O2'],
-        debug=False,
-        optimize=False,
         **kwargs):
     if flags and not env.cache(gcc.check_flags, flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
@@ -165,8 +180,6 @@ def make_compiler(gcc, flags=[], *,
         optimize_flags = []
 
     return Compiler(gcc, flags,
-        debug=debug,
-        optimize=optimize,
         debug_flags=debug_flags,
         optimize_flags=optimize_flags,
         **kwargs)
@@ -174,13 +187,20 @@ def make_compiler(gcc, flags=[], *,
 # -----------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, gcc, flags=[], *, prefix, suffix):
+    def __init__(self, gcc, flags=[], *, prefix, suffix,
+            libpaths=[],
+            libs=[]):
         self.gcc = gcc
         self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
+        self.libpaths = libpaths
+        self.libs = libs
+        self.flags = flags
 
     def __call__(self, dst, srcs, *,
+            prefix=None,
+            suffix=None,
             libpaths=[],
             libs=[],
             flags=[],
@@ -188,10 +208,12 @@ class Linker:
             **kwargs):
         srcs = Path.glob_all(srcs)
 
-        assert srcs or libs
+        assert srcs or libs, 'no sources passed into gcc'
 
+        prefix = prefix or self.prefix
+        suffix = suffix or self.suffix
         dst = Path(dst).replace_root(buildroot)
-        dst = dst.parent / self.prefix + dst.name + self.suffix
+        dst = dst.parent / prefix + dst.name + suffix
 
         # exit early if not dirty
         if not dst.is_dirty(srcs):
@@ -199,11 +221,17 @@ class Linker:
 
         dst.parent.make_dirs()
 
+        libpaths = set(libpaths)
+        libpaths.update(self.libpaths)
+
         cmd_flags = []
-        cmd_flags.extend('-L' + p for p in libpaths)
+        cmd_flags.extend('-L' + p for p in sorted(libpaths) if p)
+
+        libs = set(libs)
+        libs.update(self.libs)
 
         extra_srcs = []
-        for lib in sorted(set(libs)):
+        for lib in sorted(libs):
             if Path(lib).exists():
                 extra_srcs.append(lib)
             else:

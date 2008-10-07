@@ -97,6 +97,10 @@ class Builder(AbstractCompilerBuilder):
             obj_suffix,
             lib_suffix,
             exe_suffix,
+            includes=[],
+            libs=[],
+            pre_flags=[],
+            flags=[],
             debug_flags=['-g']):
         super().__init__(src_suffix='.ml')
 
@@ -105,6 +109,10 @@ class Builder(AbstractCompilerBuilder):
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
         self.exe_suffix = exe_suffix
+        self.includes = includes
+        self.libs = libs
+        self.pre_flags = pre_flags
+        self.flags = flags
         self.debug_flags = debug_flags
 
     def _run(self, dst, srcs, *,
@@ -115,6 +123,8 @@ class Builder(AbstractCompilerBuilder):
             debug=False,
             buildroot=buildroot,
             **kwargs):
+        libs = self.libs + libs
+
         # we need to make sure libraries are built first before we compile
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
@@ -135,12 +145,14 @@ class Builder(AbstractCompilerBuilder):
                 extra_srcs.append(lib + self.lib_suffix)
 
         cmd = [self.exe]
+        cmd.extend(self.pre_flags)
         cmd.extend(pre_flags)
 
         if debug:
             cmd.extend(self.debug_flags)
 
         includes = set(includes)
+        includes.update(self.includes)
         includes.add(dst.parent)
 
         for i in sorted(includes):
@@ -148,6 +160,7 @@ class Builder(AbstractCompilerBuilder):
             if i.exists():
                 cmd.extend(('-I', i))
 
+        cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(('-o', dst))
         cmd.extend(extra_srcs)

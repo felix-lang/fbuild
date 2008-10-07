@@ -6,33 +6,42 @@ from fbuild.path import Path
 # -----------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, ar, ranlib, flags, *, prefix, suffix):
+    def __init__(self, ar, ranlib, flags=[], *, prefix, suffix,
+            libs=[],
+            ranlib_flags=[]):
         self.ar = ar
         self.ranlib = ranlib
-        self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
+        self.libs = libs
+        self.flags = flags
+        self.ranlib_flags = ranlib_flags
 
     def __call__(self, dst, srcs, *,
             libs=[],
             flags=[],
             ranlib_flags=[],
-            destdir=None,
+            prefix=None,
+            suffix=None,
             buildroot=fbuild.buildroot,
             **kwargs):
-        dst = Path(dst)
-        dst = buildroot / dst.parent / self.prefix + dst.name + self.suffix
-        srcs = Path.glob_all(srcs)
+        libs = set(libs)
+        libs.update(self.libs)
+        libs = sorted(libs)
 
-        assert srcs, 'no sources passed into ar'
+        assert srcs or libs, 'no sources passed into ar'
+
+        prefix = prefix or self.prefix
+        suffix = suffix or self.suffix
+        dst = Path(dst).replace_root(buildroot)
+        dst = dst.parent / prefix + dst.name + suffix
+        srcs = Path.glob_all(srcs)
 
         # exit early if not dirty
         if not dst.is_dirty(srcs, libs):
             return dst
 
-        if destdir is not None:
-            destdir.make_dirs()
-            dst = destdir / dst
+        dst.parent.make_dirs()
 
         cmd = [self.ar]
         cmd.extend(self.flags)
@@ -43,12 +52,13 @@ class Linker:
 
         execute(cmd,
             msg1=self.ar,
-            msg2='%s -> %s' % (' '.join(srcs), dst),
+            msg2='%s -> %s' % (' '.join(srcs + libs), dst),
             color='cyan',
             **kwargs)
 
         if self.ranlib is not None:
             cmd = [self.ranlib]
+            cmd.extend(self.ranlib_flags)
             cmd.extend(ranlib_flags)
             cmd.append(dst)
 
@@ -85,7 +95,7 @@ class Linker:
 def config(ar=None, ranlib=None, *,
         prefix='lib',
         suffix='.a',
-        link_flags=['-rc'],
+        flags=['-rc'],
         **kwargs):
     ar = ar or fbuild.builders.find_program(['ar'])
 
@@ -94,7 +104,7 @@ def config(ar=None, ranlib=None, *,
 
     ranlib = ranlib or fbuild.builders.find_program(['ranlib'])
 
-    return Linker(ar, ranlib, link_flags,
+    return Linker(ar, ranlib, flags,
         prefix=prefix,
         suffix=suffix,
         **kwargs)
