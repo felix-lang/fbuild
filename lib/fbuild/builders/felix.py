@@ -12,8 +12,16 @@ class Flx:
         self.exe = Path(self.exe)
         self.flags.extend(flags)
 
-    def __call__(self, src, *args, includes=[], flags=[], cwd=None, **kwargs):
+    def __call__(self, src, *args,
+            static=False,
+            includes=[],
+            flags=[],
+            cwd=None,
+            **kwargs):
         cmd = [self.exe]
+
+        if static:
+            cmd.append('--static')
 
         cmd.append('--output_dir=' + src.parent)
         cmd.extend('-I' + i for i in sorted(includes) if Path(i).exists())
@@ -90,10 +98,11 @@ class Felix(AbstractCompilerBuilder):
             src.copy(src_buildroot)
             src = src_buildroot
 
-        cmd_flags = ['-c', '--force']
+        cmd_flags = ['-c']
         cmd_flags.extend(flags)
 
         self.flx(src, self.flx, '%s -> %s' % (src, dst),
+            static=static,
             flags=cmd_flags,
             color='green',
             **kwargs)
@@ -101,7 +110,8 @@ class Felix(AbstractCompilerBuilder):
         return dst
 
     def run(self, src, *args, **kwargs):
-        return self.flx(src.replace_ext(''), *args, **kwargs)
+        src = src.replace_suffixes({self.exe_suffix: '', self.lib_suffix: ''})
+        return self.flx(src, *args, **kwargs)
 
     def __eq__(self, other):
         return isinstance(other, Felix) and \
