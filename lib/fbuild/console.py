@@ -97,7 +97,7 @@ class Log:
 
         d = len(msg)
         if d >= self.maxlen:
-            self.maxlen = d + 1
+            self.maxlen = min(d + 1, 40)
 
         msg = msg.ljust(self.maxlen) + ': '
 
