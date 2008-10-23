@@ -1,6 +1,7 @@
 import sys
 import threading
 import contextlib
+import collections
 
 import fbuild
 
@@ -31,6 +32,11 @@ def color_str(s, color):
 
 # -----------------------------------------------------------------------------
 
+class _ThreadStack(threading.local, collections.UserList):
+    pass
+
+# -----------------------------------------------------------------------------
+
 class Log:
     def __init__(self, filename='fbuild.log', *,
             verbose=0,
@@ -43,17 +49,16 @@ class Log:
 
         self.maxlen = 25
         self._lock = threading.RLock()
-        self._thread_stacks = {}
+        self._thread_stack = _ThreadStack()
 
     @contextlib.contextmanager
     def log_from_thread(self):
-        stack = self._thread_stacks.setdefault(threading.current_thread(), [])
-        stack.append([])
+        self._thread_stack.append([])
 
         try:
             yield
         finally:
-            msgs = stack.pop()
+            msgs = self._thread_stack.pop()
             with self._lock:
                 for msg, kwargs in msgs:
                     self._write(msg, **kwargs)
@@ -63,11 +68,8 @@ class Log:
             with self._lock:
                 self._write(msg, **kwargs)
         else:
-            stack = self._thread_stacks.setdefault(
-                threading.current_thread(), [])
-
-            if buffer and stack:
-                stack[-1].append((msg, kwargs))
+            if buffer and self._thread_stack:
+                self._thread_stack[-1].append((msg, kwargs))
             else:
                 self._write(msg, **kwargs)
 
