@@ -1,4 +1,4 @@
-from fbuild import ExecutionError, buildroot, env, execute, logger
+from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
 from fbuild.builders import AbstractCompilerBuilder, find_program

@@ -1,4 +1,4 @@
-from fbuild import env
+from fbuild import ConfigFailed, env
 from fbuild.builders import find_program
 from fbuild.builders.c import MissingHeader, gcc
 from fbuild.record import Record

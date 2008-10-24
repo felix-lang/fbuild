@@ -1,6 +1,7 @@
 import fbuild.builders.c.std as c_std
-from fbuild import env
+from fbuild import ConfigFailed, env
 from fbuild.record import Record
+from fbuild.builders.c import MissingHeader
 
 # -----------------------------------------------------------------------------
 
@@ -19,6 +20,8 @@ def config_types(builder):
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc)
+
+# -----------------------------------------------------------------------------
 
 def config_compiler_bugs(builder):
     """
