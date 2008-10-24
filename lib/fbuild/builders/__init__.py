@@ -1,6 +1,7 @@
+import fbuild
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.temp import tempfile
-from fbuild.path import find_in_paths, import_function
+from fbuild.path import Path, find_in_paths, import_function
 
 # -----------------------------------------------------------------------------
 
@@ -108,3 +109,29 @@ class AbstractCompilerBuilder:
         else:
             logger.failed('no')
             return False
+
+# -----------------------------------------------------------------------------
+
+def substitute(src, dst, patterns, *, buildroot=None):
+    '''
+    L{substitute} replaces the patterns in the src and saves the changes into
+    dst.
+    '''
+
+    buildroot = buildroot or fbuild.buildroot
+    src = Path(src)
+    dst = Path.replace_root(dst or src, buildroot)
+
+    dst.parent.make_dirs()
+
+    with open(src, 'r') as f:
+        old_code = code = f.read()
+
+    for key, value in patterns.items():
+        code = code.replace(key, value)
+
+    # write out only if the file has been modified
+    if code != old_code:
+        fbuild.logger.log(' * creating ' + dst, color='cyan')
+        with open(dst, 'w') as f:
+            f.write(code)
