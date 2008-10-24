@@ -115,6 +115,14 @@ class Builder(AbstractCompilerBuilder):
         self.flags = flags
         self.debug_flags = debug_flags
 
+    # -------------------------------------------------------------------------
+
+    def where(self):
+        stdout, stderr = execute([self.exe, '-where'], quieter=1)
+        return Path(stdout.decode().strip())
+
+    # -------------------------------------------------------------------------
+
     def _run(self, dst, srcs, *,
             includes=[],
             libs=[],
