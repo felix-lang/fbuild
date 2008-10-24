@@ -129,6 +129,8 @@ class Builder(AbstractCompilerBuilder):
             pre_flags=[],
             flags=[],
             debug=False,
+            custom=False,
+            c_libs=[],
             buildroot=buildroot,
             **kwargs):
         libs = self.libs + libs
@@ -167,6 +169,15 @@ class Builder(AbstractCompilerBuilder):
             i = Path(i)
             if i.exists():
                 cmd.extend(('-I', i))
+
+        if custom:
+            cmd.append('-custom')
+
+        for lib in c_libs:
+            if Path.exists(lib):
+                cmd.extend(('-cclib', lib))
+            else:
+                cmd.extend(('-cclib', '-l' + lib))
 
         cmd.extend(self.flags)
         cmd.extend(flags)
@@ -232,14 +243,32 @@ class Builder(AbstractCompilerBuilder):
             partial(self.compile, includes=includes, **kwargs),
             srcs)
 
-    def _build_link(self, function, dst, srcs, *, includes=[], libs=[]):
+    def _build_link(self, function, dst, srcs, *,
+            includes=[],
+            cflags=[],
+            ckwargs={},
+            libs=[],
+            custom=False,
+            c_libs=[],
+            lflags=[],
+            lkwargs={}):
         includes = set(includes)
         for lib in libs:
             if isinstance(lib, Path):
                 includes.add(lib.parent)
 
-        objs = self.build_objects(srcs, includes=includes)
-        return function(dst, objs, includes=includes, libs=libs)
+        objs = self.build_objects(srcs,
+            includes=includes,
+            flags=cflags,
+            **ckwargs)
+
+        return function(dst, objs,
+            includes=includes,
+            libs=libs,
+            custom=custom,
+            c_libs=c_libs,
+            flags=lflags,
+            **lkwargs)
 
     def build_lib(self, *args, **kwargs):
         'Compile all the L{srcs} and link into a library.'
