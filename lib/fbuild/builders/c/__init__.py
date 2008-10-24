@@ -40,24 +40,17 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
-    def check_header_exists(self, header, **kwargs):
-        logger.check('checking if header %r exists' % header)
-        if self.try_compile('#include <%s>' % header, **kwargs):
-            logger.passed('yes')
-            return True
-        else:
-            logger.failed('no')
-            return False
-
-    def check_macro_exists(self, macro, *, headers=[], **kwargs):
+    def check_statement(self, name, statement, *,
+            msg=None, headers=[], **kwargs):
         code = '''
-            %s
-            #ifndef %s
-            #error %s
-            #endif
-        ''' % ('\n'.join('#include <%s>' % h for h in headers), macro, macro)
+            %s;
+            int main() {
+                %s
+                return 0;
+            }
+        ''' % ('\n'.join('#include <%s>' % h for h in headers), statement)
 
-        logger.check('checking if macro %r exists' % macro)
+        logger.check(msg or 'checking %r' % name)
         if self.try_compile(code, **kwargs):
             logger.passed('yes')
             return True
@@ -65,15 +58,50 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             logger.failed('no')
             return False
 
-    def check_type_exists(self, typename, **kwargs):
-        logger.check('checking if type %r exists' % typename)
-        if self.try_compile('%s x;' % typename, **kwargs):
-            logger.passed('yes')
-            return True
-        else:
-            logger.failed('no')
-            return False
+    def check_statements(self, *items, msg='checking %r', **kwargs):
+        results = set()
+        for name, statement in items:
+            if self.check_statement(name, statement, msg=msg % name, **kwargs):
+                results.add(name)
 
+        return results
+
+    # -------------------------------------------------------------------------
+
+    def check_header_exists(self, header, **kwargs):
+        return self.check_statement(header, '',
+            msg='checking if header %r exists' % header,
+            headers=[header],
+            **kwargs)
+
+    def check_functions_exist(self, *args, **kwargs):
+        return self.check_statements(*args,
+            msg='checking if function %r exists', **kwargs)
+
+    def check_macros_exist(self, *macros, **kwargs):
+        code = '''
+            #ifndef %s
+            #error %s
+            #endif
+        '''
+
+        return self.check_statements(
+            *((m, code % (m, m)) for m in macros),
+            msg='checking if macros %r exists', **kwargs)
+
+    def check_types_exist(self, *types, **kwargs):
+        items = []
+        for name in types:
+            try:
+                name, statement = name
+            except ValueError:
+                name, statement = name, '%s t;' % name
+            items.append((name, statement))
+
+        return self.check_statements(*items,
+            msg='checking if type %r exists', **kwargs)
+
+# -----------------------------------------------------------------------------
 
 def make_builder(Compiler, LibLinker, ExeLinker,
         src_suffix, obj_suffix,

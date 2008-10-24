@@ -75,7 +75,7 @@ def config_sys_mman_h(builder):
             'MAP_ANON', 'MAP_FILE', 'MAP_FIXED', 'MAP_HASSEMAPHORE',
             'MAP_SHARED', 'MAP_PRIVATE', 'MAP_NORESERVE', 'MAP_LOCKED',
             'MAP_GROWSDOWN', 'MAP_32BIT', 'MAP_POPULATE', 'MAP_NONBLOCK'):
-        mman_h.macros[macro] = builder.check_macro_exists(macro,
+        mman_h.macros[macro] = builder.check_macros_exist(macro,
             headers=['sys/mman.h'])
 
     return mman_h
