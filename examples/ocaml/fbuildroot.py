@@ -1,7 +1,7 @@
 import fbuild
 
 def build():
-    ocaml = fbuild.env.cache('fbuild.builders.ocaml.config')
+    ocaml = fbuild.env.cache('fbuild.builders.ocaml.config_ocaml')
 
     lib = ocaml.bytecode.build_lib('lib', ['lib*.ml{,i}'])
     exe = ocaml.bytecode.build_exe('exe.byte', ['exe.ml'], libs=[lib])

@@ -1,6 +1,7 @@
 import io
 import textwrap
 from functools import partial
+import collections
 
 import fbuild
 from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
@@ -475,17 +476,76 @@ def config_ocamlyacc(
 
 # -----------------------------------------------------------------------------
 
-def config(*,
-        ocamldep=None,
-        ocamlc=None,
-        ocamlopt=None,
-        ocamllex=None,
-        ocamlyacc=None):
+class BothBuilders(AbstractCompilerBuilder):
+    Tuple = collections.namedtuple('Tuple', 'bytecode native')
+
+    def __init__(self, ocamldep, bytecode, native):
+        self.ocamldep = ocamldep
+        self.bytecode = bytecode
+        self.native = native
+
+    def compile_implementation(self, *args, **kwargs):
+        bobj = self.bytecode.compile_implementation(*args, **kwargs)
+        nobj = self.native.compile_implementation(*args, **kwargs)
+
+        return self.Tuple(bobj, nobj)
+
+    def compile_interface(self, *args, **kwargs):
+        return self.bytecode.compile_interface(*args, **kwargs)
+
+    def compile(self, *args, **kwargs):
+        bobj = self.bytecode.compile(*args, **kwargs)
+        nobj = self.native.compile(*args, **kwargs)
+
+        return self.Tuple(bobj, nobj)
+
+    def _link(self, blink, nlink, dst, srcs, *args,
+            libs=[],
+            custom=False,
+            **kwargs):
+        # the first item is the bytecode object, the second the native one
+        bsrcs = [(src[0] if isinstance(src, self.Tuple) else src) for src in srcs]
+        nsrcs = [(src[1] if isinstance(src, self.Tuple) else src) for src in srcs]
+
+        # the first item is the bytecode lib, the second the native one
+        blibs = [(lib[0] if isinstance(lib, self.Tuple) else lib) for lib in libs]
+        nlibs = [(lib[1] if isinstance(lib, self.Tuple) else lib) for lib in libs]
+
+        blib = blink(dst, bsrcs, *args, libs=libs, custom=custom, **kwargs)
+        nlib = nlink(dst, nsrcs, *args, libs=libs, **kwargs)
+
+        return self.Tuple(blib, nlib)
+
+    def link_lib(self, *args, **kwargs):
+        return self._link(self.bytecode.link_lib, self.native.link_lib)
+
+    def link_exe(self, *args, **kwargs):
+        return self._link(self.bytecode.link_exe, self.native.link_exe)
+
+    def build_lib(self, *args, **kwargs):
+        return self._link(
+            self.bytecode.build_lib,
+            self.native.build_lib, *args, **kwargs)
+
+    def build_exe(self, *args, **kwargs):
+        return self._link(
+            self.bytecode.build_exe,
+            self.native.build_exe, *args, **kwargs)
+
+# -----------------------------------------------------------------------------
+
+def config_ocaml(*, ocamldep=None, ocamlc=None, ocamlopt=None):
     ocamldep = env.cache(config_ocamldep, ocamldep)
+
+    return BothBuilders(
+        ocamldep,
+        env.cache(config_bytecode, ocamldep, ocamlc),
+        env.cache(config_native, ocamldep, ocamlopt),
+    )
+
+def config(*, ocamllex=None, ocamlyacc=None, **kwargs):
     return Record(
-        ocamldep=ocamldep,
-        bytecode=env.cache(config_bytecode, ocamldep, ocamlc),
-        native=env.cache(config_native, ocamldep, ocamlopt),
+        ocaml=env.cache(config_ocaml, **kwargs),
         ocamllex=env.cache(config_ocamllex, ocamllex),
         ocamlyacc=env.cache(config_ocamlyacc, ocamlyacc),
     )
