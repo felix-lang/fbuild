@@ -119,7 +119,7 @@ def check_builder(builder):
     else:
         raise ConfigFailed('exe linker failed')
 
-    logger.check('Checking if can link lib to exe')
+    logger.check('checking if can link lib to exe')
     with fbuild.temp.tempdir() as dirname:
         src_lib = dirname / 'templib' + builder.src_suffix
         with open(src_lib, 'w') as f:

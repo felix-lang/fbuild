@@ -317,7 +317,7 @@ def check_builder(builder):
     else:
         raise ConfigFailed('ocaml exe linker failed')
 
-    logger.check('Checking if ocaml can link lib to exe')
+    logger.check('checking if ocaml can link lib to exe')
     with tempdir() as parent:
         src_lib = parent / 'lib.ml'
         with open(src_lib, 'w') as f:
