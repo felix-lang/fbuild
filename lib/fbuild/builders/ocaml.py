@@ -467,10 +467,11 @@ class Ocamlyacc:
 
 def config_ocamlyacc(
         exe=None,
-        default_exes=['ocamlyacc.opt', 'ocamlyacc']):
+        default_exes=['ocamlyacc.opt', 'ocamlyacc'],
+        **kwargs):
     exe = exe or find_program(default_exes)
 
-    return Ocamlyacc(exe)
+    return Ocamlyacc(exe, **kwargs)
 
 # -----------------------------------------------------------------------------
 
