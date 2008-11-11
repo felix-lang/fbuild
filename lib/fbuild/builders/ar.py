@@ -7,12 +7,14 @@ from fbuild.path import Path
 
 class Linker:
     def __init__(self, ar, ranlib, flags=[], *, prefix, suffix,
+            libpaths=[],
             libs=[],
             ranlib_flags=[]):
         self.ar = ar
         self.ranlib = ranlib
         self.prefix = prefix
         self.suffix = suffix
+        self.libpaths = libpaths,
         self.libs = libs
         self.flags = flags
         self.ranlib_flags = ranlib_flags
