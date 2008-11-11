@@ -127,7 +127,7 @@ def config_pthread_h(builder):
 
     logger.check('detecting pthread link flags')
     for flags in [], ['-lpthread'], ['-pthread'], ['-pthreads']:
-        if builder.try_run(code, lflags={'flags': flags}):
+        if builder.try_run(code, lkwargs={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
             pthread_h.flags = flags
             break

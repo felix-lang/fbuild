@@ -55,33 +55,33 @@ class AbstractCompilerBuilder:
             else:
                 return True
 
-    def try_link_lib(self, code='', *, quieter=1, cflags={}, lflags={}):
+    def try_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
         with tempfile(code, self.src_suffix) as src:
             dst = src.parent / 'temp'
             try:
-                obj = self.compile(src, quieter=quieter, **cflags)
-                self.link_lib(dst, [obj], quieter=quieter, **lflags)
+                obj = self.compile(src, quieter=quieter, **ckwargs)
+                self.link_lib(dst, [obj], quieter=quieter, **lkwargs)
             except ExecutionError:
                 return False
             else:
                 return True
 
-    def try_link_exe(self, code='', *, quieter=1, cflags={}, lflags={}):
+    def try_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
         with tempfile(code, self.src_suffix) as src:
             dst = src.parent / 'temp'
             try:
-                obj = self.compile(src, quieter=quieter, **cflags)
-                self.link_exe(dst, [obj], quieter=quieter, **lflags)
+                obj = self.compile(src, quieter=quieter, **ckwargs)
+                self.link_exe(dst, [obj], quieter=quieter, **lkwargs)
             except ExecutionError:
                 return False
             else:
                 return True
 
-    def tempfile_run(self, code='', *, quieter=1, cflags={}, lflags={}):
+    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
         with tempfile(code, self.src_suffix) as src:
             dst = src.parent / 'temp'
-            obj = self.compile(src, quieter=quieter, **cflags)
-            exe = self.link_exe(dst, [obj], quieter=quieter, **lflags)
+            obj = self.compile(src, quieter=quieter, **ckwargs)
+            exe = self.link_exe(dst, [obj], quieter=quieter, **lkwargs)
             return execute([exe], quieter=quieter)
 
     def try_run(self, code='', quieter=1, **kwargs):

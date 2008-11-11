@@ -49,9 +49,9 @@ def get_type_data(builder, typename, *args,
     ''' % ('\n'.join('#include <%s>' % h for h in headers), typename)
 
     if int_type:
-        cflags = dict(kwargs.get('cflags', {}))
-        cflags['macros'] = cflags.get('macros', []) + ['INTTYPE=1']
-        kwargs['cflags'] = cflags
+        ckwargs = dict(kwargs.get('ckwargs', {}))
+        ckwargs['macros'] = ckwargs.get('macros', []) + ['INTTYPE=1']
+        kwargs['ckwargs'] = ckwargs
 
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0].split()

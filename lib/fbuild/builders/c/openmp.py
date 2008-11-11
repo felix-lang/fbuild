@@ -34,7 +34,7 @@ def config_omp_h(builder):
 
     logger.check('checking if supports omp_get_thread_num')
     for flags in [], ['-openmp'], ['-fopenmp'], ['/openmp']:
-        if builder.try_run(code, lflags={'flags': flags}):
+        if builder.try_run(code, lkwargs={'flags': flags}):
             logger.passed('ok %r' % ' '.join(flags))
 
             return Record(flags=flags)
