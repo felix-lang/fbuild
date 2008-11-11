@@ -101,6 +101,24 @@ class AbstractCompilerBuilder:
             logger.failed('no')
             return False
 
+    def check_link_lib(self, code, msg, *args, **kwargs):
+        logger.check(msg)
+        if self.try_link_lib(code, *args, **kwargs):
+            logger.passed('yes')
+            return True
+        else:
+            logger.failed('no')
+            return False
+
+    def check_link_exe(self, code, msg, *args, **kwargs):
+        logger.check(msg)
+        if self.try_link_exe(code, *args, **kwargs):
+            logger.passed('yes')
+            return True
+        else:
+            logger.failed('no')
+            return False
+
     def check_run(self, code, msg, *args, **kwargs):
         logger.check(msg)
         if self.try_run(code, *args, **kwargs):
