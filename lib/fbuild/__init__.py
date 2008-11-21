@@ -41,6 +41,7 @@ def execute(cmd,
         stdin=None,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        timeout=None,
         **kwargs):
     if isinstance(cmd, str):
         cmd_string = cmd
@@ -69,12 +70,20 @@ def execute(cmd,
             stdout=stdout,
             stderr=stderr,
             **kwargs)
+
+        if timeout:
+            timer = threading.Timer(timeout, p.kill)
+            timer.start()
+
         stdout, stderr = p.communicate(input)
         returncode = p.wait()
     except OSError as e:
         # flush the logger
         logger.log('command failed: ' + cmd_string, color='red')
         raise e from e
+    finally:
+        if timeout:
+            timer.cancel()
     endtime = time.time()
 
     if returncode:
