@@ -77,12 +77,13 @@ class AbstractCompilerBuilder:
             else:
                 return True
 
-    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={},
+            **kwargs):
         with tempfile(code, self.src_suffix) as src:
             dst = src.parent / 'temp'
             obj = self.compile(src, quieter=quieter, **ckwargs)
             exe = self.link_exe(dst, [obj], quieter=quieter, **lkwargs)
-            return execute([exe], quieter=quieter)
+            return execute([exe], quieter=quieter, **kwargs)
 
     def try_run(self, code='', quieter=1, **kwargs):
         try:
