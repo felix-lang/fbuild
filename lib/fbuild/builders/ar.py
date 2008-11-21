@@ -6,32 +6,33 @@ from fbuild.path import Path
 # -----------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, ar, ranlib, flags=[], *, prefix, suffix,
-            libpaths=[],
-            libs=[],
-            ranlib_flags=[]):
+    def __init__(self, ar, ranlib, flags=(), *, prefix, suffix,
+            libpaths=(),
+            libs=(),
+            ranlib_flags=()):
         self.ar = ar
         self.ranlib = ranlib
         self.prefix = prefix
         self.suffix = suffix
-        self.libpaths = libpaths,
-        self.libs = libs
-        self.flags = flags
-        self.ranlib_flags = ranlib_flags
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.flags = tuple(flags)
+        self.ranlib_flags = tuple(ranlib_flags)
 
     def __call__(self, dst, srcs, *,
-            libs=[],
-            flags=[],
-            ranlib_flags=[],
+            libs=(),
+            flags=(),
+            ranlib_flags=(),
             prefix=None,
             suffix=None,
             buildroot=fbuild.buildroot,
             **kwargs):
-        libs = set(libs)
-        libs.update(self.libs)
-        libs = sorted(libs)
+        #libs = set(libs)
+        #libs.update(self.libs)
+        #libs = sorted(libs)
 
-        assert srcs or libs, 'no sources passed into ar'
+        #assert srcs or libs, 'no sources passed into ar'
+        assert srcs, 'no sources passed into ar'
 
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
@@ -50,11 +51,11 @@ class Linker:
         cmd.extend(flags)
         cmd.append(dst)
         cmd.extend(srcs)
-        cmd.extend(libs)
+        #cmd.extend(libs)
 
         execute(cmd,
             msg1=self.ar,
-            msg2='%s -> %s' % (' '.join(srcs + libs), dst),
+            msg2='%s -> %s' % (' '.join(srcs), dst),
             color='cyan',
             **kwargs)
 
@@ -91,6 +92,18 @@ class Linker:
             self.flags == other.flags and \
             self.prefix == other.prefix and \
             self.suffix == other.suffix
+
+    def __hash__(self):
+        return hash((
+            self.ar,
+            self.ranlib,
+            self.prefix,
+            self.suffix,
+            self.libpaths,
+            self.libs,
+            self.flags,
+            self.ranlib_flags,
+        ))
 
 # -----------------------------------------------------------------------------
 

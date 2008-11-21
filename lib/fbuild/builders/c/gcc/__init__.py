@@ -1,3 +1,5 @@
+from itertools import chain
+
 import fbuild
 from fbuild import ConfigFailed, ExecutionError, env, execute, logger
 from fbuild.path import Path
@@ -8,12 +10,12 @@ from fbuild.builders import MissingProgram, find_program, c
 # -----------------------------------------------------------------------------
 
 class Gcc:
-    def __init__(self, exe, flags=[]):
+    def __init__(self, exe, flags=()):
         # we split exe in case extra arguments were specified in the name
         self.exe, *self.flags = str.split(exe)
-        self.flags.extend(flags)
+        self.flags = tuple(chain(self.flags, flags))
 
-    def __call__(self, srcs, dst=None, flags=[], *, pre_flags=[], **kwargs):
+    def __call__(self, srcs, dst=None, flags=(), *, pre_flags=(), **kwargs):
         cmd = [self.exe]
         cmd.extend(pre_flags)
 
@@ -29,7 +31,7 @@ class Gcc:
 
         return execute(cmd, str(self), msg2, **kwargs)
 
-    def check_flags(self, flags=[]):
+    def check_flags(self, flags=()):
         if flags:
             logger.check('checking %s with %s' % (self, ' '.join(flags)))
         else:
@@ -48,7 +50,7 @@ class Gcc:
         return True
 
     def __str__(self):
-        return ' '.join([self.exe] + self.flags)
+        return ' '.join((self.exe,) + self.flags)
 
     def __repr__(self):
         return '%s(%r%s)' % (
@@ -59,6 +61,9 @@ class Gcc:
     def __eq__(self, other):
         return isinstance(other, Gcc) and self.exe == other.exe
 
+    def __hash__(self):
+        return hash((self.exe, self.flags))
+
 def config_gcc(exe=None, default_exes=['gcc', 'cc']):
     exe = exe or find_program(default_exes)
 
@@ -67,7 +72,7 @@ def config_gcc(exe=None, default_exes=['gcc', 'cc']):
 
     gcc = Gcc(exe)
 
-    if not gcc.check_flags([]):
+    if not gcc.check_flags(()):
         raise ConfigFailed('gcc failed to compile an exe')
 
     return gcc
@@ -76,30 +81,30 @@ def config_gcc(exe=None, default_exes=['gcc', 'cc']):
 
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
-            includes=[],
-            macros=[],
-            warnings=[],
+            includes=(),
+            macros=(),
+            warnings=(),
             debug=None,
             optimize=None,
-            debug_flags=[],
-            optimize_flags=[]):
+            debug_flags=(),
+            optimize_flags=()):
         self.gcc = gcc
         self.suffix = suffix
-        self.includes = includes
-        self.macros = macros
-        self.warnings = warnings
-        self.flags = flags
+        self.includes = tuple(includes)
+        self.macros = tuple(macros)
+        self.warnings = tuple(warnings)
+        self.flags = tuple(flags)
         self.debug = debug
         self.optimize = optimize
-        self.debug_flags = debug_flags
-        self.optimize_flags = optimize_flags
+        self.debug_flags = tuple(debug_flags)
+        self.optimize_flags = tuple(optimize_flags)
 
     def __call__(self, src, dst=None, *,
             suffix=None,
-            includes=[],
-            macros=[],
-            warnings=[],
-            flags=[],
+            includes=(),
+            macros=(),
+            warnings=(),
+            flags=(),
             debug=None,
             optimize=None,
             buildroot=None,
@@ -163,23 +168,41 @@ class Compiler:
     def __eq__(self, other):
         return isinstance(other, Compiler) and \
                 self.gcc == other.gcc and \
-                self.flags == other.flags and \
                 self.suffix == other.suffix and \
+                self.macros == other.macros and \
+                self.warnings == other.warnings and \
+                self.flags == other.flags and \
+                self.debug == other.debug and \
+                self.optimize == other.optimize and \
                 self.debug_flags == other.debug_flags and \
                 self.optimize_flags == other.optimize_flags
 
-def make_compiler(gcc, flags=[], *,
+    def __hash__(self):
+        return hash((
+            self.gcc,
+            self.flags,
+            self.suffix,
+            self.macros,
+            self.warnings,
+            self.flags,
+            self.debug,
+            self.optimize,
+            self.debug_flags,
+            self.optimize_flags,
+        ))
+
+def make_compiler(gcc, flags=(), *,
         debug_flags=['-g'],
         optimize_flags=['-O2'],
         **kwargs):
-    if flags and not env.cache(gcc.check_flags, flags):
+    if flags and not gcc.check_flags(flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
 
-    if not env.cache(gcc.check_flags, debug_flags):
-        debug_flags = []
+    if not gcc.check_flags(debug_flags):
+        debug_flags = ()
 
-    if not env.cache(gcc.check_flags, optimize_flags):
-        optimize_flags = []
+    if not gcc.check_flags(optimize_flags):
+        optimize_flags = ()
 
     return Compiler(gcc, flags,
         debug_flags=debug_flags,
@@ -189,24 +212,24 @@ def make_compiler(gcc, flags=[], *,
 # -----------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, gcc, flags=[], *, prefix, suffix,
-            libpaths=[],
-            libs=[]):
+    def __init__(self, gcc, flags=(), *, prefix, suffix,
+            libpaths=(),
+            libs=()):
         self.gcc = gcc
-        self.flags = flags
+        self.flags = tuple(flags)
         self.prefix = prefix
         self.suffix = suffix
-        self.libpaths = libpaths
-        self.libs = libs
-        self.flags = flags
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.flags = tuple(flags)
 
     def __call__(self, dst, srcs, *,
             prefix=None,
             suffix=None,
+            libpaths=(),
+            libs=(),
+            flags=(),
             buildroot=None,
-            libpaths=[],
-            libs=[],
-            flags=[],
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
         srcs = Path.glob_all(srcs)
@@ -262,10 +285,24 @@ class Linker:
                 self.gcc == other.gcc and \
                 self.flags == other.flags and \
                 self.prefix == other.prefix and \
-                self.suffix == other.suffix
+                self.suffix == other.suffix and \
+                self.libpaths == other.libpaths and \
+                self.libs == other.libs and \
+                self.flags == other.flags
 
-def make_linker(gcc, flags=[], **kwargs):
-    if flags and not env.cache(gcc.check_flags, flags):
+    def __hash__(self):
+        return hash((
+            self.gcc,
+            self.flags,
+            self.prefix,
+            self.suffix,
+            self.libpaths,
+            self.libs,
+            self.flags,
+        ))
+
+def make_linker(gcc, flags=(), **kwargs):
+    if flags and not gcc.check_flags(flags):
         raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
 
     return Linker(gcc, flags, **kwargs)
@@ -293,12 +330,12 @@ class Builder(c.Builder):
         return self.exe_linker(*args, **kwargs)
 
     def _build_link(self, function, dst, srcs, *,
-            includes=[],
-            macros=[],
-            cflags=[],
+            includes=(),
+            macros=(),
+            cflags=(),
             ckwargs={},
-            libs=[],
-            lflags=[],
+            libs=(),
+            lflags=(),
             lkwargs={}):
         objs = self.build_objects(srcs,
             includes=includes,
@@ -336,6 +373,13 @@ class Builder(c.Builder):
                 self.lib_linker == other.lib_linker and \
                 self.exe_linker == other.exe_linker
 
+    def __hash__(self):
+        return hash((
+            self.compiler,
+            self.lib_linker,
+            self.exe_linker,
+        ))
+
 # -----------------------------------------------------------------------------
 
 def config_static(exe=None, *args,
@@ -343,8 +387,8 @@ def config_static(exe=None, *args,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c'],
-        libpaths=[],
-        libs=[],
+        libpaths=(),
+        libs=(),
         src_suffix='.c', obj_suffix='.o',
         lib_prefix='lib', lib_suffix='.a',
         exe_suffix='',
@@ -379,8 +423,8 @@ def config_shared(exe=None, *args,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c', '-fPIC'],
-        libpaths=[],
-        libs=[],
+        libpaths=(),
+        libs=(),
         lib_link_flags=['-shared'],
         src_suffix='.c', obj_suffix='.os',
         lib_prefix='lib', lib_suffix='.so',
