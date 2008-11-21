@@ -1,4 +1,5 @@
-from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
+import fbuild
+from fbuild import ConfigFailed, ExecutionError, env, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
 from fbuild.temp import tempfile
@@ -101,8 +102,9 @@ class Compiler:
             flags=[],
             debug=None,
             optimize=None,
-            buildroot=buildroot,
+            buildroot=None,
             **kwargs):
+        buildroot = buildroot or fbuild.buildroot
         src = Path(src)
 
         suffix = suffix or self.suffix
@@ -201,11 +203,12 @@ class Linker:
     def __call__(self, dst, srcs, *,
             prefix=None,
             suffix=None,
+            buildroot=None,
             libpaths=[],
             libs=[],
             flags=[],
-            buildroot=buildroot,
             **kwargs):
+        buildroot = buildroot or fbuild.buildroot
         srcs = Path.glob_all(srcs)
 
         assert srcs or libs, 'no sources passed into gcc'
