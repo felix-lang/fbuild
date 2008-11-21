@@ -37,6 +37,8 @@ def execute(cmd,
         msg2=None,
         color=None,
         quieter=0,
+        input=None,
+        stdin=None,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         **kwargs):
@@ -62,8 +64,12 @@ def execute(cmd,
 
     starttime = time.time()
     try:
-        p = subprocess.Popen(cmd, stdout=stdout, stderr=stderr, **kwargs)
-        stdout, stderr = p.communicate()
+        p = subprocess.Popen(cmd,
+            stdin=subprocess.PIPE if input else stdin,
+            stdout=stdout,
+            stderr=stderr,
+            **kwargs)
+        stdout, stderr = p.communicate(input)
         returncode = p.wait()
     except OSError as e:
         # flush the logger
