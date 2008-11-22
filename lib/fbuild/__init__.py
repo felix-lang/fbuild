@@ -91,8 +91,16 @@ def execute(cmd,
     else:
         logger.log(' + ' + cmd_string, verbose=1)
 
-    if stdout: logger.log(stdout.rstrip().decode('utf-8'), verbose=quieter)
-    if stderr: logger.log(stderr.rstrip().decode('utf-8'), verbose=quieter)
+    if stdout:
+        try:
+            logger.log(stdout.rstrip().decode('utf-8'), verbose=quieter)
+        except UnicodeDecodeError:
+            logger.log(repr(stdout.rstrip()), verbose=quieter)
+    if stderr:
+        try:
+            logger.log(stderr.rstrip().decode('utf-8'), verbose=quieter)
+        except UnicodeDecodeError:
+            logger.log(repr(stderr.rstrip()), verbose=quieter)
 
     logger.log(
         ' - exit %d, %.2f sec' % (returncode, endtime - starttime),
