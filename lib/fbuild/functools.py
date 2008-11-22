@@ -127,7 +127,7 @@ def bind_args(function, args, kwargs):
         except KeyError:
             # If no kwarg was specified, so see if there's a default argument
             try:
-                bound_args[key] = spec.kwdefaults[key]
+                bound_args[key] = spec.kwonlydefaults[key]
             except KeyError:
                 # None found, so error out
                 raise TypeError(
