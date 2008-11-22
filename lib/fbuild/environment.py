@@ -4,7 +4,7 @@ import threading
 import collections
 
 from fbuild import ConfigFailed
-from fbuild.path import import_function
+from fbuild.functools import import_function
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import fbuild
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.temp import tempfile
-from fbuild.path import Path, find_in_paths, import_function
+from fbuild.path import Path, find_in_paths
 
 # -----------------------------------------------------------------------------
 

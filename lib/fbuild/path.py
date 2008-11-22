@@ -17,12 +17,6 @@ def find_in_paths(filename, paths=None):
 
     return None
 
-def import_function(function):
-    if isinstance(function, str):
-        m, f = function.rsplit('.', 1)
-        return getattr(__import__(m, {}, {}, ['']), f)
-    return function
-
 # -----------------------------------------------------------------------------
 
 class Path(str):
