@@ -50,7 +50,7 @@ class Gcc:
         return True
 
     def __str__(self):
-        return ' '.join((self.exe,) + self.flags)
+        return ' '.join(str(s) for s in chain((self.exe,), self.flags))
 
     def __repr__(self):
         return '%s(%r%s)' % (
@@ -154,7 +154,7 @@ class Compiler:
         return dst
 
     def __str__(self):
-        return ' '.join([str(self.gcc)] + self.flags)
+        return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
     def __repr__(self):
         return '%s(%r, %r, debug_flags=%r, optimize_flags=%r, suffix=%r)' % (
@@ -363,9 +363,9 @@ class Builder(c.Builder):
     def __repr__(self):
         return '%s(compiler=%r, lib_linker=%r, exe_linker=%r)' % (
             self.__class__.__name__,
-            str(self.compiler),
-            str(self.lib_linker),
-            str(self.exe_linker))
+            self.compiler,
+            self.lib_linker,
+            self.exe_linker)
 
     def __eq__(self, other):
         return isinstance(other, Builder) and \

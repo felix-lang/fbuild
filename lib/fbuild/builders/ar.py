@@ -1,3 +1,5 @@
+from itertools import chain
+
 import fbuild
 import fbuild.builders
 from fbuild import ConfigFailed, execute
@@ -74,7 +76,7 @@ class Linker:
         return dst
 
     def __str__(self):
-        return ' '.join([self.ar] + self.flags)
+        return ' '.join(chain((self.ar,), self.flags))
 
     def __repr__(self):
         return '%s(%r, ranlib=%r, flags=%r, prefix=%r, suffix=%r)' % (
