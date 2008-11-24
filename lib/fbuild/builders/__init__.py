@@ -1,6 +1,6 @@
 import fbuild
 from fbuild import ConfigFailed, ExecutionError, execute, logger
-from fbuild.temp import tempfile
+import fbuild.temp
 from fbuild.path import Path, find_in_paths
 
 # -----------------------------------------------------------------------------
@@ -46,8 +46,11 @@ class AbstractCompilerBuilder:
 
     # -------------------------------------------------------------------------
 
+    def tempfile(self, code):
+        return fbuild.temp.tempfile(code, self.src_suffix)
+
     def try_compile(self, code='', *, quieter=1, **kwargs):
-        with tempfile(code, self.src_suffix) as src:
+        with self.tempfile(code) as src:
             try:
                 self.compile(src, quieter=quieter, **kwargs)
             except ExecutionError:
@@ -56,7 +59,7 @@ class AbstractCompilerBuilder:
                 return True
 
     def try_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
-        with tempfile(code, self.src_suffix) as src:
+        with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             try:
                 obj = self.compile(src, quieter=quieter, **ckwargs)
@@ -67,7 +70,7 @@ class AbstractCompilerBuilder:
                 return True
 
     def try_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
-        with tempfile(code, self.src_suffix) as src:
+        with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             try:
                 obj = self.compile(src, quieter=quieter, **ckwargs)
@@ -79,7 +82,7 @@ class AbstractCompilerBuilder:
 
     def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={},
             **kwargs):
-        with tempfile(code, self.src_suffix) as src:
+        with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             obj = self.compile(src, quieter=quieter, **ckwargs)
             exe = self.link_exe(dst, [obj], quieter=quieter, **lkwargs)

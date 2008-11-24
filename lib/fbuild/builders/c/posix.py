@@ -1,6 +1,5 @@
 from fbuild import ConfigFailed, env, logger
 from fbuild.record import Record
-from fbuild.temp import tempfile
 from fbuild.builders.c import std, MissingHeader
 
 # -----------------------------------------------------------------------------
@@ -46,7 +45,7 @@ def config_dlfcn_h(builder, shared=None):
         }
     '''
 
-    with tempfile(lib_code, builder.src_suffix) as lib_src:
+    with builder.tempfile(lib_code) as lib_src:
         obj = shared.compile(lib_src, quieter=1)
         lib = shared.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
 
