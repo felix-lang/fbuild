@@ -1,14 +1,11 @@
 from optparse import make_option
 import pprint
 
-import fbuild.db
-import fbuild.builders.c.c99 as c99
-import fbuild.builders.c.guess
-import fbuild.builders.cxx.guess
-import fbuild.builders.platform
-import fbuild.builders.ocaml
-
-from fbuild import ConfigFailed, execute, logger
+import fbuild.builders.c
+import fbuild.config.c as c
+import fbuild.config.c.c99 as c99
+from fbuild import execute, logger
+from fbuild.functools import call
 from fbuild.path import Path
 from fbuild.record import Record
 
@@ -34,72 +31,28 @@ def pre_options(parser):
 
 # -----------------------------------------------------------------------------
 
-c_tests = [
-    'fbuild.builders.c.std.config',
-    'fbuild.builders.c.config_little_endian',
-]
-
-c_optional_tests = [
-    'fbuild.builders.c.c99.config',
-    'fbuild.builders.c.math.config',
-    'fbuild.builders.c.bsd.config',
-    'fbuild.builders.c.linux.config',
-    'fbuild.builders.c.solaris.config',
-    'fbuild.builders.c.win32.config',
-    'fbuild.builders.c.gcc.config_extensions',
-    'fbuild.builders.c.openmp.config',
-]
-
-c_optional_shared_tests = [
-    'fbuild.builders.c.posix.config',
-]
-
-cxx_tests = [
-    'fbuild.builders.cxx.std.config',
-    'fbuild.builders.c.config_little_endian',
-]
-
-cxx_optional_tests = [
-    'fbuild.builders.cxx.cmath.config',
-    'fbuild.builders.cxx.gxx.config_extensions',
-]
-
-def run_tests(tests, *args, **kwargs):
-    for test in tests:
-        fbuild.functools.call(test, *args, **kwargs)
-
-def run_optional_tests(tests, *args, **kwargs):
-    for test in tests:
-        try:
-            fbuild.functools.call(test, *args, **kwargs)
-        except ConfigFailed:
-            pass
-
 def make_c_builder(**kwargs):
-    c = fbuild.builders.c.guess.config(**kwargs)
+    static = call('fbuild.builders.c.guess_static', **kwargs)
+    shared = call('fbuild.builders.c.guess_shared', **kwargs)
 
-    run_tests(c_tests, c.static)
-    run_optional_tests(c_optional_tests, c.static)
-    run_optional_tests(c_optional_shared_tests, c.static)
-
-    return c
+    return Record(
+        static=static,
+        shared=shared)
 
 def make_cxx_builder(**kwargs):
-    cxx = fbuild.builders.cxx.guess.config(**kwargs)
+    static = call('fbuild.builders.cxx.guess_static', **kwargs)
+    shared = call('fbuild.builders.cxx.guess_shared', **kwargs)
 
-    run_tests(cxx_tests, cxx.static)
-    run_optional_tests(c_optional_tests, cxx.static)
-    run_optional_tests(c_optional_shared_tests, cxx.static)
-    run_optional_tests(cxx_optional_tests, cxx.static)
-
-    return cxx
+    return Record(
+        static=static,
+        shared=shared)
 
 @fbuild.db.caches
 def config_build(*, platform, cc, cxx):
     logger.log('configuring build phase', color='cyan')
 
     return Record(
-        platform=fbuild.builders.platform.config(platform),
+        platform=call('fbuild.builders.platform.platform', platform),
         c=make_c_builder(exe=cc),
         cxx=make_cxx_builder(exe=cxx),
     )
@@ -109,7 +62,7 @@ def config_host(build, *,
         platform, cc, cxx, ocamlc, ocamlopt, ocamllex, ocamlyacc):
     logger.log('configuring host phase', color='cyan')
 
-    platform = fbuild.builders.platform.config(platform)
+    platform = call('fbuild.builders.platform.platform', platform)
 
     if platform == build.platform:
         logger.log("using build's c and cxx compiler")
@@ -120,11 +73,12 @@ def config_host(build, *,
             c=make_c_builder(exe=cc),
             cxx=make_cxx_builder(exe=cxx))
 
-    phase.ocaml = fbuild.builders.ocaml.config(
+    phase.ocaml = call('fbuild.builders.ocaml.Ocaml',
         ocamlc=ocamlc,
         ocamlopt=ocamlopt,
-        ocamllex=ocamllex,
-        ocamlyacc=ocamlyacc)
+    )
+    phase.ocamllex = call('fbuild.builders.ocaml.Ocamllex', ocamllex)
+    phase.ocamlyacc = call('fbuild.builders.ocaml.Ocamlyacc', ocamlyacc)
 
     return phase
 
@@ -132,7 +86,7 @@ def config_host(build, *,
 def config_target(host, *, platform, cc, cxx):
     logger.log('configuring target phase', color='cyan')
 
-    platform = fbuild.builders.platform.config(platform)
+    platform = call('fbuild.builders.platform.platform', platform)
 
     if platform == host.platform:
         logger.log("using host's c and cxx compiler")
@@ -170,7 +124,16 @@ def build():
         cc=options.target_cc,
         cxx=options.target_cxx)
 
-    pprint.pprint(c99.type_aliases_stdint_h(target.c.static))
+    types = c99.types(target.c.static)
+    stdint_h = c99.stdint_h(target.c.static)
+
+    stdint_types = {'char': types.structural_alias(types.char)}
+    for field in stdint_h.__meta__.fields:
+        t = getattr(stdint_h, field.__name__)
+        if isinstance(t, c.IntType):
+            stdint_types[field.method.name] = types.structural_alias(t)
+
+    pprint.pprint(stdint_types)
 
     for lang in 'c', 'cxx':
         for mode in 'static', 'shared':
