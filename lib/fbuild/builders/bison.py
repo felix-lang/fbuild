@@ -2,7 +2,7 @@ from fbuild import buildroot, execute
 from fbuild.builders import find_program
 from fbuild.path import Path
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Bison:
     def __init__(self, exe, flags=[], *, suffix='.c'):

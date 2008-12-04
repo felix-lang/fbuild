@@ -6,12 +6,12 @@ from fbuild import ConfigFailed
 from fbuild.functools import bind_args, import_function
 from fbuild.record import Record
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class _FunctionStack(threading.local, collections.UserList):
     pass
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Environment:
     '''

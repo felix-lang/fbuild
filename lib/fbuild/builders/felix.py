@@ -3,7 +3,7 @@ from fbuild.path import Path
 from fbuild.temp import tempfile
 from fbuild.builders import AbstractCompilerBuilder, find_program
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Flx:
     def __init__(self, exe, flags=[]):
@@ -68,7 +68,7 @@ def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
 
     return flx
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Felix(AbstractCompilerBuilder):
     def __init__(self, flx, *, exe_suffix, lib_suffix,
@@ -132,7 +132,7 @@ class Felix(AbstractCompilerBuilder):
             self.exe == other.exe and \
             self.exe_suffix == other.exe_suffix
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config(exe=None, *, flags=[], exe_suffix='', lib_suffix='.dylib', **kwargs):
     flx = env.cache(config_flx, exe, flags=flags)

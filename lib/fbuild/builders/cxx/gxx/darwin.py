@@ -1,7 +1,7 @@
 from fbuild.builders.c.gcc import darwin
 from fbuild.builders.cxx import gxx
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_static(*args, **kwargs):
     return gxx.config_static(*args, **kwargs)

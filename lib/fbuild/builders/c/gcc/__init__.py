@@ -7,7 +7,7 @@ from fbuild.record import Record
 from fbuild.temp import tempfile
 from fbuild.builders import MissingProgram, find_program, c
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Gcc:
     def __init__(self, exe, flags=()):
@@ -77,7 +77,7 @@ def config_gcc(exe=None, default_exes=['gcc', 'cc']):
 
     return gcc
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
@@ -209,7 +209,7 @@ def make_compiler(gcc, flags=(), *,
         optimize_flags=optimize_flags,
         **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Linker:
     def __init__(self, gcc, flags=(), *, prefix, suffix,
@@ -307,7 +307,7 @@ def make_linker(gcc, flags=(), **kwargs):
 
     return Linker(gcc, flags, **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Builder(c.Builder):
     def __init__(self, *args, compiler, lib_linker, exe_linker, **kwargs):
@@ -380,7 +380,7 @@ class Builder(c.Builder):
             self.exe_linker,
         ))
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_static(exe=None, *args,
         config_gcc=config_gcc,
@@ -416,7 +416,7 @@ def config_static(exe=None, *args,
 
     return builder
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_shared(exe=None, *args,
         config_gcc=config_gcc,
@@ -454,7 +454,7 @@ def config_shared(exe=None, *args,
 
     return builder
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_builtin_expect(builder):
     return builder.check_compile('''

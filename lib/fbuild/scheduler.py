@@ -3,7 +3,7 @@ import threading
 import queue
 import operator
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Scheduler:
     def __init__(self, count=0):
@@ -120,7 +120,7 @@ class Scheduler:
         for thread in self.__threads:
             thread.join()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class WorkerThread(threading.Thread):
     def __init__(self, ready_queue):
@@ -150,7 +150,7 @@ class WorkerThread(threading.Thread):
             self.__ready_queue.task_done()
             done_queue.put(task)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Node:
     def __init__(self, function, src, index=None):

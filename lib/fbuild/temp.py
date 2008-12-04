@@ -3,7 +3,7 @@ import contextlib
 
 from fbuild.path import Path
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 @contextlib.contextmanager
 def tempdir(*args, **kwargs):
@@ -14,7 +14,7 @@ def tempdir(*args, **kwargs):
     finally:
         path.rmtree()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 @contextlib.contextmanager
 def tempfile(src, suffix='', name='temp'):

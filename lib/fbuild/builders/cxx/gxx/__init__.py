@@ -3,7 +3,7 @@ from fbuild.builders import find_program
 from fbuild.builders.c import MissingHeader, gcc
 from fbuild.record import Record
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_gxx(exe=None, default_exes=['g++', 'c++']):
     exe = exe or find_program(default_exes)
@@ -24,7 +24,7 @@ def make_compiler(*args, make_gcc=config_gxx, **kwargs):
 def make_linker(*args, make_gcc=config_gxx, **kwargs):
     return gcc.make_linker(make_gcc=make_gcc, *args, **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_static(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
     return gcc.config_static(
@@ -38,7 +38,7 @@ def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
         src_suffix=src_suffix,
         *args, **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_ext_hash_map(builder):
     if not builder.check_header_exists('ext/hash_map'):

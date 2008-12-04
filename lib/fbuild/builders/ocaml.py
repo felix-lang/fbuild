@@ -10,7 +10,7 @@ from fbuild.record import Record
 from fbuild.temp import tempdir
 from fbuild.builders import find_program, AbstractCompilerBuilder
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Ocamldep:
     '''
@@ -91,7 +91,7 @@ def config_ocamldep(exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
 
     return Ocamldep(exe)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Builder(AbstractCompilerBuilder):
     def __init__(self, ocamldep, exe, *,
@@ -297,7 +297,7 @@ class Builder(AbstractCompilerBuilder):
             self.exe_suffix == other.exe_suffix and \
             self.debug_flags == other.debug_flags
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def check_builder(builder):
     logger.check('checking if ocaml can make objects')
@@ -343,7 +343,7 @@ def check_builder(builder):
                raise ConfigFailed('failed to link ocaml lib to exe')
             logger.passed()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def make_builder(ocamldep, exe, default_exes, *args, **kwargs):
     exe = exe or find_program(default_exes)
@@ -372,7 +372,7 @@ def config_native(ocamldep,
         exe_suffix='',
         **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Ocamllex:
     def __init__(self, exe, flags=[]):
@@ -417,7 +417,7 @@ def config_ocamllex(exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
 
     return Ocamllex(exe)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Ocamlyacc:
     def __init__(self, exe, flags=[]):
@@ -474,7 +474,7 @@ def config_ocamlyacc(
 
     return Ocamlyacc(exe, **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class BothBuilders(AbstractCompilerBuilder):
     Tuple = collections.namedtuple('Tuple', 'bytecode native')
@@ -532,7 +532,7 @@ class BothBuilders(AbstractCompilerBuilder):
             self.bytecode.build_exe,
             self.native.build_exe, *args, **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_ocaml(*, ocamldep=None, ocamlc=None, ocamlopt=None):
     ocamldep = env.cache(config_ocamldep, ocamldep)

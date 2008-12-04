@@ -3,7 +3,7 @@ from fbuild import ConfigFailed, ExecutionError, execute, logger
 import fbuild.temp
 from fbuild.path import Path, find_in_paths
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class MissingProgram(ConfigFailed):
     def __init__(self, program=None):
@@ -15,7 +15,7 @@ class MissingProgram(ConfigFailed):
         else:
             return 'cannot find "%s"' % self.program
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def find_program(names):
     for name in names:
@@ -29,7 +29,7 @@ def find_program(names):
 
     raise ConfigFailed('failed to find any of ' + str(names))
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class AbstractCompilerBuilder:
     def __init__(self, *, src_suffix):
@@ -44,7 +44,7 @@ class AbstractCompilerBuilder:
     def link_exe(self, *args, **kwargs):
         raise NotImplementedError
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def tempfile(self, code):
         return fbuild.temp.tempfile(code, self.src_suffix)
@@ -132,7 +132,7 @@ class AbstractCompilerBuilder:
             logger.failed('no')
             return False
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def substitute(src, dst, patterns, *, buildroot=None):
     '''

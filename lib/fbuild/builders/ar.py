@@ -5,7 +5,7 @@ import fbuild.builders
 from fbuild import ConfigFailed, execute
 from fbuild.path import Path
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Linker:
     def __init__(self, ar, ranlib, flags=(), *, prefix, suffix,
@@ -107,7 +107,7 @@ class Linker:
             self.ranlib_flags,
         ))
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config(ar=None, ranlib=None, *,
         prefix='lib',

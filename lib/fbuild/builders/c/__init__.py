@@ -6,7 +6,7 @@ import fbuild.builders
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class MissingHeader(ConfigFailed):
     def __init__(self, filename=None):
@@ -18,7 +18,7 @@ class MissingHeader(ConfigFailed):
         else:
             return 'missing header %r' % self.filename
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
     def compile(self, *args, **kwargs):
@@ -101,7 +101,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return self.check_statements(*items,
             msg='checking if type %r exists', **kwargs)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def make_builder(Compiler, LibLinker, ExeLinker,
         src_suffix, obj_suffix,
@@ -126,7 +126,7 @@ def make_builder(Compiler, LibLinker, ExeLinker,
 
     return builder
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def check_builder(builder):
     logger.check('checking if can make objects')
@@ -176,7 +176,7 @@ def check_builder(builder):
                 raise ConfigFailed('failed to link lib to exe')
             logger.passed()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_compile_flags(builder, flags):
     logger.check('checking if "%s" supports %s' % (builder.compiler, flags))
@@ -188,7 +188,7 @@ def config_compile_flags(builder, flags):
     logger.failed()
     return False
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def check_compiler(compiler, suffix):
     logger.check('checking if "%s" can make objects' % compiler)
@@ -201,7 +201,7 @@ def check_compiler(compiler, suffix):
 
     logger.passed()
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config_little_endian(builder):
     code = '''
