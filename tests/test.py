@@ -6,15 +6,15 @@ import unittest
 
 sys.path.append('../lib')
 
+import test_functools
 import test_scheduler
-import test_env
 
 # -----------------------------------------------------------------------------
 
 def main():
     suite = unittest.TestSuite()
+    suite.addTest(test_functools.suite())
     suite.addTest(test_scheduler.suite())
-    suite.addTest(test_env.suite())
 
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
