@@ -1,4 +1,5 @@
-from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
+import fbuild
+from fbuild import ConfigFailed, ExecutionError, env, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
 from fbuild.builders import AbstractCompilerBuilder, find_program
@@ -88,8 +89,9 @@ class Felix(AbstractCompilerBuilder):
             static=None,
             includes=[],
             flags=[],
-            buildroot=buildroot,
+            buildroot=None,
             **kwargs):
+        buildroot = buildroot or fbuild.buildroot
         src_buildroot = src.replace_root(buildroot)
 
         static = static or self.static

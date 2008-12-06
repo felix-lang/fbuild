@@ -27,8 +27,9 @@ class Linker:
             ranlib_flags=(),
             prefix=None,
             suffix=None,
-            buildroot=fbuild.buildroot,
+            buildroot=None,
             **kwargs):
+        buildroot = buildroot or fbuild.buildroot
         #libs = set(libs)
         #libs.update(self.libs)
         #libs = sorted(libs)

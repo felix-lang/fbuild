@@ -1,4 +1,4 @@
-from fbuild import buildroot, execute
+import fbuild
 from fbuild.builders import find_program
 from fbuild.path import Path
 
@@ -16,7 +16,8 @@ class Bison:
             name_prefix=None,
             defines=False,
             flags=[],
-            buildroot=buildroot):
+            buildroot=None):
+        buildroot = buildroot or fbuild.buildroot
         suffix = suffix or self.suffix
         dst = Path.replace_root(dst or src, buildroot).replace_ext(suffix)
 
@@ -41,7 +42,7 @@ class Bison:
         cmd.extend(('-o', dst))
         cmd.append(src)
 
-        execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
+        fbuild.execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
 
         return dst
 
