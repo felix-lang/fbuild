@@ -1,5 +1,5 @@
 import contextlib
-import tempfile
+import tempfile as _tempfile
 import textwrap
 
 from fbuild.path import Path
@@ -13,7 +13,7 @@ def tempdir(*args, **kwargs):
     remove the directory.
     '''
 
-    path = Path(tempfile.mkdtemp(*args, **kwargs))
+    path = Path(_tempfile.mkdtemp(*args, **kwargs))
     try:
         yield path
     finally:
