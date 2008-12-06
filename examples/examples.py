@@ -11,7 +11,7 @@ parser.add_option('--clean',
 
 options, args = parser.parse_args()
 
-for d in 'c', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
+for d in 'c', 'config', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
     if options.clean:
         print('cleaning:', d)
         subprocess.call('%s --clean' % os.path.join('..', '..', 'fbuild-light'), cwd=d, shell=True)
