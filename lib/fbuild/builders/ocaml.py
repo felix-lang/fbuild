@@ -1,10 +1,9 @@
 import io
-import textwrap
 from functools import partial
 import collections
 
 import fbuild
-from fbuild import ConfigFailed, ExecutionError, buildroot, env, execute, logger
+from fbuild import ConfigFailed, ExecutionError, env, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
 from fbuild.temp import tempdir
@@ -24,7 +23,8 @@ class Ocamldep:
     def __call__(self, src, *,
             includes=[],
             flags=[],
-            buildroot=buildroot):
+            buildroot=None):
+        buildroot = buildroot or fbuild.buildroot
         dst = (src + '.depends').replace_root(buildroot)
 
         # only run ocamldoc if the src file changes
@@ -132,8 +132,9 @@ class Builder(AbstractCompilerBuilder):
             debug=False,
             custom=False,
             c_libs=[],
-            buildroot=buildroot,
+            buildroot=None,
             **kwargs):
+        buildroot = buildroot or fbuild.buildroot
         libs = self.libs + libs
 
         # we need to make sure libraries are built first before we compile
@@ -381,7 +382,8 @@ class Ocamllex:
 
     def __call__(self, src, *,
             flags=[],
-            buildroot=buildroot):
+            buildroot=None):
+        buildroot = buildroot or fbuild.buildroot
         dst = src.replace_ext('.ml').replace_root(buildroot)
 
         if not dst.is_dirty(src):
@@ -426,7 +428,8 @@ class Ocamlyacc:
 
     def __call__(self, src, *,
             flags=[],
-            buildroot=buildroot):
+            buildroot=None):
+        buildroot = buildroot or fbuild.buildroot
         # first, copy the src file into the buildroot
         src_buildroot = src.replace_root(buildroot)
         dsts = (
