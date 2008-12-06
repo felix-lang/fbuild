@@ -1,4 +1,7 @@
+import abc
+import functools
 import inspect
+import types
 
 # ------------------------------------------------------------------------------
 
@@ -164,3 +167,45 @@ def normalize_args(function, args, kwargs):
             bound_args[key] = value
 
     return tuple(bound_args), bound_kwargs
+
+# ------------------------------------------------------------------------------
+
+class descriptor(metaclass=abc.ABCMeta):
+    '''
+    Create a abstract base class that describes a descriptor, and will
+    automatically adapt the descriptor to copy the function attributes.
+
+    @param function: a function, method, or callable object
+    '''
+
+    def __init__(self, function):
+        # Set default values for the function wrapper arguments
+        for attr in functools.WRAPPER_ASSIGNMENTS:
+            if not hasattr(self, attr):
+                setattr(self, attr, '')
+
+        # Only assign members that exist on the function
+        assigned = (a for a in functools.WRAPPER_ASSIGNMENTS
+            if hasattr(function, a))
+
+        functools.update_wrapper(self, function, assigned=assigned)
+        self.function = function
+
+    @abc.abstractmethod
+    def __get__(self, instance, owner): pass
+
+# ------------------------------------------------------------------------------
+
+class decorator(descriptor, metaclass=abc.ABCMeta):
+    '''
+    Create an abstract base class for a decorator that also can also adapt a
+    method appropriately.
+    '''
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self.__call__
+        return types.MethodType(self, instance)
+
+    @abc.abstractmethod
+    def __call__(self): pass
