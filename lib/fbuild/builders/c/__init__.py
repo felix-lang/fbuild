@@ -133,19 +133,22 @@ def check_builder(builder):
     if builder.try_compile('int main(int argc, char** argv) { return 0; }'):
         logger.passed()
     else:
-        raise ConfigFailed('compiler failed')
+        logger.failed('compiler failed')
+        return False
 
     logger.check('checking if can make libraries')
     if builder.try_link_lib('int foo() { return 5; }'):
         logger.passed()
     else:
-        raise ConfigFailed('lib linker failed')
+        logger.failed('lib linker failed')
+        return False
 
     logger.check('checking if can make exes')
     if builder.try_run('int main(int argc, char** argv) { return 0; }'):
         logger.passed()
     else:
-        raise ConfigFailed('exe linker failed')
+        logger.failed('exe linker failed')
+        return False
 
     logger.check('checking if can link lib to exe')
     with fbuild.temp.tempdir() as dirname:
@@ -170,11 +173,15 @@ def check_builder(builder):
         try:
             stdout, stderr = execute([exe], quieter=1)
         except ExecutionError:
-            raise ConfigFailed('failed to link lib to exe')
+            logger.failed('failed to link lib to exe')
+            return False
         else:
             if stdout != b'5\n':
-                raise ConfigFailed('failed to link lib to exe')
+                logger.failed('failed to link lib to exe')
+                return False
             logger.passed()
+
+            return True
 
 # ------------------------------------------------------------------------------
 
