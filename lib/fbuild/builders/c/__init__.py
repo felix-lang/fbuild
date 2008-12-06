@@ -52,10 +52,10 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         logger.check(msg or 'checking %r' % name)
         if self.try_compile(code, **kwargs):
-            logger.passed('yes')
+            logger.passed()
             return True
         else:
-            logger.failed('no')
+            logger.failed()
             return False
 
     def check_statements(self, *items, msg='checking %r', **kwargs):
