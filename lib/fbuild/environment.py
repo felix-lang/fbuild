@@ -3,7 +3,7 @@ import threading
 import collections
 
 from fbuild import ConfigFailed
-from fbuild.functools import bind_args, import_function
+from fbuild.functools import normalize_args, import_function
 from fbuild.record import Record
 
 # ------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ class Environment:
 
         # Add self to the arg list, then remove it so that it doesn't get
         # saved.
-        bound_args = bind_args(function, args, kwargs)
+        bound_args = normalize_args(function, args, kwargs)
 
         key = '%s.%s' % (function.__module__, function.__name__)
 

@@ -25,10 +25,25 @@ def call(function, *args, **kwargs):
 
 # ------------------------------------------------------------------------------
 
-def bind_args(function, args, kwargs):
+def normalize_args(function, args, kwargs):
     '''
-    Return the values of all the arguments bound to the names specified in the
-    function.
+    L{normalize_args} returns a normalized set of args and kwargs, with all the
+    defaults of the function specified.
+
+    >>> def foo(a, b, c='a', *args, e, f='b', **kwargs):
+    ...     pass
+    >>> normalize_args(foo, (1, 2, 3, 4, 5), {'e': 6, 'f': 7, 'g': 8}) == (
+    ...     (1, 2, 3, 4, 5),
+    ...     {'e': 6, 'f': 7, 'g': 8})
+    True
+    >>> normalize_args(foo, (1, 2), {'e': 6}) == (
+    ...     (1, 2, 'a'),
+    ...     {'e': 6, 'f': 'b'})
+    True
+    >>> normalize_args(foo, (1, 2), {'c': 3, 'e': 6}) == (
+    ...     (1, 2, 3),
+    ...     {'e': 6, 'f': 'b'})
+    True
     '''
 
     # Get the specification of the arguments for the function
@@ -49,7 +64,8 @@ def bind_args(function, args, kwargs):
         else:
             return {}
 
-    bound_args = {}
+    bound_args = []
+    bound_kwargs = {}
 
     # Copy the dictionary as we'll be popping items out of it
     kwargs = dict(kwargs)
@@ -83,11 +99,11 @@ def bind_args(function, args, kwargs):
         except KeyError:
             # No kwarg, so see if we specified an argument
             if i < len(args):
-                bound_args[key] = args[i]
+                bound_args.append(args[i])
 
             # no arg, so see if there's a default
             elif fn_argcount - i <= defcount:
-                bound_args[key] = defaults[defcount - (fn_argcount - i)]
+                bound_args.append(defaults[defcount - (fn_argcount - i)])
             else:
                 # we didn't find an arg so break and error out later
                 break
@@ -101,7 +117,7 @@ def bind_args(function, args, kwargs):
                         function.__name__,
                         key))
 
-            bound_args[key] = value
+            bound_args.append(value)
         argcount += 1
 
     # If we didn't get enough arguments, error out
@@ -118,16 +134,16 @@ def bind_args(function, args, kwargs):
 
     # If we take varargs, add them to the vararg name
     if varargs and argcount < len(args):
-        bound_args[spec.varargs] = args[argcount:]
+        bound_args.extend(args[argcount:])
 
     # Now, add the function kwargs
     for key in fn_kwargs:
         try:
-            bound_args[key] = kwargs.pop(key)
+            bound_kwargs[key] = kwargs.pop(key)
         except KeyError:
             # If no kwarg was specified, so see if there's a default argument
             try:
-                bound_args[key] = spec.kwonlydefaults[key]
+                bound_kwargs[key] = spec.kwonlydefaults[key]
             except KeyError:
                 # None found, so error out
                 raise TypeError(
@@ -136,7 +152,7 @@ def bind_args(function, args, kwargs):
 
     # If we take varkw, add them now
     if varkw:
-        bound_args.update(kwargs)
+        bound_kwargs.update(kwargs)
     else:
         for key, value in kwargs.items():
             # if the key isn't in the fn_args, it's unknown
@@ -147,4 +163,4 @@ def bind_args(function, args, kwargs):
 
             bound_args[key] = value
 
-    return bound_args
+    return tuple(bound_args), bound_kwargs
