@@ -1,5 +1,6 @@
-import textwrap
 import contextlib
+import tempfile
+import textwrap
 
 from fbuild.path import Path
 
@@ -7,7 +8,11 @@ from fbuild.path import Path
 
 @contextlib.contextmanager
 def tempdir(*args, **kwargs):
-    import tempfile
+    '''
+    Create a temporary directory and yield it's path. When we regain context,
+    remove the directory.
+    '''
+
     path = Path(tempfile.mkdtemp(*args, **kwargs))
     try:
         yield path
@@ -18,6 +23,15 @@ def tempdir(*args, **kwargs):
 
 @contextlib.contextmanager
 def tempfile(src, suffix='', name='temp'):
+    '''
+    Create a temporary file in a unique directory and yield the name of the
+    file. When we regain context, remove the directory.
+
+    @param src:    write this source in the tempfile before yielding
+    @param suffix: the default suffix of the temp file
+    @param name:   the name of the temp file
+    '''
+
     with tempdir() as dirname:
         name = dirname / name + suffix
         with open(name, 'w') as f:
