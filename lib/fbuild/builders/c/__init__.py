@@ -103,31 +103,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-def make_builder(Compiler, LibLinker, ExeLinker,
-        src_suffix, obj_suffix,
-        lib_prefix, lib_suffix,
-        exe_suffix,
-        compile_flags=[],
-        lib_link_flags=[],
-        exe_link_flags=[]):
-    builder = Builder(src_suffix,
-        Compiler(suffix=obj_suffix),
-        LibLinker(
-            prefix=lib_prefix,
-            suffix=lib_suffix,
-            lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix),
-        ExeLinker(
-            suffix=exe_suffix,
-            lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix))
-
-    check_builder(builder)
-
-    return builder
-
-# ------------------------------------------------------------------------------
-
 def check_builder(builder):
     logger.check('checking if can make objects')
     if builder.try_compile('int main(int argc, char** argv) { return 0; }'):
