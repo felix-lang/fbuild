@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.0
+
 import time
 import random
 import unittest
@@ -22,7 +24,7 @@ class TestScheduler(unittest.TestCase):
 
     def testMap(self):
         def f(x):
-            time.sleep(random.random() * 0.1)
+            time.sleep(random.random() * 0.01)
             return x + 1
 
         self.assertEquals(
@@ -31,7 +33,7 @@ class TestScheduler(unittest.TestCase):
 
         # now test if we can handle recursive scheduling
         def g(x):
-            time.sleep(random.random() * 0.1)
+            time.sleep(random.random() * 0.01)
             return self.scheduler.map(f, x)
 
         self.assertEquals(
@@ -46,6 +48,7 @@ class TestScheduler(unittest.TestCase):
 # -----------------------------------------------------------------------------
 
 def suite():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestScheduler)
+    return unittest.TestLoader().loadTestsFromTestCase(TestScheduler)
 
-    return suite
+if __name__ == "__main__":
+    unittest.main()

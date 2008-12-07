@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.0
+
 import unittest
 
 from fbuild.functools import *
@@ -219,6 +221,7 @@ class TestFunctionBind(unittest.TestCase):
 # -----------------------------------------------------------------------------
 
 def suite(*args, **kwargs):
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestFunctionBind)
+    return unittest.TestLoader().loadTestsFromTestCase(TestFunctionBind)
 
-    return suite
+if __name__ == "__main__":
+    unittest.main()
