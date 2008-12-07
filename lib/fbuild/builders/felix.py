@@ -92,20 +92,20 @@ class Felix(AbstractCompilerBuilder):
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
-        src_buildroot = src.replace_root(buildroot)
+        src_buildroot = src.addroot(buildroot)
 
         static = static or self.static
 
         if static:
-            dst = src_buildroot.replace_ext(self.exe_suffix)
+            dst = src_buildroot.replaceext(self.exe_suffix)
         else:
-            dst = src_buildroot.replace_ext(self.lib_suffix)
+            dst = src_buildroot.replaceext(self.lib_suffix)
 
-        if not dst.is_dirty(src):
+        if not dst.isdirty(src):
             return dst
 
         if src != src_buildroot:
-            src_buildroot.parent.make_dirs()
+            src_buildroot.parent.makedirs()
             src.copy(src_buildroot)
             src = src_buildroot
 

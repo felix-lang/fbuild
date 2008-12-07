@@ -173,7 +173,7 @@ def build():
             except OSError:
                 pass
 
-            d.make_dirs()
+            d.makedirs()
             Path.copy('foo.c', d)
             Path.copy('bar.c', d)
 

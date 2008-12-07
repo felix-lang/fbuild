@@ -102,7 +102,7 @@ def main(argv=None):
 
     # make sure the buildroot exists before running
     fbuild.buildroot = options.buildroot
-    fbuild.buildroot.make_dirs()
+    fbuild.buildroot.makedirs()
 
     # load the logger options into the logger
     fbuild.logger.verbose = options.verbose
@@ -123,7 +123,7 @@ def main(argv=None):
             # we need to reconfigure, so don't try to load the environment.
 
             # make sure the state file directory exists
-            options.state_file.parent.make_dirs()
+            options.state_file.parent.makedirs()
         else:
             # reuse the environment from the last run
             with open(options.state_file, 'rb') as f:

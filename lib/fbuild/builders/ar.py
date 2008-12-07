@@ -39,15 +39,15 @@ class Linker:
 
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
-        dst = Path(dst).replace_root(buildroot)
+        dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
-        srcs = Path.glob_all(srcs)
+        srcs = list(Path.globall(srcs))
 
         # exit early if not dirty
-        if not dst.is_dirty(srcs, libs):
+        if not dst.isdirty(srcs, libs):
             return dst
 
-        dst.parent.make_dirs()
+        dst.parent.makedirs()
 
         cmd = [self.ar]
         cmd.extend(self.flags)

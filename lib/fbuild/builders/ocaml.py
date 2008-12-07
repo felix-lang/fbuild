@@ -25,11 +25,11 @@ class Ocamldep:
             flags=[],
             buildroot=None):
         buildroot = buildroot or fbuild.buildroot
-        dst = (src + '.depends').replace_root(buildroot)
+        dst = (src + '.depends').addroot(buildroot)
 
         # only run ocamldoc if the src file changes
-        if dst.is_dirty(src):
-            dst.parent.make_dirs()
+        if dst.isdirty(src):
+            dst.parent.makedirs()
 
             cmd = [self.exe]
             cmd.extend(self.module_flags)
@@ -52,7 +52,7 @@ class Ocamldep:
                     color='yellow')
 
         # now, parse the output to determine the dependencies
-        suffixes = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
+        extensions = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
         d = {}
         with open(dst) as f:
             # we need to join lines ending in "\" together
@@ -60,9 +60,9 @@ class Ocamldep:
                 name, *deps = line.split()
 
                 # strip off the ':'
-                name = Path(name[:-1]).replace_suffixes(suffixes)
+                name = Path(name[:-1]).replaceexts(extensions)
 
-                d[name] = Path.replace_all_suffixes(deps, suffixes)
+                d[name] = [Path.replaceexts(d, extensions) for d in deps]
 
         # return each path that this src file depends on.
         paths = []
@@ -141,13 +141,13 @@ class Builder(AbstractCompilerBuilder):
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
-        dst = Path.replace_root(dst, buildroot)
+        dst = Path.addroot(dst, buildroot)
 
         # exit early if not dirty
-        if not dst.is_dirty(srcs, libs):
+        if not dst.isdirty(srcs, libs):
             return dst
 
-        dst.parent.make_dirs()
+        dst.parent.makedirs()
 
         extra_srcs = []
         for lib in libs:
@@ -194,7 +194,7 @@ class Builder(AbstractCompilerBuilder):
         return dst
 
     def _compile(self, src, dst=None, *args, obj_suffix, **kwargs):
-        dst = (dst or src).replace_ext(obj_suffix)
+        dst = (dst or src).replaceext(obj_suffix)
 
         return self._run(dst, [src],
             pre_flags=['-c'],
@@ -216,7 +216,7 @@ class Builder(AbstractCompilerBuilder):
     def _link(self, dst, srcs, *args, libs=[], **kwargs):
         # Filter out the .cmi files, such as when we're using ocamlyacc source
         # files.
-        srcs = Path.glob_all(srcs, exclude='*.cmi')
+        srcs = list(Path.globall(srcs, exclude='*.cmi'))
 
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
@@ -233,12 +233,12 @@ class Builder(AbstractCompilerBuilder):
     def build_objects(self, srcs, *, includes=[], **kwargs):
         'Compile all the L{srcs} in parallel.'
 
-        srcs = Path.glob_all(srcs)
+        srcs = list(Path.globall(srcs))
         includes = set(includes)
         for src in srcs:
             if src.parent:
                 includes.add(src.parent)
-                includes.add(src.parent.replace_root(fbuild.buildroot))
+                includes.add(src.parent.addroot(fbuild.buildroot))
 
         return fbuild.scheduler.map_with_dependencies(
             partial(self.ocamldep, includes=includes),
@@ -384,12 +384,12 @@ class Ocamllex:
             flags=[],
             buildroot=None):
         buildroot = buildroot or fbuild.buildroot
-        dst = src.replace_ext('.ml').replace_root(buildroot)
+        dst = src.replaceext('.ml').addroot(buildroot)
 
-        if not dst.is_dirty(src):
+        if not dst.isdirty(src):
             return dst
 
-        dst.parent.make_dirs()
+        dst.parent.makedirs()
 
         cmd = [self.exe]
         cmd.extend(('-o', dst))
@@ -431,20 +431,20 @@ class Ocamlyacc:
             buildroot=None):
         buildroot = buildroot or fbuild.buildroot
         # first, copy the src file into the buildroot
-        src_buildroot = src.replace_root(buildroot)
+        src_buildroot = src.addroot(buildroot)
         dsts = (
-            src_buildroot.replace_ext('.ml'),
-            src_buildroot.replace_ext('.mli'),
+            src_buildroot.replaceext('.ml'),
+            src_buildroot.replaceext('.mli'),
         )
 
         for dst in dsts:
-            if dst.is_dirty(src):
+            if dst.isdirty(src):
                 break
         else:
             return dsts
 
         if src != src_buildroot:
-            src_buildroot.parent.make_dirs()
+            src_buildroot.parent.makedirs()
             src.copy(src_buildroot)
             src = src_buildroot
 

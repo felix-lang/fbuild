@@ -35,7 +35,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def build_objects(self, srcs, **kwargs):
         'Compile all of the passed in L{srcs} in parallel.'
 
-        srcs = Path.glob_all(srcs)
+        srcs = list(Path.globall(srcs))
         return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 
     # -------------------------------------------------------------------------

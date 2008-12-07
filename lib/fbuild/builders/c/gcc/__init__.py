@@ -113,13 +113,13 @@ class Compiler:
         src = Path(src)
 
         suffix = suffix or self.suffix
-        dst = (dst or src).replace_root(buildroot).replace_ext(suffix)
+        dst = (dst or src).addroot(buildroot).replaceext(suffix)
 
         # exit early if not dirty
-        if not dst.is_dirty(src):
+        if not dst.isdirty(src):
             return dst
 
-        dst.parent.make_dirs()
+        dst.parent.makedirs()
 
         cmd_flags = []
 
@@ -232,20 +232,20 @@ class Linker:
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
-        srcs = Path.glob_all(srcs)
+        srcs = list(Path.globall(srcs))
 
         assert srcs or libs, 'no sources passed into gcc'
 
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
-        dst = Path(dst).replace_root(buildroot)
+        dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
 
         # exit early if not dirty
-        if not dst.is_dirty(srcs):
+        if not dst.isdirty(srcs):
             return dst
 
-        dst.parent.make_dirs()
+        dst.parent.makedirs()
 
         libpaths = set(libpaths)
         libpaths.update(self.libpaths)
