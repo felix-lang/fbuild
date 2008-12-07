@@ -7,7 +7,9 @@ import unittest
 
 sys.path.append('../lib')
 
+import test_fnmatch
 import test_functools
+import test_glob
 import test_scheduler
 
 # -----------------------------------------------------------------------------
@@ -36,7 +38,9 @@ def main():
             else:
                 suite.addTest(test)
 
+    suite.addTest(test_fnmatch.suite())
     suite.addTest(test_functools.suite())
+    suite.addTest(test_glob.suite())
     suite.addTest(test_scheduler.suite())
 
     runner = unittest.TextTestRunner(verbosity=2)
