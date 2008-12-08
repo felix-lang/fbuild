@@ -105,6 +105,7 @@ def main(argv=None):
     fbuild.buildroot.makedirs()
 
     # load the logger options into the logger
+    fbuild.logger.file = open(options.log_file, 'w')
     fbuild.logger.verbose = options.verbose
     fbuild.logger.nocolor = options.nocolor
     fbuild.logger.show_threads = options.show_threads

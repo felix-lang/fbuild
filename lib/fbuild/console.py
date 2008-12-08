@@ -38,11 +38,11 @@ class _ThreadStack(threading.local, collections.UserList):
 # ------------------------------------------------------------------------------
 
 class Log:
-    def __init__(self, filename='fbuild.log', *,
+    def __init__(self, file=None, *,
             verbose=0,
             nocolor=False,
             show_threads=False):
-        self.logfile = open(filename, 'w')
+        self.file = file
         self.verbose = verbose
         self.nocolor = nocolor
         self.show_threads = show_threads
@@ -76,7 +76,8 @@ class Log:
     def _write(self, msg, color=None, verbose=0):
         # make sure message is a string
         msg = str(msg)
-        self.logfile.write(msg)
+        if self.file:
+            self.file.write(msg)
 
         if verbose <= self.verbose:
             if not self.nocolor:
@@ -85,7 +86,8 @@ class Log:
         self.flush()
 
     def flush(self):
-        self.logfile.flush()
+        if self.file:
+            self.file.flush()
         sys.stdout.flush()
 
     def log(self, msg, color=None, verbose=0):
