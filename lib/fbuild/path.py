@@ -265,7 +265,7 @@ class Path(str):
             return
         os.makedirs(self, *args, **kwargs)
 
-    def md5(self, chunksize=65536):
+    def digest(self, chunksize=65536):
         """Hash the file usind md5 and return the digest."""
         with open(self, 'rb') as f:
             m = hashlib.md5()
@@ -274,7 +274,7 @@ class Path(str):
                 if not d:
                     break
                 m.update(d)
-            return m.hexdigest()
+            return m.digest()
 
     mkdir = os.mkdir
     mknod = os.mknod
