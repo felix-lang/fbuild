@@ -48,13 +48,17 @@ def normalize_args(function, args, kwargs):
     ...     {'e': 6, 'f': 'b'})
     True
     '''
-
     # Get the specification of the arguments for the function
     spec = inspect.getfullargspec(function)
     fn_args = spec.args
     fn_kwargs = spec.kwonlyargs
     varargs = spec.varargs is not None
     varkw = spec.varkw is not None
+
+    # If the function is a method, then we've already got the "self" argument
+    # bundled up with it, so don't try to find it in our spec.
+    if inspect.ismethod(function):
+        fn_args = fn_args[1:]
 
     # If there are no arguments, error out if extra ones were provided.
     if not fn_args and not fn_kwargs and not varargs and not varkw:
