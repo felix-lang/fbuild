@@ -306,6 +306,32 @@ class Path(str):
     removedirs = os.removedirs
     rename = os.rename
     renames = os.renames
+
+    def replaceext(self, ext):
+        """Replace the extension with "ext".
+
+        >>> Path.replaceext('foo/bar/baz.ext', '.boo')
+        Path('foo/bar/baz.boo')
+        """
+        return Path(os.path.splitext(self)[0] + ext)
+
+    def replaceexts(self, extensions):
+        """If the path's extension ends with any of the keys in "extensions",
+        replace it with that value.
+
+        >>> Path.replaceexts('foo/bar/baz.ext', {'.abc':'.foo', '.ext': '.bar'})
+        Path('foo/bar/baz.bar')
+        >>> Path.replaceexts('foo/bar/baz.boo', {'.abc':'.foo', '.ext': '.bar'})
+        Path('foo/bar/baz.boo')
+        """
+        root, ext = os.path.splitext(self)
+        try:
+            ext = extensions[ext]
+        except KeyError:
+            return Path(self)
+        else:
+            return Path(root + ext)
+
     rmdir = os.rmdir
     rmtree = shutil.rmtree
 
@@ -360,32 +386,6 @@ class Path(str):
         return Path(root), ext
 
     stat = os.stat
-
-    def replaceext(self, ext):
-        """Replace the extension with "ext".
-
-        >>> Path.replaceext('foo/bar/baz.ext', '.boo')
-        Path('foo/bar/baz.boo')
-        """
-        return Path(os.path.splitext(self)[0] + ext)
-
-    def replaceexts(self, extensions):
-        """If the path's extension ends with any of the keys in "extensions",
-        replace it with that value.
-
-        >>> Path.replaceexts('foo/bar/baz.ext', {'.abc':'.foo', '.ext': '.bar'})
-        Path('foo/bar/baz.bar')
-        >>> Path.replaceexts('foo/bar/baz.boo', {'.abc':'.foo', '.ext': '.bar'})
-        Path('foo/bar/baz.boo')
-        """
-        root, ext = os.path.splitext(self)
-        try:
-            ext = extensions[ext]
-        except KeyError:
-            return Path(self)
-        else:
-            return Path(root + ext)
-
     utime = os.utime
 
     def walk(self, *args, **kwargs):
