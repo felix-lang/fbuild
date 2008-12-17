@@ -174,6 +174,47 @@ def normalize_args(function, args, kwargs):
 
 # ------------------------------------------------------------------------------
 
+def bind_args(function, args, kwargs):
+    """
+    Bind a function and all of it's arguments to the named values. This helps
+    with annotations from arbitrary functions.
+
+    >>> def foo(a, b, c=1, *args, d, e=2, **kwargs): pass
+    >>> bind_args(foo, (1, 2), {'d': 3}) == {
+    ...     'a': 1, 'b': 2, 'c': 1, 'd': 3, 'e': 2,
+    ...     'args': (), 'kwargs': {}}
+    True
+
+    >>> bind_args(foo, (1, 2, 3, 4, 5), {'d': 6, 'e': 7, 'f': 8}) == {
+    ...     'a': 1, 'b': 2, 'c': 3, 'd': 6, 'e': 7,
+    ...     'args': (4, 5), 'kwargs': {'f': 8}}
+    True
+    """
+    args, kwargs = normalize_args(function, args, kwargs)
+    spec = inspect.getfullargspec(function)
+    fn_args = spec.args
+
+    if inspect.ismethod(function):
+        fn_args = fn_args[1:]
+
+    bound = {}
+    arg_iterator = iter(args)
+    for key, value in zip(fn_args, arg_iterator):
+        bound[key] = value
+
+    if spec.varargs is not None:
+        bound[spec.varargs] = tuple(arg_iterator)
+
+    for key in spec.kwonlyargs:
+        bound[key] = kwargs.pop(key)
+
+    if spec.varkw is not None:
+        bound[spec.varkw] = kwargs
+
+    return bound
+
+# ------------------------------------------------------------------------------
+
 class descriptor(metaclass=abc.ABCMeta):
     '''
     Create a abstract base class that describes a descriptor, and will
