@@ -7,6 +7,7 @@ from optparse import OptionParser, make_option
 import pprint
 
 import fbuild
+import fbuild.db
 import fbuild.path
 import fbuild.scheduler
 
@@ -119,19 +120,12 @@ def main(argv=None):
     # -------------------------------------------------------------------------
     # get the configuration
 
-    try:
-        if options.force_configuration or not options.state_file.exists():
-            # we need to reconfigure, so don't try to load the environment.
+    # make sure the state file directory exists
+    options.state_file.parent.makedirs()
 
-            # make sure the state file directory exists
-            options.state_file.parent.makedirs()
-        else:
-            # reuse the environment from the last run
-            with open(options.state_file, 'rb') as f:
-                fbuild.env.__setstate__(pickle.load(f))
-    except fbuild.Error as e:
-        fbuild.logger.log(e, color='red')
-        return 1
+    if not options.force_configuration and options.state_file.exists():
+        # We aren't reconfiguring, so load the old database.
+        fbuild.db.database.load(options.state_file)
 
     # -------------------------------------------------------------------------
 
@@ -139,12 +133,12 @@ def main(argv=None):
         # check if we're viewing or manipulating the config
         if options.config_dump:
             # print out the entire config
-            pprint.pprint(fbuild.env._builder_state)
+            pprint.pprint(fbuild.db.database.__dict__)
             return 0
 
         if options.config_query:
             # print out just a subset of the configuration
-            d = fbuild.env._builder_state
+            d = fbuild.db.database.__dict__
             try:
                 for key in options.config_query.split():
                     d = d[key]
@@ -157,7 +151,7 @@ def main(argv=None):
 
         if options.config_remove:
             keys = options.config_remove.split()
-            d = fbuild.env._builder_state
+            d = fbuild.db.database.__dict__
             try:
                 for key in keys[:-1]:
                     d = d[key]
@@ -176,12 +170,8 @@ def main(argv=None):
         return 1
     finally:
         # Compiling the pickle string could raise an exception, so we'll pickle
-        # write to a temporary file first, then write it out to the state file.
-        with open(options.state_file + '.tmp', 'wb') as f:
-            pickle.dump(fbuild.env.__getstate__(), f)
-
-        # Save the state to the state file.
-        os.rename(options.state_file + '.tmp', options.state_file)
+        # it first, then write it out to the state file.
+        fbuild.db.database.save(options.state_file)
 
     return 0
 
