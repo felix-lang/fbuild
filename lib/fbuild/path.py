@@ -10,19 +10,6 @@ import fbuild.glob
 
 # ------------------------------------------------------------------------------
 
-def find_in_paths(filename, paths=None):
-    if paths is None:
-        paths = os.environ['PATH'].split(os.pathsep)
-
-    for path in paths:
-        f = os.path.join(path, filename)
-        if os.path.exists(f):
-            return Path(f)
-
-    return None
-
-# ------------------------------------------------------------------------------
-
 class Path(str):
     """Implement a simple interface for working with the filesystem. The
     methods in this class are designed to be used as either normal methods:

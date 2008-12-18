@@ -1,6 +1,7 @@
 import os
 
 import fbuild
+import fbuild.db
 import fbuild.path
 import fbuild.temp
 
@@ -18,17 +19,27 @@ class MissingProgram(fbuild.ConfigFailed):
 
 # ------------------------------------------------------------------------------
 
-def find_program(names):
+@fbuild.db.caches
+def find_program(db, names, paths=None):
+    """L{find_program} is a test that searches the paths for one of the
+    programs in I{name}.  If one is found, it is returned.  If not, the next
+    name in the list is searched for."""
+
+    if paths is None:
+        paths = os.environ['PATH'].split(os.pathsep)
+
     for name in names:
-        logger.check('checking for program ' + name)
+        fbuild.logger.check('looking for program ' + name)
 
-        if fbuild.path.find_in_paths(name):
-            logger.passed('ok %s' % name)
-            return name
+        for path in paths:
+            filename = os.path.join(path, name)
+            if os.path.exists(filename):
+                fbuild.logger.passed('ok %s' % name)
+                return fbuild.path.Path(name)
         else:
-            logger.failed('not found')
+            fbuild.logger.failed('not found')
 
-    raise ConfigFailed('failed to find any of ' + str(names))
+    raise fbuild.ConfigFailed('failed to find %s' % ' '.join(names))
 
 # ------------------------------------------------------------------------------
 
