@@ -143,29 +143,3 @@ class AbstractCompilerBuilder:
         else:
             fbuild.logger.failed()
             return False
-
-# ------------------------------------------------------------------------------
-
-def substitute(src, dst, patterns, *, buildroot=None):
-    '''
-    L{substitute} replaces the patterns in the src and saves the changes into
-    dst.
-    '''
-
-    buildroot = buildroot or fbuild.buildroot
-    src = Path(src)
-    dst = Path.replace_root(dst or src, buildroot)
-
-    dst.parent.make_dirs()
-
-    with open(src, 'r') as f:
-        old_code = code = f.read()
-
-    for key, value in patterns.items():
-        code = code.replace(key, value)
-
-    # write out only if the file has been modified
-    if code != old_code:
-        fbuild.logger.log(' * creating ' + dst, color='cyan')
-        with open(dst, 'w') as f:
-            f.write(code)
