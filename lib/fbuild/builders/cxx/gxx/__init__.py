@@ -1,10 +1,12 @@
-from fbuild import ConfigFailed, env
+import fbuild.db
+from fbuild import ConfigFailed
 from fbuild.builders import find_program
 from fbuild.builders.c import MissingHeader, gcc
 from fbuild.record import Record
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_gxx(exe=None, default_exes=['g++', 'c++']):
     exe = exe or find_program(default_exes)
 
@@ -26,12 +28,14 @@ def make_linker(*args, make_gcc=config_gxx, **kwargs):
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_static(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
     return gcc.config_static(
         config_gcc=config_gxx,
         src_suffix=src_suffix,
         *args, **kwargs)
 
+@fbuild.db.caches
 def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
     return gcc.config_shared(
         config_gcc=config_gxx,
@@ -40,6 +44,7 @@ def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_ext_hash_map(builder):
     if not builder.check_header_exists('ext/hash_map'):
         raise MissingHeader('ext/hash_map')
@@ -55,12 +60,12 @@ def config_ext_hash_map(builder):
 
     return Record(hash_map=hash_map)
 
-def config_ext_headers(builder):
+def config_ext_headers(db, builder):
     return Record(
-        hash_map=env.cache(config_ext_hash_map, builder),
+        hash_map=config_ext_hash_map(db, builder),
     )
 
-def config_extensions(builder):
+def config_extensions(db, builder):
     return Record(
-        headers=env.cache(config_ext_headers, builder),
+        headers=config_ext_headers(db, builder),
     )

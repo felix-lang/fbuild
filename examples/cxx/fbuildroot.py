@@ -1,7 +1,8 @@
 import fbuild
+import fbuild.builders.cxx.guess
 
 def build():
-    cxx = fbuild.env.cache('fbuild.builders.cxx.guess.config')
+    cxx = fbuild.builders.cxx.guess.config()
 
     lib = cxx.static.build_lib('lib_static', ['lib.cpp'])
     exe = cxx.static.build_exe('exe_static', ['exe.cpp'], libs=[lib])
