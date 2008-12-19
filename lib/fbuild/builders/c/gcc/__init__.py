@@ -1,7 +1,9 @@
 from itertools import chain
 
 import fbuild
-from fbuild import ConfigFailed, ExecutionError, env, execute, logger
+import fbuild.builders.ar
+import fbuild.db
+from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
 from fbuild.temp import tempfile
@@ -64,6 +66,7 @@ class Gcc:
     def __hash__(self):
         return hash((self.exe, self.flags))
 
+@fbuild.db.caches
 def config_gcc(exe=None, default_exes=['gcc', 'cc']):
     exe = exe or find_program(default_exes)
 
@@ -114,11 +117,6 @@ class Compiler:
 
         suffix = suffix or self.suffix
         dst = (dst or src).addroot(buildroot).replaceext(suffix)
-
-        # exit early if not dirty
-        if not dst.isdirty(src):
-            return dst
-
         dst.parent.makedirs()
 
         cmd_flags = []
@@ -240,11 +238,6 @@ class Linker:
         suffix = suffix or self.suffix
         dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
-
-        # exit early if not dirty
-        if not dst.isdirty(srcs):
-            return dst
-
         dst.parent.makedirs()
 
         libpaths = set(libpaths)
@@ -320,14 +313,42 @@ class Builder(c.Builder):
     def __str__(self):
         return str(self.compiler)
 
-    def compile(self, *args, **kwargs):
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.src, *args, **kwargs) -> fbuild.db.dst:
+        """Compile a c file and cache the results."""
+        return self.uncached_compile(src, *args, **kwargs)
+
+    def uncached_compile(self, *args, **kwargs):
+        """Compile a c file without caching the results.  This is needed when
+        compiling temporary files."""
         return self.compiler(*args, **kwargs)
 
-    def link_lib(self, *args, **kwargs):
+    @fbuild.db.cachemethod
+    def link_lib(self, dst, srcs:fbuild.db.srcs, *args,
+            libs:fbuild.db.srcs=(),
+            **kwargs) -> fbuild.db.dst:
+        """Link compiled c files into a library and caches the results."""
+        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
+
+    def uncached_link_lib(self, *args, **kwargs):
+        """Link compiled c files into a library without caching the results.
+        This is needed when linking temporary files."""
         return self.lib_linker(*args, **kwargs)
 
-    def link_exe(self, *args, **kwargs):
+    @fbuild.db.cachemethod
+    def link_exe(self, dst, srcs:fbuild.db.srcs, *args,
+            libs:fbuild.db.srcs=(),
+            **kwargs) -> fbuild.db.dst:
+        """Link compiled c files into an executable without caching the
+        results.  This is needed when linking temporary files."""
+        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
+
+    def uncached_link_exe(self, *args, **kwargs):
+        """Link compiled c files into am executable without caching the
+        results.  This is needed when linking temporary files."""
         return self.exe_linker(*args, **kwargs)
+
+    # --------------------------------------------------------------------------
 
     def _build_link(self, function, dst, srcs, *,
             includes=(),
@@ -337,7 +358,7 @@ class Builder(c.Builder):
             libs=(),
             lflags=(),
             lkwargs={}):
-        objs = self.build_objects(srcs,
+        objs = self.build_objects(list(Path.globall(srcs)),
             includes=includes,
             macros=macros,
             flags=cflags)
@@ -359,6 +380,8 @@ class Builder(c.Builder):
         '''
 
         return self._build_link(self.link_exe, *args, **kwargs)
+
+    # --------------------------------------------------------------------------
 
     def __repr__(self):
         return '%s(compiler=%r, lib_linker=%r, exe_linker=%r)' % (
@@ -382,6 +405,7 @@ class Builder(c.Builder):
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_static(exe=None, *args,
         config_gcc=config_gcc,
         make_compiler=make_compiler,
@@ -393,19 +417,19 @@ def config_static(exe=None, *args,
         lib_prefix='lib', lib_suffix='.a',
         exe_suffix='',
         **kwargs):
-    gcc = env.cache(config_gcc, exe)
+    gcc = config_gcc(exe)
 
     builder = Builder(
-        compiler=env.cache(make_compiler, gcc,
+        compiler=make_compiler(gcc,
             flags=compile_flags,
             suffix=obj_suffix,
             **kwargs),
-        lib_linker=env.cache('fbuild.builders.ar.config',
+        lib_linker=fbuild.builders.ar.config(
             libs=libs,
             libpaths=libpaths,
             prefix=lib_prefix,
             suffix=lib_suffix),
-        exe_linker=env.cache(make_linker, gcc,
+        exe_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
             prefix='',
@@ -418,6 +442,7 @@ def config_static(exe=None, *args,
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_shared(exe=None, *args,
         config_gcc=config_gcc,
         make_compiler=make_compiler,
@@ -430,20 +455,20 @@ def config_shared(exe=None, *args,
         lib_prefix='lib', lib_suffix='.so',
         exe_suffix='',
         **kwargs):
-    gcc = env.cache(config_gcc, exe)
+    gcc = config_gcc(exe)
 
     builder = Builder(
-        compiler=env.cache(make_compiler, gcc,
+        compiler=make_compiler(gcc,
             flags=compile_flags,
             suffix=obj_suffix,
             **kwargs),
-        lib_linker=env.cache(make_linker, gcc,
+        lib_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
             prefix=lib_prefix,
             suffix=lib_suffix,
             flags=lib_link_flags),
-        exe_linker=env.cache(make_linker, gcc,
+        exe_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
             prefix='',
@@ -456,7 +481,8 @@ def config_shared(exe=None, *args,
 
 # ------------------------------------------------------------------------------
 
-def config_builtin_expect(builder):
+@fbuild.db.caches
+def config_builtin_expect(db, builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
@@ -464,7 +490,8 @@ def config_builtin_expect(builder):
         }
     ''', 'checking if supports builtin expect')
 
-def config_named_registers_x86(builder):
+@fbuild.db.caches
+def config_named_registers_x86(db, builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
@@ -475,7 +502,8 @@ def config_named_registers_x86(builder):
         }
     ''', 'checking if supports x86 named registers')
 
-def config_named_registers_x86_64(builder):
+@fbuild.db.caches
+def config_named_registers_x86_64(db, builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
@@ -486,7 +514,8 @@ def config_named_registers_x86_64(builder):
         }
     ''', 'checking if supports x86_64 named registers')
 
-def config_computed_gotos(builder):
+@fbuild.db.caches
+def config_computed_gotos(db, builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -498,7 +527,8 @@ def config_computed_gotos(builder):
         }
     ''', 'checking if supports computed gotos')
 
-def config_asm_labels(builder):
+@fbuild.db.caches
+def config_asm_labels(db, builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -513,12 +543,12 @@ def config_asm_labels(builder):
         }
     ''', 'checking if supports asm labels')
 
-def config_extensions(builder):
+@fbuild.db.caches
+def config_extensions(db, builder):
     return Record(
-        builtin_expect=env.cache(config_builtin_expect, builder),
-        named_registers_x86=env.cache(config_named_registers_x86, builder),
-        named_registers_x86_64=env.cache(
-            config_named_registers_x86_64, builder),
-        computed_gotos=env.cache(config_computed_gotos, builder),
-        asm_labels=env.cache(config_asm_labels, builder),
+        builtin_expect=config_builtin_expect(db, builder),
+        named_registers_x86=config_named_registers_x86(db, builder),
+        named_registers_x86_64=config_named_registers_x86_64(db, builder),
+        computed_gotos=config_computed_gotos(db, builder),
+        asm_labels=config_asm_labels(db, builder),
     )

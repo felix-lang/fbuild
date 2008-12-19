@@ -1,16 +1,19 @@
-from fbuild import ConfigFailed, env
-from fbuild.record import Record
+import fbuild
+import fbuild.builders.platform
+import fbuild.functools
+import fbuild.record
 
 # -----------------------------------------------------------------------------
 
-def guess_config(name, functions, *args, platform=None, **kwargs):
-    platform = env.cache('fbuild.builders.platform.config', platform)
+def guess_config(name, functions, db, *args, platform=None, **kwargs):
+    platform = fbuild.builders.platform.config(db, platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
-            return env.cache(function, *args, **kwargs)
+            return fbuild.functools.call(function, db, *args, **kwargs)
 
-    raise ConfigFailed('cannot find a %s builder for %s' % (name, platform))
+    raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
+        (name, platform))
 
 # -----------------------------------------------------------------------------
 
@@ -29,7 +32,7 @@ def config_shared(*args, **kwargs):
     ], *args, **kwargs)
 
 def config(*args, **kwargs):
-    return Record(
-        static=env.cache(config_static, *args, **kwargs),
-        shared=env.cache(config_shared, *args, **kwargs),
+    return fbuild.record.Record(
+        static=config_static(*args, **kwargs),
+        shared=config_shared(*args, **kwargs),
     )

@@ -1,6 +1,7 @@
 from functools import partial
 
 import fbuild
+import fbuild.db
 import fbuild.temp
 import fbuild.builders
 from fbuild import ConfigFailed, ExecutionError, execute, logger
@@ -21,10 +22,9 @@ class MissingHeader(ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def build_objects(self, srcs, **kwargs):
-        'Compile all of the passed in L{srcs} in parallel.'
-
-        srcs = list(Path.globall(srcs))
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.srcs, **kwargs) -> fbuild.db.dsts:
+        """Compile all of the passed in L{srcs} in parallel."""
         return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 
     # -------------------------------------------------------------------------
@@ -129,10 +129,11 @@ def check_builder(builder):
             print('  return 0;', file=f)
             print('}', file=f)
 
-        obj = builder.compile(src_lib, quieter=1)
-        lib = builder.link_lib(dirname / 'temp', [obj], quieter=1)
-        obj = builder.compile(src_exe, quieter=1)
-        exe = builder.link_exe(dirname / 'temp', [obj], libs=[lib], quieter=1)
+        obj = builder.uncached_compile(src_lib, quieter=1)
+        lib = builder.uncached_link_lib(dirname / 'temp', [obj], quieter=1)
+        obj = builder.uncached_compile(src_exe, quieter=1)
+        exe = builder.uncached_link_exe(dirname / 'temp', [obj], libs=[lib],
+                quieter=1)
 
         try:
             stdout, stderr = execute([exe], quieter=1)
