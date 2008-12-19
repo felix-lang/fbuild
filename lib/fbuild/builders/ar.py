@@ -7,7 +7,7 @@ from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
-class Linker:
+class Linker(fbuild.db.PersistentObject):
     def __init__(self, ar, ranlib, flags=(), *, prefix, suffix,
             libpaths=(),
             libs=(),
@@ -21,14 +21,15 @@ class Linker:
         self.flags = tuple(flags)
         self.ranlib_flags = tuple(ranlib_flags)
 
-    def __call__(self, dst, srcs, *,
+    @fbuild.db.cachemethod
+    def __call__(self, dst, srcs:fbuild.db.srcs, *,
             libs=(),
             flags=(),
             ranlib_flags=(),
             prefix=None,
             suffix=None,
             buildroot=None,
-            **kwargs):
+            **kwargs) -> fbuild.db.dst:
         buildroot = buildroot or fbuild.buildroot
         #libs = set(libs)
         #libs.update(self.libs)
@@ -110,6 +111,7 @@ class Linker:
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config(ar=None, ranlib=None, *,
         prefix='lib',
         suffix='.a',
