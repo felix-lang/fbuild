@@ -399,21 +399,20 @@ class Path(str):
     # --------------------------------------------------------------------------
     # os-specific functions
 
-    if 'posix' in sys.builtin_module_names:
-        chflags = os.chflags
-        chroot = os.chroot
-        chown = os.chown
-        lchflags = os.lchflags
-        lchmod = os.lchmod
-        lchown = os.lchown
-        link = os.link
-        mkfifo = os.mkfifo
-        readlink = os.readlink
-        statvfs = os.statvfs
-        samefile = os.path.samefile
-        symlink = os.symlink
+    if hasattr(os, 'chflags'):       chflags = os.chflags
+    if hasattr(os, 'chown'):         chown = os.chown
+    if hasattr(os, 'chroot'):        chroot = os.chroot
+    if hasattr(os, 'lchflags'):      lchflags = os.lchflags
+    if hasattr(os, 'lchmod'):        lchmod = os.lchmod
+    if hasattr(os, 'lchown'):        lchown = os.lchown
+    if hasattr(os, 'link'):          link = os.link
+    if hasattr(os, 'mkfifo'):        mkfifo = os.mkfifo
+    if hasattr(os, 'readlink'):      readlink = os.readlink
+    if hasattr(os, 'statvfs'):       statvfs = os.statvfs
+    if hasattr(os, 'symlink'):       symlink = os.symlink
+    if hasattr(os.path, 'samefile'): samefile = os.path.samefile
 
-    elif 'nt' in sys.builtin_module_names:
+    if hasattr(os.path, 'splitunc'):
         def splitunc(self):
             """Split a pathname into UNC mount point and relative path
             specifiers.
