@@ -1,8 +1,10 @@
+import fbuild.db
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def _config_function(builder, function):
     record = Record()
 

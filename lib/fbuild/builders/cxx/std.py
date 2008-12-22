@@ -1,5 +1,6 @@
 import fbuild.builders.c.std as c_std
-from fbuild import ConfigFailed, env
+import fbuild.db
+from fbuild import ConfigFailed
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
@@ -15,6 +16,7 @@ default_types = default_types_int + default_types_float + default_types_misc
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_types(builder):
     return c_std.config_types(builder,
         types_int=default_types_int,
@@ -23,6 +25,7 @@ def config_types(builder):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_compiler_bugs(builder):
     """
     Test for common c++ bugs.
@@ -43,12 +46,12 @@ def config_compiler_bugs(builder):
 
 def config_headers(builder):
     return Record(
-        stddef_h=env.cache(c_std.config_stddef_h, builder),
+        stddef_h=c_std.config_stddef_h(builder),
     )
 
 def config(builder):
     return Record(
-        types=env.cache(config_types, builder),
-        headers=env.cache(config_headers, builder),
-        bugs=env.cache(config_compiler_bugs, builder),
+        types=config_types(builder),
+        headers=config_headers(builder),
+        bugs=config_compiler_bugs(builder),
     )

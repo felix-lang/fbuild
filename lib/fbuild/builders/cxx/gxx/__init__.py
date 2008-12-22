@@ -60,12 +60,12 @@ def config_ext_hash_map(builder):
 
     return Record(hash_map=hash_map)
 
-def config_ext_headers(db, builder):
+def config_ext_headers(builder):
     return Record(
-        hash_map=config_ext_hash_map(db, builder),
+        hash_map=config_ext_hash_map(builder),
     )
 
-def config_extensions(db, builder):
+def config_extensions(builder):
     return Record(
-        headers=config_ext_headers(db, builder),
+        headers=config_ext_headers(builder),
     )
