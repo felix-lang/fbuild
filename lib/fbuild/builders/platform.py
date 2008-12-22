@@ -1,8 +1,11 @@
 import os
 
-from fbuild import ConfigFailed, ExecutionError, env, execute, logger
+import fbuild
+import fbuild.db
 
-class UnknownPlatform(ConfigFailed):
+# ------------------------------------------------------------------------------
+
+class UnknownPlatform(fbuild.ConfigFailed):
     def __init__(self, platform=None):
         self.platform = platform
 
@@ -39,12 +42,17 @@ archmap = {
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config(platform=None):
-    logger.check('determining platform')
+    """L{platform} returns a platform set that describes the various features
+    of the specified I{architecture}. If I{architecture} is I{None}, try to
+    determine which platform the system is and return that value. If the
+    platform cannot be determined, return I{None}."""
+    fbuild.logger.check('determining platform')
     if platform is None:
         try:
-            stdout, stderr = execute(('uname', '-s'), quieter=1)
-        except ExecutionError:
+            stdout, stderr = fbuild.execute(('uname', '-s'), quieter=1)
+        except fbuild.ExecutionError:
             platform = os.name
         else:
             platform = stdout.decode('utf-8').strip().lower()
@@ -52,9 +60,9 @@ def config(platform=None):
     try:
         platform = archmap[platform]
     except KeyError:
-        logger.failed()
+        fbuild.logger.failed()
         raise UnknownPlatform(platform)
     else:
-        logger.passed(platform)
+        fbuild.logger.passed(platform)
 
     return platform
