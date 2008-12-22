@@ -11,7 +11,7 @@ class TestFunctionBind(unittest.TestCase):
         def f():
             pass
 
-        self.assertEquals(normalize_args(f, (), {}), {})
+        self.assertEquals(normalize_args(f, (), {}), ((), {}))
 
         self.assertRaises(TypeError, normalize_args, f, (1,), {})
         self.assertRaises(TypeError, normalize_args, f, (),   {'x':1})

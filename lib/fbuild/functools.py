@@ -69,7 +69,7 @@ def normalize_args(function, args, kwargs):
                     function.__name__,
                     len(args) + len(kwargs)))
         else:
-            return {}
+            return (), {}
 
     bound_args = []
     bound_kwargs = {}
