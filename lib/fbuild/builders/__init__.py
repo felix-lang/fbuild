@@ -1,3 +1,4 @@
+import abc
 import os
 
 import fbuild
@@ -20,7 +21,7 @@ class MissingProgram(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def find_program(db, names, paths=None):
+def find_program(names, paths=None):
     """L{find_program} is a test that searches the paths for one of the
     programs in I{name}.  If one is found, it is returned.  If not, the next
     name in the list is searched for."""
@@ -43,18 +44,17 @@ def find_program(db, names, paths=None):
 
 # ------------------------------------------------------------------------------
 
-class AbstractCompilerBuilder:
+class AbstractCompiler(fbuild.db.PersistentObject):
     def __init__(self, *, src_suffix):
         self.src_suffix = src_suffix
 
+    @abc.abstractmethod
     def compile(self, *args, **kwargs):
-        raise NotImplementedError
+        pass
 
-    def link_lib(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def link_exe(self, *args, **kwargs):
-        raise NotImplementedError
+    @abc.abstractmethod
+    def uncached_compile(self, *args, **kwargs):
+        pass
 
     # --------------------------------------------------------------------------
 
@@ -64,49 +64,11 @@ class AbstractCompilerBuilder:
     def try_compile(self, code='', *, quieter=1, **kwargs):
         with self.tempfile(code) as src:
             try:
-                self.compile(src, quieter=quieter, **kwargs)
+                self.uncached_compile(src, quieter=quieter, **kwargs)
             except fbuild.ExecutionError:
                 return False
             else:
                 return True
-
-    def try_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
-        with self.tempfile(code) as src:
-            dst = src.parent / 'temp'
-            try:
-                obj = self.compile(src, quieter=quieter, **ckwargs)
-                self.link_lib(dst, [obj], quieter=quieter, **lkwargs)
-            except fbuild.ExecutionError:
-                return False
-            else:
-                return True
-
-    def try_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
-        with self.tempfile(code) as src:
-            dst = src.parent / 'temp'
-            try:
-                obj = self.compile(src, quieter=quieter, **ckwargs)
-                self.link_exe(dst, [obj], quieter=quieter, **lkwargs)
-            except fbuild.ExecutionError:
-                return False
-            else:
-                return True
-
-    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={},
-            **kwargs):
-        with self.tempfile(code) as src:
-            dst = src.parent / 'temp'
-            obj = self.compile(src, quieter=quieter, **ckwargs)
-            exe = self.link_exe(dst, [obj], quieter=quieter, **lkwargs)
-            return fbuild.execute([exe], quieter=quieter, **kwargs)
-
-    def try_run(self, code='', quieter=1, **kwargs):
-        try:
-            self.tempfile_run(code, quieter=quieter, **kwargs)
-        except fbuild.ExecutionError:
-            return False
-        else:
-            return True
 
     def check_compile(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
@@ -117,6 +79,30 @@ class AbstractCompilerBuilder:
             fbuild.logger.failed()
             return False
 
+# ------------------------------------------------------------------------------
+
+class AbstractLibLinker(AbstractCompiler):
+    @abc.abstractmethod
+    def link_lib(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def uncached_link_lib(self, *args, **kwargs):
+        pass
+
+    # --------------------------------------------------------------------------
+
+    def try_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+        with self.tempfile(code) as src:
+            dst = src.parent / 'temp'
+            try:
+                obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
+                self.uncached_link_lib(dst, [obj], quieter=quieter, **lkwargs)
+            except fbuild.ExecutionError:
+                return False
+            else:
+                return True
+
     def check_link_lib(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
         if self.try_link_lib(code, *args, **kwargs):
@@ -125,6 +111,54 @@ class AbstractCompilerBuilder:
         else:
             fbuild.logger.failed()
             return False
+
+# ------------------------------------------------------------------------------
+
+class AbstractRunner(fbuild.db.PersistentObject):
+    @abc.abstractmethod
+    def tempfile_run(self, *args, **kwargs):
+        pass
+
+    def try_run(self, code='', quieter=1, **kwargs):
+        try:
+            self.tempfile_run(code, quieter=quieter, **kwargs)
+        except fbuild.ExecutionError:
+            return False
+        else:
+            return True
+
+    def check_run(self, code, msg, *args, **kwargs):
+        fbuild.logger.check(msg)
+        if self.try_run(code, *args, **kwargs):
+            fbuild.logger.passed()
+            return True
+        else:
+            fbuild.logger.failed()
+            return False
+
+# ------------------------------------------------------------------------------
+
+class AbstractExeLinker(AbstractCompiler, AbstractRunner):
+    @abc.abstractmethod
+    def link_exe(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def uncached_link_exe(self, *args, **kwargs):
+        pass
+
+    # --------------------------------------------------------------------------
+
+    def try_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+        with self.tempfile(code) as src:
+            dst = src.parent / 'temp'
+            try:
+                obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
+                self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
+            except fbuild.ExecutionError:
+                return False
+            else:
+                return True
 
     def check_link_exe(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
@@ -135,11 +169,15 @@ class AbstractCompilerBuilder:
             fbuild.logger.failed()
             return False
 
-    def check_run(self, code, msg, *args, **kwargs):
-        fbuild.logger.check(msg)
-        if self.try_run(code, *args, **kwargs):
-            fbuild.logger.passed()
-            return True
-        else:
-            fbuild.logger.failed()
-            return False
+    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={},
+            **kwargs):
+        with self.tempfile(code) as src:
+            dst = src.parent / 'temp'
+            obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
+            exe = self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
+            return fbuild.execute([exe], quieter=quieter, **kwargs)
+
+# ------------------------------------------------------------------------------
+
+class AbstractCompilerBuilder(AbstractLibLinker, AbstractExeLinker):
+    pass
