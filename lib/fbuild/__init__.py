@@ -110,8 +110,3 @@ def execute(cmd,
         raise ExecutionError(cmd, stdout, stderr, returncode)
 
     return stdout, stderr
-
-# ------------------------------------------------------------------------------
-
-import fbuild.environment
-env = fbuild.environment.Environment()
