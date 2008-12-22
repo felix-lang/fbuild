@@ -11,7 +11,7 @@ class ConfigFailed(Error):
     pass
 
 class ExecutionError(Error):
-    def __init__(self, cmd, stdout, stderr, returncode):
+    def __init__(self, cmd='', stdout='', stderr='', returncode=-1):
         self.cmd = cmd
         self.stdout = stdout
         self.stderr = stderr
