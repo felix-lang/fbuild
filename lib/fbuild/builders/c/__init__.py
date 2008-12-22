@@ -21,17 +21,6 @@ class MissingHeader(ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def compile(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def link_lib(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def link_exe(self, *args, **kwargs):
-        raise NotImplementedError
-
-    # -------------------------------------------------------------------------
-
     def build_objects(self, srcs, **kwargs):
         'Compile all of the passed in L{srcs} in parallel.'
 
