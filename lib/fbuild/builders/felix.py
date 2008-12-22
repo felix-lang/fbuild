@@ -1,8 +1,9 @@
 import fbuild
-from fbuild import ConfigFailed, ExecutionError, env, execute, logger
+import fbuild.db
+from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
-from fbuild.builders import AbstractCompilerBuilder, find_program
+from fbuild.builders import AbstractCompiler, find_program
 
 # ------------------------------------------------------------------------------
 
@@ -56,6 +57,7 @@ class Flx:
         return isinstance(other, Flx) and \
             self.exe == other.exe
 
+@fbuild.db.caches
 def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
     exe = exe or find_program(default_exes)
 
@@ -71,7 +73,7 @@ def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
 
 # ------------------------------------------------------------------------------
 
-class Felix(AbstractCompilerBuilder):
+class Felix(AbstractCompiler):
     def __init__(self, flx, *, exe_suffix, lib_suffix,
             static=False,
             includes=[],
@@ -85,12 +87,19 @@ class Felix(AbstractCompilerBuilder):
         self.includes = includes
         self.flags = flags
 
-    def compile(self, src, *,
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.src, *args, **kwargs) -> fbuild.db.dst:
+        """Compile a felix file and cache the results."""
+        return self.uncached_compile(src, *args, **kwargs)
+
+    def uncached_compile(self, src, *,
             static=None,
             includes=[],
             flags=[],
             buildroot=None,
             **kwargs):
+        """Compile a felix file without caching the results.  This is needed
+        when compiling temporary files."""
         buildroot = buildroot or fbuild.buildroot
         src_buildroot = src.addroot(buildroot)
 
@@ -126,8 +135,17 @@ class Felix(AbstractCompilerBuilder):
         return dst
 
     def run(self, src, *args, **kwargs):
-        src = src.replace_suffixes({self.exe_suffix: '', self.lib_suffix: ''})
+        src = src.replaceexts({self.exe_suffix: '', self.lib_suffix: ''})
         return self.flx(src, *args, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    def tempfile_run(self, code='', *, quieter=1, **kwargs):
+        with self.tempfile(code) as src:
+            exe = self.uncached_compile(src, quieter=quieter, **ckwargs)
+            return self.run(exe, quieter=quieter, **kwargs)
+
+    # --------------------------------------------------------------------------
 
     def __eq__(self, other):
         return isinstance(other, Felix) and \
@@ -136,7 +154,11 @@ class Felix(AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-def config(exe=None, *, flags=[], exe_suffix='', lib_suffix='.dylib', **kwargs):
-    flx = env.cache(config_flx, exe, flags=flags)
+def config(exe=None, *,
+        flags=[],
+        exe_suffix='',
+        lib_suffix='.dylib',
+        **kwargs):
+    flx = config_flx(exe, flags=flags)
 
     return Felix(flx, exe_suffix=exe_suffix, lib_suffix=lib_suffix)
