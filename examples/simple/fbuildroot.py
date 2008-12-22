@@ -1,8 +1,14 @@
 from optparse import make_option
 import pprint
 
+import fbuild.db
 import fbuild.builders.c.c99 as c99
-from fbuild import ConfigFailed, env, execute, logger
+import fbuild.builders.c.guess
+import fbuild.builders.cxx.guess
+import fbuild.builders.platform
+import fbuild.builders.ocaml
+
+from fbuild import ConfigFailed, execute, logger
 from fbuild.path import Path
 from fbuild.record import Record
 
@@ -60,17 +66,17 @@ cxx_optional_tests = [
 
 def run_tests(tests, *args, **kwargs):
     for test in tests:
-        env.cache(test, *args, **kwargs)
+        fbuild.functools.call(test, *args, **kwargs)
 
 def run_optional_tests(tests, *args, **kwargs):
     for test in tests:
         try:
-            env.cache(test, *args, **kwargs)
+            fbuild.functools.call(test, *args, **kwargs)
         except ConfigFailed:
             pass
 
 def make_c_builder(**kwargs):
-    c = env.cache('fbuild.builders.c.guess.config', **kwargs)
+    c = fbuild.builders.c.guess.config(**kwargs)
 
     run_tests(c_tests, c.static)
     run_optional_tests(c_optional_tests, c.static)
@@ -79,7 +85,7 @@ def make_c_builder(**kwargs):
     return c
 
 def make_cxx_builder(**kwargs):
-    cxx = env.cache('fbuild.builders.cxx.guess.config', **kwargs)
+    cxx = fbuild.builders.cxx.guess.config(**kwargs)
 
     run_tests(cxx_tests, cxx.static)
     run_optional_tests(c_optional_tests, cxx.static)
@@ -88,20 +94,22 @@ def make_cxx_builder(**kwargs):
 
     return cxx
 
+@fbuild.db.caches
 def config_build(*, platform, cc, cxx):
     logger.log('configuring build phase', color='cyan')
 
     return Record(
-        platform=env.cache('fbuild.builders.platform.config', platform),
+        platform=fbuild.builders.platform.config(platform),
         c=make_c_builder(exe=cc),
         cxx=make_cxx_builder(exe=cxx),
     )
 
+@fbuild.db.caches
 def config_host(build, *,
         platform, cc, cxx, ocamlc, ocamlopt, ocamllex, ocamlyacc):
     logger.log('configuring host phase', color='cyan')
 
-    platform = env.cache('fbuild.builders.platform.config', platform)
+    platform = fbuild.builders.platform.config(platform)
 
     if platform == build.platform:
         logger.log("using build's c and cxx compiler")
@@ -112,7 +120,7 @@ def config_host(build, *,
             c=make_c_builder(exe=cc),
             cxx=make_cxx_builder(exe=cxx))
 
-    phase.ocaml = env.cache('fbuild.builders.ocaml.config',
+    phase.ocaml = fbuild.builders.ocaml.config(
         ocamlc=ocamlc,
         ocamlopt=ocamlopt,
         ocamllex=ocamllex,
@@ -120,10 +128,11 @@ def config_host(build, *,
 
     return phase
 
+@fbuild.db.caches
 def config_target(host, *, platform, cc, cxx):
     logger.log('configuring target phase', color='cyan')
 
-    platform = env.cache('fbuild.builders.platform.config', platform)
+    platform = fbuild.builders.platform.config(platform)
 
     if platform == host.platform:
         logger.log("using host's c and cxx compiler")
@@ -142,12 +151,12 @@ def build():
     from fbuild import options
 
     # configure the phases
-    build = env.cache(config_build,
+    build = config_build(
         platform=options.build_platform,
         cc=options.build_cc,
         cxx=options.build_cxx)
 
-    host = env.cache(config_host, build,
+    host = config_host(build,
         platform=options.host_platform,
         cc=options.host_cc,
         cxx=options.host_cxx,
@@ -156,7 +165,7 @@ def build():
         ocamllex=options.ocamllex,
         ocamlyacc=options.ocamlyacc)
 
-    target = env.cache(config_target, host,
+    target = config_target(host,
         platform=options.target_platform,
         cc=options.target_cc,
         cxx=options.target_cxx)
