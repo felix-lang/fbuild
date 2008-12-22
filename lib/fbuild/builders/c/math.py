@@ -1,9 +1,10 @@
-from fbuild import env
+import fbuild.db
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def _config_functions(builder, *functions):
     record = Record()
 
@@ -18,16 +19,16 @@ def _config_functions(builder, *functions):
 
     return record
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # bsd functions
 
 def config_finite(builder):
     return _config_functions(builder, 'finite', 'finitef', 'finitel')
 
 def config_bsd(builder):
-    return env.cache(config_finite, builder)
+    return config_finite(builder)
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # c99 classification macros
 
 def config_fpclassify(builder):
@@ -50,23 +51,23 @@ def config_signbit(builder):
 
 def config_c99(builder):
     record = Record()
-    record.update(env.cache(config_fpclassify, builder))
-    record.update(env.cache(config_isfinite, builder))
-    record.update(env.cache(config_isinf, builder))
-    record.update(env.cache(config_isnan, builder))
-    record.update(env.cache(config_isnormal, builder))
-    record.update(env.cache(config_signbit, builder))
+    record.update(config_fpclassify(builder))
+    record.update(config_isfinite(builder))
+    record.update(config_isinf(builder))
+    record.update(config_isnan(builder))
+    record.update(config_isnormal(builder))
+    record.update(config_signbit(builder))
 
     return record
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def config(builder):
     if not builder.check_header_exists('math.h'):
         raise MissingHeader('math.h')
 
     record = Record()
-    record.update(env.cache(config_bsd, builder))
-    record.update(env.cache(config_c99, builder))
+    record.update(config_bsd(builder))
+    record.update(config_c99(builder))
 
     return record

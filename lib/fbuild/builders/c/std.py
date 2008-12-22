@@ -1,6 +1,7 @@
 from itertools import chain
 
-from fbuild import ConfigFailed, ExecutionError, env, logger
+import fbuild.db
+from fbuild import ConfigFailed, ExecutionError, logger
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
@@ -114,6 +115,7 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_types(builder,
         types_int=default_types_int,
         types_float=default_types_float,
@@ -125,6 +127,7 @@ def config_types(builder,
 
     return types
 
+@fbuild.db.caches
 def config_int_type_conversions(builder, types_int=default_types_int):
     pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
@@ -138,6 +141,7 @@ def config_int_type_conversions(builder, types_int=default_types_int):
     logger.passed()
     return int_type_conversions
 
+@fbuild.db.caches
 def config_stddef_h(builder):
     if not builder.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
@@ -146,26 +150,26 @@ def config_stddef_h(builder):
     return Record(types=types)
 
 def config_headers(builder):
-    return Record(stddef_h=env.cache(config_stddef_h, builder))
+    return Record(stddef_h=config_stddef_h(builder))
 
 def config(builder):
     return Record(
-        types=env.cache(config_types, builder),
-        int_type_conversions=env.cache(config_int_type_conversions, builder),
-        headers=env.cache(config_headers, builder))
+        types=config_types(builder),
+        int_type_conversions=config_int_type_conversions(builder),
+        headers=config_headers(builder))
 
 # -----------------------------------------------------------------------------
 
 def types_int(builder):
-    types = env.cache(config_types, builder)
+    types = config_types(builder)
     return (t for t in default_types_int if t in types)
 
 def types_float(builder):
-    types = env.cache(config_types, builder)
+    types = config_types(builder)
     return (t for t in default_types_float if t in types)
 
 def type_aliases_int(builder):
-    types = env.cache(config_types, builder)
+    types = config_types(builder)
     d = {}
     for t in types_int(builder):
         data = types[t]
@@ -174,7 +178,7 @@ def type_aliases_int(builder):
     return d
 
 def type_aliases_float(builder):
-    types = env.cache(config_types, builder)
+    types = config_types(builder)
     d = {}
     for t in types_float(builder):
         data = types[t]
@@ -183,7 +187,7 @@ def type_aliases_float(builder):
     return d
 
 def type_conversions_int(builder):
-    aliases = env.cache(type_aliases_int, builder)
-    int_type_conversions = env.cache(config_int_type_conversions, builder)
+    aliases = type_aliases_int(builder)
+    int_type_conversions = config_int_type_conversions(builder)
     return {type_pair: aliases[size_signed]
         for type_pair, size_signed in int_type_conversions.items()}

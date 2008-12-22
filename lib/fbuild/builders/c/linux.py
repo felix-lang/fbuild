@@ -1,9 +1,10 @@
-from fbuild import env
+import fbuild.db
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_sys_epoll_h(builder):
     if not builder.check_header_exists('sys/epoll.h'):
         raise MissingHeader('sys/epoll.h')
@@ -24,11 +25,11 @@ def config_sys_epoll_h(builder):
 def config_headers(builder):
     return Record(
         sys=Record(
-            epoll_h=env.cache(config_sys_epoll_h, builder),
+            epoll_h=config_sys_epoll_h(builder),
         ),
     )
 
 def config(builder):
     return Record(
-        headers=env.cache(config_headers, builder),
+        headers=config_headers(builder),
     )

@@ -5,12 +5,12 @@ import fbuild.record
 
 # -----------------------------------------------------------------------------
 
-def guess_config(name, functions, db, *args, platform=None, **kwargs):
-    platform = fbuild.builders.platform.config(db, platform)
+def guess_config(name, functions, *args, platform=None, **kwargs):
+    platform = fbuild.builders.platform.config(platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
-            return fbuild.functools.call(function, db, *args, **kwargs)
+            return fbuild.functools.call(function, *args, **kwargs)
 
     raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
         (name, platform))

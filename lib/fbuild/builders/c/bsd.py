@@ -1,9 +1,10 @@
-from fbuild import env
+import fbuild.db
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_sys_event_h(builder):
     if not builder.check_header_exists('sys/event.h'):
         raise MissingHeader('sys/event.h')
@@ -26,11 +27,11 @@ def config_sys_event_h(builder):
 def config_headers(builder):
     return Record(
         sys=Record(
-            event_h=env.cache(config_sys_event_h, builder),
+            event_h=config_sys_event_h(builder),
         ),
     )
 
 def config(builder):
     return Record(
-        headers=env.cache(config_headers, builder),
+        headers=config_headers(builder),
     )

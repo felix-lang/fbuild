@@ -1,9 +1,12 @@
-from fbuild import ConfigFailed, env, logger
+import fbuild.builders.c.guess
+import fbuild.db
+from fbuild import ConfigFailed, logger
 from fbuild.record import Record
 from fbuild.builders.c import std, MissingHeader
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_dlfcn_h(builder, shared=None):
     '''
     Test for the posix dlfcn.h header, which provides for dynamically loading
@@ -19,7 +22,7 @@ def config_dlfcn_h(builder, shared=None):
         raise MissingHeader('dlfcn.h')
 
     if shared is None:
-        shared = env.cache('fbuild.builders.c.guess.config_shared')
+        shared = fbuild.builders.c.guess.config_shared()
 
     lib_code = '''
         #ifdef __cplusplus
@@ -56,6 +59,7 @@ def config_dlfcn_h(builder, shared=None):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_sys_mman_h(builder):
     '''
     Test for the posix sys/mman.h header, which provides memory mapped files.
@@ -81,6 +85,7 @@ def config_sys_mman_h(builder):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_poll_h(builder):
     '''
     Test for the posix poll.h header, which provides asynchronous io.
@@ -96,6 +101,7 @@ def config_poll_h(builder):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_pthread_h(builder):
     '''
     Test for the posix pthread.h header, which provides posix threads.
@@ -138,6 +144,7 @@ def config_pthread_h(builder):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_sys_socket_h(builder):
     '''
     Test for the posix sys/socket.h header, which provides network sockets.
@@ -183,6 +190,7 @@ default_types_unistd_h = (
     'uuid_t',
 )
 
+@fbuild.db.caches
 def config_unistd_h(builder):
     '''
     Test for the posix unistd.h header, which provides standard posix types.
@@ -209,13 +217,13 @@ def config_headers(builder, shared=None):
     '''
 
     return Record(
-        dlfcn_h=env.cache(config_dlfcn_h, builder, shared),
-        poll_h=env.cache(config_poll_h, builder),
-        pthread_h=env.cache(config_pthread_h, builder),
-        unistd_h=env.cache(config_unistd_h, builder),
+        dlfcn_h=config_dlfcn_h(builder, shared),
+        poll_h=config_poll_h(builder),
+        pthread_h=config_pthread_h(builder),
+        unistd_h=config_unistd_h(builder),
         sys=Record(
-            mman_h=env.cache(config_sys_mman_h, builder),
-            socket_h=env.cache(config_sys_socket_h, builder),
+            mman_h=config_sys_mman_h(builder),
+            socket_h=config_sys_socket_h(builder),
         ),
     )
 
@@ -228,7 +236,7 @@ def config(builder, shared=None):
     '''
 
     return Record(
-        headers=env.cache(config_headers, builder, shared),
+        headers=config_headers(builder, shared),
     )
 
 # -----------------------------------------------------------------------------

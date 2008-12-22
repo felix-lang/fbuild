@@ -482,7 +482,7 @@ def config_shared(exe=None, *args,
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_builtin_expect(db, builder):
+def config_builtin_expect(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             if(__builtin_expect(1,1));
@@ -491,7 +491,7 @@ def config_builtin_expect(db, builder):
     ''', 'checking if supports builtin expect')
 
 @fbuild.db.caches
-def config_named_registers_x86(db, builder):
+def config_named_registers_x86(builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("esp");
@@ -503,7 +503,7 @@ def config_named_registers_x86(db, builder):
     ''', 'checking if supports x86 named registers')
 
 @fbuild.db.caches
-def config_named_registers_x86_64(db, builder):
+def config_named_registers_x86_64(builder):
     return builder.check_compile('''
         #include <stdio.h>
         register void *sp __asm__ ("rsp");
@@ -515,7 +515,7 @@ def config_named_registers_x86_64(db, builder):
     ''', 'checking if supports x86_64 named registers')
 
 @fbuild.db.caches
-def config_computed_gotos(db, builder):
+def config_computed_gotos(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -528,7 +528,7 @@ def config_computed_gotos(db, builder):
     ''', 'checking if supports computed gotos')
 
 @fbuild.db.caches
-def config_asm_labels(db, builder):
+def config_asm_labels(builder):
     return builder.check_compile('''
         int main(int argc, char** argv) {
             void *label = &&label2;
@@ -544,11 +544,11 @@ def config_asm_labels(db, builder):
     ''', 'checking if supports asm labels')
 
 @fbuild.db.caches
-def config_extensions(db, builder):
+def config_extensions(builder):
     return Record(
-        builtin_expect=config_builtin_expect(db, builder),
-        named_registers_x86=config_named_registers_x86(db, builder),
-        named_registers_x86_64=config_named_registers_x86_64(db, builder),
-        computed_gotos=config_computed_gotos(db, builder),
-        asm_labels=config_asm_labels(db, builder),
+        builtin_expect=config_builtin_expect(builder),
+        named_registers_x86=config_named_registers_x86(builder),
+        named_registers_x86_64=config_named_registers_x86_64(builder),
+        computed_gotos=config_computed_gotos(builder),
+        asm_labels=config_asm_labels(builder),
     )

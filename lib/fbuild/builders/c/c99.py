@@ -1,4 +1,4 @@
-from fbuild import env
+import fbuild.db
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader, std
 
@@ -26,9 +26,11 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_types(builder):
     return std.get_types_data(builder, default_types)
 
+@fbuild.db.caches
 def config_complex_h(builder):
     if not builder.check_header_exists('complex.h'):
         raise c.MissingHeader('complex.h')
@@ -37,6 +39,7 @@ def config_complex_h(builder):
         types=std.get_types_data(builder, default_types_complex_h,
             headers=['complex.h']))
 
+@fbuild.db.caches
 def config_stdbool_h(builder):
     if not builder.check_header_exists('stdbool.h'):
         raise c.MissingHeader('stdbool.h')
@@ -45,6 +48,7 @@ def config_stdbool_h(builder):
         types=std.get_types_data(builder, default_types_stdbool_h,
             headers=['stdbool.h']))
 
+@fbuild.db.caches
 def config_stdint_h(builder):
     if not builder.check_header_exists('stdint.h'):
         raise c.MissingHeader('stdint.h')
@@ -55,6 +59,7 @@ def config_stdint_h(builder):
 
 # -----------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_stdio_h(builder):
     snprintf = builder.check_run('''
         #include <stdio.h>
@@ -90,32 +95,33 @@ def config_stdio_h(builder):
 
 def config_headers(builder):
     return Record(
-        complex_h=env.cache(config_complex_h, builder),
-        stdbool_h=env.cache(config_stdbool_h, builder),
-        stdint_h=env.cache(config_stdint_h, builder),
-        stdio_h=env.cache(config_stdio_h, builder),
+        complex_h=config_complex_h(builder),
+        stdbool_h=config_stdbool_h(builder),
+        stdint_h=config_stdint_h(builder),
+        stdio_h=config_stdio_h(builder),
     )
 
 def config(builder):
     return Record(
-        types=env.cache(config_types, builder),
-        headers=env.cache(config_headers, builder),
+        types=config_types(builder),
+        headers=config_headers(builder),
     )
 
 # -----------------------------------------------------------------------------
 
 def types(builder):
-    types = env.cache(config_types, builder)
+    types = config_types(builder)
     return (t for t in default_types if t in types)
 
 def types_stdbool_h(builder):
-    types = env.cache(config_stdbool_h, builder).types
+    types = config_stdbool_h(builder).types
     return (t for t in default_types_stdbool_h if t in types)
 
 def types_stdint_h(builder):
-    types = env.cache(config_stdint_h, builder).types
+    types = config_stdint_h(builder).types
     return (t for t in default_types_stdint_h if t in types)
 
+@fbuild.db.caches
 def type_aliases_stdint_h(builder):
     try:
         return {t:t for t in types_stdint_h(builder)}

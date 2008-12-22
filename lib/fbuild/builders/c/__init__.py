@@ -175,6 +175,7 @@ def check_compiler(compiler, suffix):
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def config_little_endian(builder):
     code = '''
         #include <stdio.h>
