@@ -100,6 +100,20 @@ class Database:
         with function_lock:
             return self._call(function_name, function, args, kwargs)
 
+    def clear_function(self, function):
+        """Remove the function name from the database."""
+        # This is a simple wrapper in order to grab the lock.
+        with self._lock:
+            return self._clear_function(function)
+
+    def clear_file(self, filename):
+        """Remove the file from the database."""
+        # This is a simple wrapper in order to grab the lock.
+        with self._lock:
+            return self._clear_file(filename)
+
+    # --------------------------------------------------------------------------
+
     def _call(self, function_name, function, args, kwargs):
         # Make sure none of the arguments are a generator.
         for arg in itertools.chain(args, kwargs.values()):
@@ -225,15 +239,32 @@ class Database:
         if digest == old_digest:
             return False
 
-        # The function changed, so update the table with the new digest.
+        # Since the function changed, clear out all the related data.
+        self.clear_function(name)
+
+        # Update the table with the new digest.
         self._functions[name] = digest
 
-        # Since the function changed, all of this function's calls are dirty,
-        # so delete them.
+        return True
+
+    def _clear_function(self, name):
+        """Actually clear the function from the database."""
+        function_existed = False
+        try:
+            del self._functions[name]
+        except KeyError:
+            pass
+        else:
+            function_existed |= True
+
+        # Since the function was removed, all of this function's
+        # calls are dirty, so delete them.
         try:
             del self._function_calls[name]
         except KeyError:
             pass
+        else:
+            function_existed |= True
 
         # Since _call_files is indexed by filename, we need to search through
         # each item and delete any references to this function. The assumption
@@ -245,6 +276,9 @@ class Database:
                 del value[name]
             except KeyError:
                 pass
+            else:
+                function_existed |= True
+
             if not value:
                 remove_keys.append(key)
 
@@ -254,8 +288,12 @@ class Database:
                 del self._call_files[key]
             except KeyError:
                 pass
+            else:
+                function_existed = True
 
-        return True
+        return function_existed
+
+    # --------------------------------------------------------------------------
 
     def _add_call(self, function, bound):
         """Insert functon call information. Returns True if the function was
@@ -335,22 +373,43 @@ class Database:
         # The mtime changed, but maybe the content didn't.
         digest = fbuild.path.Path.digest(filename)
 
-        # Before we continue, update the table with the new mtime and digest.
-        data = self._files[filename] = (mtime, digest)
-
         # If the file's contents didn't change, just return.
         if digest == old_digest:
+            # The timestamp did change, so update the row.
+            self._files[filename] = (mtime, old_digest)
             return False, data
 
         # Since the function changed, all of the calls that used this function
         # are dirty.
+        self.clear_file(filename)
+
+        # Now, add the file back to the database.
+        data = self._files[filename] = (mtime, digest)
+
+        # Returns True since the file changed.
+        return True, data
+
+    # --------------------------------------------------------------------------
+
+    def _clear_file(self, filename):
+        """Actually clear the file from the database."""
+        file_existed = False
+        try:
+            del self._files[filename]
+        except KeyError:
+            pass
+        else:
+            file_existed |= True
+
+        # And clear all of the related call files.
         try:
             del self._call_files[filename]
         except KeyError:
             pass
+        else:
+            file_existed |= True
 
-        # Returns True if the file changed.
-        return True, data
+        return file_existed
 
 # Instantiate a global instance
 database = Database()

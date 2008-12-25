@@ -58,16 +58,16 @@ def main(argv=None):
             action='store',
             default='fbuild.log',
             help='the name of the log file (default fbuild.log)'),
-        make_option('--config-dump',
+        make_option('--dump-state',
             action='store_true',
             default=False,
-            help='print the config database'),
-        make_option('--config-query',
+            help='print the state database'),
+        make_option('--clear-function',
             action='store',
-            help='query the config database'),
-        make_option('--config-remove',
+            help='clear cached data for the specified function'),
+        make_option('--clear-file',
             action='store',
-            help='delete a key in the config'),
+            help='clear cached data for the specified file'),
     ])
 
     # -------------------------------------------------------------------------
@@ -130,37 +130,23 @@ def main(argv=None):
     # -------------------------------------------------------------------------
 
     try:
-        # check if we're viewing or manipulating the config
-        if options.config_dump:
-            # print out the entire config
+        # check if we're viewing or manipulating the state
+        if options.dump_state:
+            # print out the entire state
             pprint.pprint(fbuild.db.database.__dict__)
             return 0
 
-        if options.config_query:
-            # print out just a subset of the configuration
-            d = fbuild.db.database.__dict__
-            try:
-                for key in options.config_query.split():
-                    d = d[key]
-            except KeyError:
-                raise fbuild.Error(
-                    'missing config value for %s' % options.config_query)
-            else:
-                pprint.pprint(d)
-                return 0
+        if options.clear_function:
+            if not fbuild.db.database.clear_function(options.clear_function):
+                raise fbuild.Error('function %r not cached' %
+                        options.clear_function)
+            return 0
 
-        if options.config_remove:
-            keys = options.config_remove.split()
-            d = fbuild.db.database.__dict__
-            try:
-                for key in keys[:-1]:
-                    d = d[key]
-                del d[keys[-1]]
-                return 0
-            except KeyError:
-                raise fbuild.Error(
-                    'missing config value for %s' % options.config_remove)
-                return 1
+        if options.clear_file:
+            if not fbuild.db.database.clear_file(options.clear_file):
+                raise fbuild.Error('file %r not cached' % options.clear_file)
+
+            return 0
 
         # ---------------------------------------------------------------------
         # finally, do the build
