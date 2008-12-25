@@ -25,6 +25,15 @@ class ExecutionError(Error):
 
         return 'Error running %r exited with %d' % (cmd, self.returncode)
 
+class ExecutionTimedOut(ExecutionError):
+    def __str__(self):
+        if isinstance(self.cmd, str):
+            cmd = self.cmd
+        else:
+            cmd = ' '.join(self.cmd)
+
+        return 'Timed out running %r exited with %d' % (cmd, self.returncode)
+
 # ------------------------------------------------------------------------------
 
 import fbuild.console
@@ -63,6 +72,15 @@ def execute(cmd,
                 color=color,
                 verbose=quieter)
 
+    # Define a function that gets called if execution times out. We will
+    # raise an exception if the timeout occurs.
+    if timeout:
+        timed_out = False
+        def timeout_function(p):
+            nonlocal timed_out
+            timed_out = True
+            p.kill()
+
     starttime = time.time()
     try:
         p = subprocess.Popen(cmd,
@@ -72,7 +90,7 @@ def execute(cmd,
             **kwargs)
 
         if timeout:
-            timer = threading.Timer(timeout, p.kill)
+            timer = threading.Timer(timeout, timeout_function, (p,))
             timer.start()
 
         stdout, stderr = p.communicate(input)
@@ -106,7 +124,9 @@ def execute(cmd,
         ' - exit %d, %.2f sec' % (returncode, endtime - starttime),
         verbose=2)
 
-    if returncode:
+    if timeout and timed_out:
+        raise ExecutionTimedOut(cmd, stdout, stderr, returncode)
+    elif returncode:
         raise ExecutionError(cmd, stdout, stderr, returncode)
 
     return stdout, stderr
