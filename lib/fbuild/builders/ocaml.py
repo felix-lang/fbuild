@@ -279,7 +279,7 @@ class Builder(AbstractCompilerBuilder):
 
         return fbuild.scheduler.map_with_dependencies(
             partial(self.ocamldep, includes=includes),
-            partial(self.compile, includes=includes, **kwargs),
+            partial(self.uncached_compile, includes=includes, **kwargs),
             srcs)
 
     def _build_link(self, function, dst, srcs, *,
@@ -311,13 +311,23 @@ class Builder(AbstractCompilerBuilder):
             flags=lflags,
             **lkwargs)
 
-    def build_lib(self, *args, **kwargs):
+    @fbuild.db.cachemethod
+    def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into a library."""
-        return self._build_link(self.link_lib, *args, **kwargs)
+        return self._build_link(self.link_lib, dst, srcs, *args,
+            libs=libs,
+            **kwargs)
 
-    def build_exe(self, *args, **kwargs):
+    @fbuild.db.cachemethod
+    def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into an executable."""
-        return self._build_link(self.link_exe, *args, **kwargs)
+        return self._build_link(self.link_exe, dst, srcs, *args,
+            libs=libs,
+            **kwargs)
 
     # -------------------------------------------------------------------------
 
@@ -569,6 +579,22 @@ class BothBuilders(AbstractCompilerBuilder):
             self.native.uncached_link_exe)
 
     # --------------------------------------------------------------------------
+
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.SRCS, *,
+            includes=(),
+            **kwargs) -> fbuild.db.DSTS:
+        """Compile all the L{srcs} in parallel."""
+        includes = set(includes)
+        for src in srcs:
+            if src.parent:
+                includes.add(src.parent)
+                includes.add(src.parent.addroot(fbuild.buildroot))
+
+        return fbuild.scheduler.map_with_dependencies(
+            parital(self.ocamldep, includes=includes),
+            partial(self.uncached_compile, includes=includes, **kwargs),
+            srcs)
 
     def build_lib(self, *args, **kwargs):
         """Compile and link ocaml source files into a bytecode and native

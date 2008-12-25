@@ -1,4 +1,5 @@
 from functools import partial
+from itertools import chain
 
 import fbuild
 import fbuild.db
@@ -25,7 +26,46 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
         """Compile all of the passed in L{srcs} in parallel."""
-        return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
+        return fbuild.scheduler.map(
+            partial(self.uncached_compile, **kwargs),
+            srcs)
+
+    def _build_link(self, function, dst, srcs, *,
+            includes=(),
+            macros=(),
+            cflags=(),
+            ckwargs={},
+            libs=(),
+            lflags=(),
+            lkwargs={}):
+        objs = self.build_objects(list(Path.globall(srcs)),
+            includes=includes,
+            macros=macros,
+            flags=cflags)
+
+        return function(dst, objs, libs=libs, flags=lflags, **lkwargs)
+
+    @fbuild.db.cachemethod
+    def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            external_libs=(),
+            **kwargs) -> fbuild.db.DST:
+        """Compile all of the passed in L{srcs} in parallel, then link them
+        into a library."""
+        return self._build_link(self.uncached_link_lib, dst, srcs, *args,
+            libs=tuple(chain(external_libs, libs)),
+            **kwargs)
+
+    @fbuild.db.cachemethod
+    def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            external_libs=(),
+            **kwargs) -> fbuild.db.DST:
+        """Compile all of the passed in L{srcs} in parallel, then link them
+        into an executable."""
+        return self._build_link(self.uncached_link_exe, dst, srcs, *args,
+            libs=tuple(chain(external_libs, libs)),
+            **kwargs)
 
     # -------------------------------------------------------------------------
 

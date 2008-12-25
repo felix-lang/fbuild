@@ -49,11 +49,15 @@ class AbstractCompiler(fbuild.db.PersistentObject):
         self.src_suffix = src_suffix
 
     @abc.abstractmethod
-    def compile(self, *args, **kwargs):
+    def compile(self, src, *args, **kwargs):
         pass
 
     @abc.abstractmethod
-    def uncached_compile(self, *args, **kwargs):
+    def uncached_compile(self, src, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def build_objects(self, srcs, *args, **kwargs):
         pass
 
     # --------------------------------------------------------------------------
@@ -88,6 +92,10 @@ class AbstractLibLinker(AbstractCompiler):
 
     @abc.abstractmethod
     def uncached_link_lib(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def build_lib(self, dst, srcs, *args, **kwargs):
         pass
 
     # --------------------------------------------------------------------------
@@ -145,6 +153,10 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
 
     @abc.abstractmethod
     def uncached_link_exe(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def build_exe(self, dst, srcs, *args, **kwargs):
         pass
 
     # --------------------------------------------------------------------------
