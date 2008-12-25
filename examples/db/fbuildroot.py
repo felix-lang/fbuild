@@ -9,7 +9,7 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def foo(src:fbuild.db.src, dst, *, buildroot=None) -> fbuild.db.dst:
+def foo(src:fbuild.db.SRC, dst, *, buildroot=None) -> fbuild.db.DST:
     dst = Path.addroot(dst, buildroot or fbuild.buildroot)
 
     fbuild.logger.log(' * foo: %s %s' % (src, dst), color='cyan')
@@ -57,7 +57,7 @@ class C(fbuild.db.PersistentObject):
         self.builder = builder
 
     @fbuild.db.cachemethod
-    def bar(self, src:fbuild.db.src, dst, *, buildroot=None) -> fbuild.db.dst:
+    def bar(self, src:fbuild.db.SRC, dst, *, buildroot=None) -> fbuild.db.DST:
         return self.builder(src, dst)
 
 # ------------------------------------------------------------------------------

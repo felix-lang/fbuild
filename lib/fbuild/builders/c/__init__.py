@@ -23,7 +23,7 @@ class MissingHeader(ConfigFailed):
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
     @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.srcs, **kwargs) -> fbuild.db.dsts:
+    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
         """Compile all of the passed in L{srcs} in parallel."""
         return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 

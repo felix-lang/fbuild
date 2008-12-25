@@ -7,8 +7,8 @@ import fbuild.db
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def format_substitute(dst, src:fbuild.db.src, patterns, *, buildroot=None) \
-        -> fbuild.db.dst:
+def format_substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
+        -> fbuild.db.DST:
     """L{format_substitute} replaces the I{patterns} in the file named I{src}
     and saves the changes into file named I{dst}. It uses python's format
     patterns for finding the insertion points."""
@@ -29,8 +29,8 @@ def format_substitute(dst, src:fbuild.db.src, patterns, *, buildroot=None) \
     return dst
 
 @fbuild.db.caches
-def m4_substitute(dst, src:fbuild.db.src, patterns, *, buildroot=None) \
-        -> fbuild.db.dst:
+def m4_substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
+        -> fbuild.db.DST:
     """L{m4_substitute} replaces the I{patterns} in the file named I{src} and
     saves the changes into file named I{dst}. It uses m4-style @word@ patterns
     for find the insertion points."""

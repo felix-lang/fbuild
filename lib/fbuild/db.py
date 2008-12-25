@@ -14,31 +14,31 @@ import fbuild.path
 
 # ------------------------------------------------------------------------------
 
-class src:
+class SRC:
     """An annotation that's used to designate an argument as a source path."""
     pass
 
-class srcs:
+class SRCS:
     """An annotation that's used to designate an argument as a list of source
     paths."""
     pass
 
-class dst:
+class DST:
     """An annotation that's used to designate an argument is a destination
     path."""
     pass
 
-class dsts:
+class DSTS:
     """An annotation that's used to designate an argument is a list of
     destination paths."""
     pass
 
-class optional_src:
+class OPTIONAL_SRC:
     """An annotation that's used to designate an argument as a source path or
     None."""
     pass
 
-class optional_dst:
+class OPTIONAL_DST:
     """An annotation that's used to designate an argument as a destination path
     or None."""
     pass
@@ -133,12 +133,12 @@ class Database:
         # Check if any of the files changed.
         filenames = []
         for akey, avalue in function.__annotations__.items():
-            if avalue is src:
+            if avalue is SRC:
                 filenames.append(bound[akey])
-            elif avalue is optional_src:
+            elif avalue is OPTIONAL_SRC:
                 if bound[akey] is not None:
                     filenames.append(bound[akey])
-            elif avalue is srcs:
+            elif avalue is SRCS:
                 filenames.extend(bound[akey])
 
         # Add the source files to the database.
@@ -161,12 +161,12 @@ class Database:
                 except KeyError:
                     pass
                 else:
-                    if return_annotation is dst:
+                    if return_annotation is DST:
                         filenames.append(old_result)
-                    elif return_annotation is optional_dst:
+                    elif return_annotation is OPTIONAL_DST:
                         if old_result is not None:
                             filenames.append(old_result)
-                    elif return_annotation is dsts:
+                    elif return_annotation is DSTS:
                         filenames.extend(old_result)
 
                     for filename in filenames:

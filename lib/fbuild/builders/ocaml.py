@@ -201,7 +201,7 @@ class Builder(AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.src, *args, **kwargs) -> fbuild.db.dst:
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
         """Compile an ocaml implementation or interface file and cache the
         results."""
         return self.uncached_compile(src, *args, **kwargs)
@@ -224,10 +224,10 @@ class Builder(AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def link_lib(self, dst, srcs:fbuild.db.srcs, *args,
-            libs:fbuild.db.srcs=(),
+    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
             external_libs=(),
-            **kwargs) -> fbuild.db.dst:
+            **kwargs) -> fbuild.db.DST:
         """Link compiled ocaml files into a library and cache the results."""
         return self.uncached_link_lib(dst, srcs, *args,
             libs=tuple(chain(external_libs, libs)),
@@ -241,10 +241,10 @@ class Builder(AbstractCompilerBuilder):
             pre_flags=['-a'], *args, **kwargs)
 
     @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:fbuild.db.srcs, *args,
-            libs:fbuild.db.srcs=(),
+    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
             external_libs=(),
-            **kwargs) -> fbuild.db.dst:
+            **kwargs) -> fbuild.db.DST:
         """Link compiled ocaml files into an executable and cache the
         results."""
         return self.uncached_link_exe(dst, srcs, *args,
@@ -267,9 +267,9 @@ class Builder(AbstractCompilerBuilder):
     # -------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.srcs, *,
+    def build_objects(self, srcs:fbuild.db.SRCS, *,
             includes=[],
-            **kwargs) -> fbuild.db.dsts:
+            **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
         includes = set(includes)
         for src in srcs:
@@ -421,9 +421,9 @@ class Ocamllex(fbuild.db.PersistentObject):
         self.flags = flags
 
     @fbuild.db.cachemethod
-    def __call__(self, src:fbuild.db.src, *,
+    def __call__(self, src:fbuild.db.SRC, *,
             flags=[],
-            buildroot=None) -> fbuild.db.dst:
+            buildroot=None) -> fbuild.db.DST:
         buildroot = buildroot or fbuild.buildroot
         dst = src.replaceext('.ml').addroot(buildroot)
         dst.parent.makedirs()
@@ -465,9 +465,9 @@ class Ocamlyacc(fbuild.db.PersistentObject):
         self.flags = flags
 
     @fbuild.db.cachemethod
-    def __call__(self, src:fbuild.db.src, *,
+    def __call__(self, src:fbuild.db.SRC, *,
             flags=[],
-            buildroot=None) -> fbuild.db.dsts:
+            buildroot=None) -> fbuild.db.DSTS:
         buildroot = buildroot or fbuild.buildroot
         # first, copy the src file into the buildroot
         src_buildroot = src.addroot(buildroot)

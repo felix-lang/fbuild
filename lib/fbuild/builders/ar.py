@@ -22,14 +22,14 @@ class Linker(fbuild.db.PersistentObject):
         self.ranlib_flags = tuple(ranlib_flags)
 
     @fbuild.db.cachemethod
-    def __call__(self, dst, srcs:fbuild.db.srcs, *,
+    def __call__(self, dst, srcs:fbuild.db.SRCS, *,
             libs=(),
             flags=(),
             ranlib_flags=(),
             prefix=None,
             suffix=None,
             buildroot=None,
-            **kwargs) -> fbuild.db.dst:
+            **kwargs) -> fbuild.db.DST:
         buildroot = buildroot or fbuild.buildroot
         #libs = set(libs)
         #libs.update(self.libs)

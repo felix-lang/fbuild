@@ -88,7 +88,7 @@ class Felix(AbstractCompiler):
         self.flags = flags
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.src, *args, **kwargs) -> fbuild.db.dst:
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
         """Compile a felix file and cache the results."""
         return self.uncached_compile(src, *args, **kwargs)
 

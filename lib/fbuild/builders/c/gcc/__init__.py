@@ -314,7 +314,7 @@ class Builder(c.Builder):
         return str(self.compiler)
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.src, *args, **kwargs) -> fbuild.db.dst:
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
         """Compile a c file and cache the results."""
         return self.uncached_compile(src, *args, **kwargs)
 
@@ -324,9 +324,9 @@ class Builder(c.Builder):
         return self.compiler(*args, **kwargs)
 
     @fbuild.db.cachemethod
-    def link_lib(self, dst, srcs:fbuild.db.srcs, *args,
-            libs:fbuild.db.srcs=(),
-            **kwargs) -> fbuild.db.dst:
+    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
         """Link compiled c files into a library and caches the results."""
         return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
 
@@ -336,9 +336,9 @@ class Builder(c.Builder):
         return self.lib_linker(*args, **kwargs)
 
     @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:fbuild.db.srcs, *args,
-            libs:fbuild.db.srcs=(),
-            **kwargs) -> fbuild.db.dst:
+    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
         """Link compiled c files into an executable without caching the
         results.  This is needed when linking temporary files."""
         return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
