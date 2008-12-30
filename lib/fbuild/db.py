@@ -95,6 +95,12 @@ class Database:
         values if any of the optionally specified "srcs" are also modified.
         Finally, if any of the filenames in "dsts" do not exist, re-run the
         function no matter what."""
+        return self.call_with_dependencies(function, args, kwargs)
+
+    def call_with_dependencies(self, function, args, kwargs, *,
+            srcs=(),
+            dsts=(),
+            return_type=None):
         if not fbuild.inspect.ismethod(function):
             function_name = function.__module__ + '.' + function.__name__
         else:
@@ -129,7 +135,10 @@ class Database:
                         threading.RLock()
 
         with function_lock:
-            return self._call(function_name, function, args, kwargs)
+            return self._cache(function_name, function, args, kwargs, bound,
+                srcs=srcs,
+                dsts=dsts,
+                return_type=return_type)
 
     def clear_function(self, function):
         """Remove the function name from the database."""
@@ -145,14 +154,14 @@ class Database:
 
     # --------------------------------------------------------------------------
 
-    def _call(self, function_name, function, args, kwargs):
+    def _cache(self, function_name, function, args, kwargs, bound, *,
+            srcs=(),
+            dsts=(),
+            return_type=None):
         # Make sure none of the arguments are a generator.
         for arg in itertools.chain(args, kwargs.values()):
             assert not fbuild.inspect.isgenerator(arg), \
                 "Cannot store generator in database"
-
-        # Bind the arguments so that we can look up normal args by name.
-        bound = fbuild.functools.bind_args(function, args, kwargs)
 
         # Check if the function changed.
         dirty = self._add_function(function, function_name)
@@ -162,8 +171,8 @@ class Database:
         dirty |= d
 
         # Add the source files to the database.
-        for filename in filenames:
-            dirty |= self._add_call_file(filename, function_name, call_id)
+        for src in srcs:
+            dirty |= self._add_call_file(src, function_name, call_id)
 
         # Check if we have a result. If not, then we're dirty.
         try:
@@ -224,7 +233,7 @@ class Database:
                 # source. If the function is a builtin, we will raise an
                 # exception.
                 src = fbuild.inspect.getsource(function)
-                digest = hashlib.md5(src.encode()).digest()
+                digest = hashlib.md5(src.encode()).hexdigest()
             else:
                 # The function is a functor so let it digest itself.
                 digest = hash(function)
@@ -327,6 +336,8 @@ class Database:
         datas.append((bound,))
         return True, len(datas) - 1
 
+    # --------------------------------------------------------------------------
+
     def _add_call_file(self, filename, function, call_id):
         """Insert or update file information for a call. Returns True if the
         file was actually inserted or updated."""
@@ -359,6 +370,8 @@ class Database:
             # The digest's different, so we're dirty.
             datas.setdefault(function, {})[call_id] = digest
             return True
+
+    # --------------------------------------------------------------------------
 
     def _add_file(self, filename):
         """Insert or update the file information. Returns True if the content
@@ -441,17 +454,36 @@ class PersistentObject(metaclass=PersistentMeta):
 
 # ------------------------------------------------------------------------------
 
-def caches(function):
+class caches:
     """L{caches} decorates a function and caches the results.  The first
     argument of the function must be an instance of L{database}."""
-    @functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        return database.call(function, *args, **kwargs)
-    return wrapper
 
-def cachemethod(method):
+    def __init__(self, function):
+        functools.update_wrapper(self, function)
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        return database.call(self.function, *args, **kwargs)
+
+    def call_with_dependencies(self, *args, **kwargs):
+        return database.call_with_dependencies(self.function, *args, **kwargs)
+
+class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results."""
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        return database.call(types.MethodType(method, self), *args, **kwargs)
-    return wrapper
+    def __init__(self, method):
+        self.method = method
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return cachemethod_wrapper(types.MethodType(self.method, instance))
+
+class cachemethod_wrapper:
+    def __init__(self, method):
+        self.method = method
+
+    def __call__(self, *args, **kwargs):
+        return database.call(self.method, *args, **kwargs)
+
+    def call_with_dependencies(self, *args, **kwargs):
+        return database.call_with_dependencies(self.method, *args, **kwargs)
