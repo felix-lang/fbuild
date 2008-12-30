@@ -266,11 +266,14 @@ class Builder(AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
-    @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.SRCS, *,
-            includes=[],
-            **kwargs) -> fbuild.db.DSTS:
+    def build_objects(self, srcs, *, includes=[], **kwargs):
         """Compile all the L{srcs} in parallel."""
+        # When a object has extra external dependencies, such as .cmx files
+        # depending on library changes, we need to add the dependencies in
+        # build_objects.  Unfortunately, the db doesn't know about these new
+        # files and so it can't tell when a function really needs to be rerun.
+        # So, we'll just not cache this function.
+        buildroot = buildroot or fbuild.buildroot
         includes = set(includes)
         for src in srcs:
             if src.parent:

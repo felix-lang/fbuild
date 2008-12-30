@@ -22,11 +22,15 @@ class MissingHeader(ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
+    def build_objects(self, srcs, **kwargs):
         """Compile all of the passed in L{srcs} in parallel."""
+        # When a object has extra external dependencies, such as .c files
+        # depending on .h changes, depending on library changes, we need to add
+        # the dependencies in build_objects.  Unfortunately, the db doesn't
+        # know about these new files and so it can't tell when a function
+        # really needs to be rerun.  So, we'll just not cache this function.
         return fbuild.scheduler.map(
-            partial(self.uncached_compile, **kwargs),
+            partial(self.compile, **kwargs),
             srcs)
 
     def _build_link(self, function, dst, srcs, *,
