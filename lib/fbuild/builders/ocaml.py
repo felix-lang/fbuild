@@ -23,11 +23,12 @@ class Ocamldep(fbuild.db.PersistentObject):
         self.module_flags = module_flags
 
     @fbuild.db.cachemethod
-    def process(self, src, *,
+    def run(self, src:fbuild.db.SRC, *,
             includes=[],
             flags=[],
-            buildroot=None):
+            buildroot=None) -> fbuild.db.DST:
         buildroot = buildroot or fbuild.buildroot
+        src = Path(src)
         dst = (src + '.depends').addroot(buildroot)
 
         # only run ocamldoc if the src file changes
@@ -56,30 +57,25 @@ class Ocamldep(fbuild.db.PersistentObject):
 
         return dst
 
-    @fbuild.db.cachemethod
-    def __call__(self, src, *args, **kwargs):
-        dst = self.process(src, *args, **kwargs)
+    def compiled_dependencies(self, src, *args, **kwargs):
+        dst = self.run(src, *args, **kwargs)
 
         # now, parse the output to determine the dependencies
-        extensions = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
         d = {}
         with open(dst) as f:
             # we need to join lines ending in "\" together
             for line in io.StringIO(f.read().replace('\\\n', '')):
                 name, *deps = line.split()
+                # strip off the trailing ':'
+                name = name[:-1]
+                d[Path.splitext(name)[1]] = [Path(p) for p in line.split()[1:]]
 
-                # strip off the ':'
-                name = Path(name[:-1]).replaceexts(extensions)
+        return d
 
-                d[name] = [Path.replaceexts(d, extensions) for d in deps]
-
-        # return each path that this src file depends on.
-        paths = []
-        for path in d.get(src, []):
-            if path not in paths:
-                paths.append(path)
-
-        return paths
+    def __call__(self, *args, **kwargs):
+        extensions = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
+        return sorted({p.replaceexts(extensions) for p in
+            chain(*self.compiled_dependencies(*args, **kwargs).values())})
 
     def __str__(self):
         return self.exe
