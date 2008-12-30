@@ -133,6 +133,7 @@ class Builder(AbstractCompilerBuilder):
     def _run(self, dst, srcs, *,
             includes=[],
             libs=[],
+            external_libs=[],
             pre_flags=[],
             flags=[],
             debug=False,
@@ -141,7 +142,7 @@ class Builder(AbstractCompilerBuilder):
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
-        libs = tuple(chain(self.libs, libs))
+        libs = tuple(chain(self.libs, external_libs, libs))
 
         # we need to make sure libraries are built first before we compile
         # the sources
@@ -221,15 +222,15 @@ class Builder(AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            external_libs=(),
+            libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
-        """Link compiled ocaml files into a library and cache the results."""
-        return self.uncached_link_lib(dst, srcs, *args,
-            libs=tuple(chain(external_libs, libs)),
-            **kwargs)
+        """Compile all the L{srcs} and link into a library."""
+        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
 
-    def uncached_link_lib(self, dst, *args, libs=(), **kwargs):
+    def uncached_link_lib(self, dst, *args,
+            libs=[],
+            external_libs=[],
+            **kwargs):
         """Link compiled ocaml files into a library without caching the
         results.  This is needed when linking temporary files."""
         # ignore passed in libraries
@@ -238,14 +239,10 @@ class Builder(AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            external_libs=(),
+            libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
-        """Link compiled ocaml files into an executable and cache the
-        results."""
-        return self.uncached_link_exe(dst, srcs, *args,
-            libs=tuple(chain(external_libs, libs)),
-            **kwargs)
+        """Compile all the L{srcs} and link into an executable."""
+        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
 
     def uncached_link_exe(self, dst, *args, **kwargs):
         """Link compiled ocaml files into an executable without caching the
@@ -312,7 +309,7 @@ class Builder(AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
+            libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into a library."""
         return self._build_link(self.link_lib, dst, srcs, *args,
@@ -321,7 +318,7 @@ class Builder(AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
+            libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into an executable."""
         return self._build_link(self.link_exe, dst, srcs, *args,
