@@ -260,7 +260,7 @@ class Builder(AbstractCompilerBuilder):
         """Actually link the sources."""
         # Filter out the .cmi files, such as when we're using ocamlyacc source
         # files.
-        srcs = list(Path.globall(srcs, exclude='*.cmi'))
+        srcs = [src for src in srcs if not src.endswith('.cmi')]
 
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
@@ -297,7 +297,7 @@ class Builder(AbstractCompilerBuilder):
             if isinstance(lib, Path):
                 includes.add(lib.parent)
 
-        objs = self.build_objects(list(Path.globall(srcs)),
+        objs = self.build_objects(srcs,
             includes=includes,
             flags=cflags,
             **ckwargs)

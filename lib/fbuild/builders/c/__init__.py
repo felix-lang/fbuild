@@ -6,7 +6,6 @@ import fbuild.db
 import fbuild.temp
 import fbuild.builders
 from fbuild import ConfigFailed, ExecutionError, execute, logger
-from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
@@ -38,7 +37,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             libs=(),
             lflags=(),
             lkwargs={}):
-        objs = self.build_objects(list(Path.globall(srcs)),
+        objs = self.build_objects(srcs,
             includes=includes,
             macros=macros,
             flags=cflags)

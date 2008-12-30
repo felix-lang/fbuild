@@ -202,7 +202,10 @@ class Path(str):
     getmtime = os.path.getmtime
     getsize = os.path.getsize
 
-    def glob(self, *, exclude=[]):
+    def glob(self, *args, **kwargs):
+        return list(Path.iglob(self, *args, **kwargs))
+
+    def iglob(self, *, exclude=[]):
         """Iterprets the path as a glob and yields all the matching files."""
         if isinstance(exclude, str):
             exclude = [exclude]
@@ -261,7 +264,7 @@ class Path(str):
                 if not d:
                     break
                 m.update(d)
-            return m.digest()
+            return m.hexdigest()
 
     mkdir = os.mkdir
     mknod = os.mknod
@@ -420,7 +423,11 @@ class Path(str):
         return Path(os.getcwd())
 
     @staticmethod
-    def globall(patterns, *args, **kwargs):
+    def globall(*args, **kwargs):
+        return list(Path.igloball(*args, **kwargs))
+
+    @staticmethod
+    def igloball(*patterns, **kwargs):
         """"Glob each of the "patterns" and yields the results. If an item in
         "patterns" is not a string, it is assumed to be iterable and each
         subitem is globbed and added to the list."""
@@ -428,9 +435,9 @@ class Path(str):
             if \
                     not isinstance(pattern, str) and \
                     isinstance(pattern, collections.Iterable):
-                paths = Path.globall(pattern)
+                paths = Path.igloball(*pattern)
             else:
-                paths = Path.glob(pattern, *args, **kwargs)
+                paths = Path.glob(pattern, **kwargs)
 
             for path in paths:
                 yield path
