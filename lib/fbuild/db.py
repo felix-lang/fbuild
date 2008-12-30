@@ -16,32 +16,48 @@ import fbuild.path
 
 class SRC:
     """An annotation that's used to designate an argument as a source path."""
-    pass
+    @staticmethod
+    def convert(src):
+        return [src]
 
-class SRCS:
+class SRCS(SRC):
     """An annotation that's used to designate an argument as a list of source
     paths."""
-    pass
+    @staticmethod
+    def convert(srcs):
+        return srcs
 
 class DST:
     """An annotation that's used to designate an argument is a destination
     path."""
-    pass
+    @staticmethod
+    def convert(dst):
+        return [dst]
 
-class DSTS:
+class DSTS(DST):
     """An annotation that's used to designate an argument is a list of
     destination paths."""
-    pass
+    @staticmethod
+    def convert(dsts):
+        return dsts
 
-class OPTIONAL_SRC:
+class OPTIONAL_SRC(SRC):
     """An annotation that's used to designate an argument as a source path or
     None."""
-    pass
+    @staticmethod
+    def convert(src):
+        if src is None:
+            return []
+        return [src]
 
-class OPTIONAL_DST:
+class OPTIONAL_DST(DST):
     """An annotation that's used to designate an argument as a destination path
     or None."""
-    pass
+    @staticmethod
+    def convert(dst):
+        if dst is None:
+            return []
+        return [dst]
 
 # ------------------------------------------------------------------------------
 
@@ -89,6 +105,21 @@ class Database:
             args = (function.__self__,) + args
             function = function.__func__
 
+        # Bind the arguments so that we can look up normal args by name.
+        bound = fbuild.functools.bind_args(function, args, kwargs)
+
+        # Check if any of the files changed.
+        return_type = None
+        srcs = list(srcs)
+        dsts = list(dsts)
+        for akey, avalue in function.__annotations__.items():
+            if akey == 'return':
+                return_type = avalue
+            elif issubclass(avalue, SRC):
+                srcs.extend(avalue.convert(bound[akey]))
+            elif issubclass(avalue, DST):
+                srcs.extend(avalue.convert(bound[akey]))
+
         # Get or create the function-level lock.
         with self._lock:
             try:
@@ -130,17 +161,6 @@ class Database:
         d, call_id = self._add_call(function_name, bound)
         dirty |= d
 
-        # Check if any of the files changed.
-        filenames = []
-        for akey, avalue in function.__annotations__.items():
-            if avalue is SRC:
-                filenames.append(bound[akey])
-            elif avalue is OPTIONAL_SRC:
-                if bound[akey] is not None:
-                    filenames.append(bound[akey])
-            elif avalue is SRCS:
-                filenames.extend(bound[akey])
-
         # Add the source files to the database.
         for filename in filenames:
             dirty |= self._add_call_file(filename, function_name, call_id)
@@ -155,24 +175,14 @@ class Database:
             if not isinstance(old_result, fbuild.Error):
                 # If the result is a dst filename, make sure it exists. If not,
                 # we're dirty.
-                filenames = []
-                try:
-                    return_annotation = function.__annotations__['return']
-                except KeyError:
-                    pass
-                else:
-                    if return_annotation is DST:
-                        filenames.append(old_result)
-                    elif return_annotation is OPTIONAL_DST:
-                        if old_result is not None:
-                            filenames.append(old_result)
-                    elif return_annotation is DSTS:
-                        filenames.extend(old_result)
+                dsts = list(dsts)
+                if isinstance(return_type, DST):
+                    dsts.extend(return_type.convert(old_result))
 
-                    for filename in filenames:
-                        if not fbuild.path.Path.exists(filename):
-                            dirty = True
-                            break
+                for dst in dsts:
+                    if not fbuild.path.Path.exists(dst):
+                        dirty = True
+                        break
 
             if not dirty:
                 # If the old_result was an exception, raise it.
