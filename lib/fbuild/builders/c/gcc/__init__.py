@@ -66,8 +66,7 @@ class Gcc:
     def __hash__(self):
         return hash((self.exe, self.flags))
 
-@fbuild.db.caches
-def config_gcc(exe=None, default_exes=['gcc', 'cc']):
+def make_gcc(exe=None, default_exes=['gcc', 'cc']):
     exe = exe or find_program(default_exes)
 
     if not exe:
@@ -230,7 +229,6 @@ class Linker:
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
-        srcs = list(Path.globall(srcs))
 
         assert srcs or libs, 'no sources passed into gcc'
 
@@ -374,7 +372,7 @@ class Builder(c.Builder):
 
 @fbuild.db.caches
 def config_static(exe=None, *args,
-        config_gcc=config_gcc,
+        make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c'],
@@ -384,7 +382,7 @@ def config_static(exe=None, *args,
         lib_prefix='lib', lib_suffix='.a',
         exe_suffix='',
         **kwargs):
-    gcc = config_gcc(exe)
+    gcc = make_gcc(exe)
 
     builder = Builder(
         compiler=make_compiler(gcc,
@@ -411,7 +409,7 @@ def config_static(exe=None, *args,
 
 @fbuild.db.caches
 def config_shared(exe=None, *args,
-        config_gcc=config_gcc,
+        make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
         compile_flags=['-c', '-fPIC'],
@@ -422,7 +420,7 @@ def config_shared(exe=None, *args,
         lib_prefix='lib', lib_suffix='.so',
         exe_suffix='',
         **kwargs):
-    gcc = config_gcc(exe)
+    gcc = make_gcc(exe)
 
     builder = Builder(
         compiler=make_compiler(gcc,

@@ -6,8 +6,7 @@ from fbuild.record import Record
 
 # ------------------------------------------------------------------------------
 
-@fbuild.db.caches
-def config_gxx(exe=None, default_exes=['g++', 'c++']):
+def make_gxx(exe=None, default_exes=['g++', 'c++']):
     exe = exe or find_program(default_exes)
 
     if not exe:
@@ -20,25 +19,25 @@ def config_gxx(exe=None, default_exes=['g++', 'c++']):
 
     return gxx
 
-def make_compiler(*args, make_gcc=config_gxx, **kwargs):
+def make_compiler(*args, make_gcc=make_gxx, **kwargs):
     return gcc.make_compiler(make_gcc=make_gcc, *args, **kwargs)
 
-def make_linker(*args, make_gcc=config_gxx, **kwargs):
+def make_linker(*args, make_gcc=make_gxx, **kwargs):
     return gcc.make_linker(make_gcc=make_gcc, *args, **kwargs)
 
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_static(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
+def config_static(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
     return gcc.config_static(
-        config_gcc=config_gxx,
+        make_gcc=make_gxx,
         src_suffix=src_suffix,
         *args, **kwargs)
 
 @fbuild.db.caches
-def config_shared(*args, config_gxx=config_gxx, src_suffix='.cc', **kwargs):
+def config_shared(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
     return gcc.config_shared(
-        config_gcc=config_gxx,
+        make_gcc=make_gxx,
         src_suffix=src_suffix,
         *args, **kwargs)
 
