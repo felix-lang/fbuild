@@ -363,6 +363,71 @@ class Builder(AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
+class BytecodeBuilder(Builder):
+    pass
+
+# ------------------------------------------------------------------------------
+
+NativeObject = collections.namedtuple('NativeObject', 'cmx obj')
+
+class NATIVE_SRCS(fbuild.db.SRC):
+    @staticmethod
+    def convert(srcs):
+        new_srcs = []
+        for src in srcs:
+            if isinstance(src, NativeObject):
+                new_srcs.append(src.cmx)
+                new_srcs.append(src.obj)
+            else:
+                new_srcs.append(src)
+
+        return new_srcs
+
+class NativeBuilder(Builder):
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DSTS:
+        """Compile an ocaml implementation or interface file and cache the
+        results."""
+        return self.uncached_compile(src, *args, **kwargs)
+
+    def uncached_compile(self, src:fbuild.db.SRC, *args,
+            **kwargs) -> fbuild.db.DSTS:
+        dst = super().uncached_compile(src, *args, **kwargs)
+        if dst.endswith('.cmi'):
+            return dst
+        return NativeObject(dst, dst.replaceext('.o'))
+
+    @fbuild.db.cachemethod
+    def link_lib(self, dst, srcs:NATIVE_SRCS, *args,
+            libs:NATIVE_SRCS=[],
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled ocaml files into a library and cache the results."""
+        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
+
+    @fbuild.db.cachemethod
+    def link_exe(self, dst, srcs:NATIVE_SRCS, *args,
+            libs:NATIVE_SRCS=[],
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled ocaml files into a library and cache the results."""
+        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
+
+    def _link(self, dst, srcs, *args, **kwargs):
+        # The native builder doesn't support custom
+        try:
+            del kwargs['custom']
+        except KeyError:
+            pass
+
+        new_srcs = []
+        for src in srcs:
+            if isinstance(src, NativeObject):
+                new_srcs.append(src.cmx)
+            else:
+                new_srcs.append(src)
+        return super()._link(dst, new_srcs, *args, **kwargs)
+
+# ------------------------------------------------------------------------------
+
 def check_builder(builder):
     logger.check('checking if ocaml can make objects')
     if builder.try_compile():
