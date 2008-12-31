@@ -13,9 +13,10 @@ parser.add_option('--clean',
 options, args = parser.parse_args()
 
 for d in 'c', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
-    if options.clean:
+    build_dir = os.path.join(d, 'build')
+    if options.clean and os.path.exists(build_dir):
         print('cleaning:', d)
-        shutil.rmtree(os.path.join(d, 'build'))
+        shutil.rmtree(build_dir)
 
     print('running example:', d)
     print()
