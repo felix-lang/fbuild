@@ -91,12 +91,6 @@ class Ocamldep(fbuild.db.PersistentObject):
             self.exe == other.exe and \
             self.module_flags == other.module_flags
 
-@fbuild.db.caches
-def config_ocamldep(exe=None, default_exes=['ocamldep.opt', 'ocamldep']):
-    exe = exe or find_program(default_exes)
-
-    return Ocamldep(exe)
-
 # ------------------------------------------------------------------------------
 
 class Builder(AbstractCompilerBuilder):
@@ -475,37 +469,6 @@ def check_builder(builder):
 
 # ------------------------------------------------------------------------------
 
-def make_builder(ocamldep, exe, default_exes, *args, **kwargs):
-    exe = exe or find_program(default_exes)
-    builder = Builder(ocamldep, exe, *args, **kwargs)
-    check_builder(builder)
-
-    return builder
-
-@fbuild.db.caches
-def config_bytecode(ocamldep,
-        exe=None,
-        default_exes=['ocamlc.opt', 'ocamlc'],
-        **kwargs):
-    return make_builder(ocamldep, exe, default_exes,
-        obj_suffix='.cmo',
-        lib_suffix='.cma',
-        exe_suffix='',
-        **kwargs)
-
-@fbuild.db.caches
-def config_native(ocamldep,
-        exe=None,
-        default_exes=['ocamlopt.opt', 'ocamlopt'],
-        **kwargs):
-    return make_builder(ocamldep, exe, default_exes,
-        obj_suffix='.cmx',
-        lib_suffix='.cmxa',
-        exe_suffix='',
-        **kwargs)
-
-# ------------------------------------------------------------------------------
-
 class Ocamllex(fbuild.db.PersistentObject):
     def __init__(self, exe, flags=[]):
         self.exe = exe
@@ -716,13 +679,28 @@ class BothBuilders(AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-def config_ocaml(*, ocamldep=None, ocamlc=None, ocamlopt=None):
-    ocamldep = config_ocamldep(ocamldep)
+@fbuild.db.caches
+def config_ocaml(*,
+        ocamldep=None,
+        default_ocamldep=['ocamldep.opt', 'ocamldep'],
+        ocamlc=None,
+        default_ocamlc=['ocamlc.opt', 'ocamlc'],
+        ocamlopt=None,
+        default_ocamlopt=['ocamlopt.opt', 'ocamlopt']):
+    ocamldep = Ocamldep(ocamldep or find_program(default_ocamldep))
+    bytecode = BytecodeBuilder(ocamldep, ocamlc or find_program(default_ocamlc),
+        obj_suffix='.cmo',
+        lib_suffix='.cma',
+        exe_suffix='')
+    native = NativeBuilder(ocamldep, ocamlopt or find_program(default_ocamlopt),
+        obj_suffix='.cmx',
+        lib_suffix='.cmxa',
+        exe_suffix='')
 
-    return BothBuilders(ocamldep,
-        config_bytecode(ocamldep, ocamlc),
-        config_native(ocamldep, ocamlopt),
-    )
+    check_builder(bytecode)
+    check_builder(native)
+
+    return BothBuilders(ocamldep, bytecode, native)
 
 def config(*, ocamllex=None, ocamlyacc=None, **kwargs):
     return Record(
