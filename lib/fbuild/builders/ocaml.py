@@ -596,21 +596,11 @@ class BothBuilders(AbstractCompilerBuilder):
 
     # --------------------------------------------------------------------------
 
-    @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.SRCS, *,
-            includes=(),
-            **kwargs) -> fbuild.db.DSTS:
+    def build_objects(self, srcs, *args, **kwargs):
         """Compile all the L{srcs} in parallel."""
-        includes = set(includes)
-        for src in srcs:
-            if src.parent:
-                includes.add(src.parent)
-                includes.add(src.parent.addroot(fbuild.buildroot))
-
-        return fbuild.scheduler.map_with_dependencies(
-            parital(self.ocamldep, includes=includes),
-            partial(self.uncached_compile, includes=includes, **kwargs),
-            srcs)
+        return \
+            self.bytecode.build_objects(srcs, *args, **kwargs) + \
+            self.native.build_objects(srcs, *args, **kwargs)
 
     def build_lib(self, *args, **kwargs):
         """Compile and link ocaml source files into a bytecode and native
