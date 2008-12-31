@@ -259,7 +259,7 @@ class Builder(AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
-    def build_objects(self, srcs, *, includes=[], **kwargs):
+    def build_objects(self, srcs, *, includes=[], buildroot=None, **kwargs):
         """Compile all the L{srcs} in parallel."""
         # When a object has extra external dependencies, such as .cmx files
         # depending on library changes, we need to add the dependencies in
@@ -268,14 +268,34 @@ class Builder(AbstractCompilerBuilder):
         # So, we'll just not cache this function.
         buildroot = buildroot or fbuild.buildroot
         includes = set(includes)
+        srcs = [Path(src) for src in srcs]
         for src in srcs:
-            if src.parent:
-                includes.add(src.parent)
-                includes.add(src.parent.addroot(fbuild.buildroot))
+            parent = src.parent
+            if parent:
+                includes.add(parent)
+                includes.add(parent.addroot(fbuild.buildroot))
+
+        kwargs['includes'] = includes
+        kwargs['buildroot'] = buildroot
+
+        def f(src):
+            dependencies = self.ocamldep.compiled_dependencies(src,
+                includes=includes)
+
+            if src.endswith('.mli'):
+                deps = dependencies.get('.cmi', ())
+            else:
+                deps = dependencies.get(self.obj_suffix, ())
+
+            # make sure we're looking in the buildroot.
+            deps = tuple(p.addroot(buildroot) for p in deps)
+
+            return self.compile.call_with_dependencies((src,), kwargs,
+                srcs=deps)
 
         return fbuild.scheduler.map_with_dependencies(
             partial(self.ocamldep, includes=includes),
-            partial(self.uncached_compile, includes=includes, **kwargs),
+            f,
             srcs)
 
     def _build_link(self, function, dst, srcs, *,
