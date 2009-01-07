@@ -1,3 +1,5 @@
+from functools import partial
+
 import fbuild
 import fbuild.db
 from fbuild import ConfigFailed, ExecutionError, execute, logger
@@ -133,6 +135,9 @@ class Felix(AbstractCompiler):
             **kwargs)
 
         return dst
+
+    def build_objects(self, srcs, **kwargs):
+        return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 
     def run(self, src, *args, **kwargs):
         src = src.replaceexts({self.exe_suffix: '', self.lib_suffix: ''})
