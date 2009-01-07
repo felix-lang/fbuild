@@ -1,5 +1,10 @@
+"""
+Implement builders for the ocaml programming language.
+
+This builder is compatible with ocaml 3.10 and above.
+"""
+
 import collections
-import io
 from functools import partial
 from itertools import chain
 
@@ -14,68 +19,69 @@ from fbuild.builders import find_program, AbstractCompilerBuilder
 # ------------------------------------------------------------------------------
 
 class Ocamldep(fbuild.db.PersistentObject):
-    '''
-    Use ocamldoc to generate dependencies for ocaml files.
-    '''
+    """Use ocamldoc to generate dependencies for ocaml files."""
 
     def __init__(self, exe, module_flags=[]):
         self.exe = exe
         self.module_flags = module_flags
 
     @fbuild.db.cachemethod
-    def run(self, src:fbuild.db.SRC, *,
-            includes=[],
-            flags=[],
-            buildroot=None) -> fbuild.db.DST:
-        buildroot = buildroot or fbuild.buildroot
+    def modules(self, src:fbuild.db.SRC, *, flags=[]):
+        """Calculate the modules this ocaml file depends on."""
         src = Path(src)
-        dst = (src + '.depends').addroot(buildroot)
 
-        # only run ocamldoc if the src file changes
-        if dst.isdirty(src):
-            dst.parent.makedirs()
+        cmd = [self.exe, '-modules']
+        cmd.extend(self.module_flags)
+        cmd.extend(flags)
+        cmd.append(src)
 
-            cmd = [self.exe]
-            cmd.extend(self.module_flags)
+        fbuild.logger.check(' * ' + self.exe, src, color='yellow')
+        stdout, stderr = execute(cmd, quieter=1)
 
-            includes = set(includes)
-            includes.add(src.parent)
-            includes.add(dst.parent)
+        # Parse the output and return the module dependencies.
+        return stdout.decode().replace('\\\n', '').split(':')[1].split()
 
-            for i in sorted(includes):
-                i = Path(i)
-                if i.exists():
-                    cmd.extend(('-I', i))
+    def source_dependencies(self, src, *args, includes=(), **kwargs):
+        """Compute the source files this ocaml file depends on."""
+        deps = []
 
-            cmd.extend(flags)
-            cmd.append(src)
+        def f(module, include):
+            found = False
+            for suffix in '.mli', '.ml':
+                path = Path(module[0].lower() + module[1:] + suffix)
+                if include is not None: path = include / path
 
-            with open(dst, 'w') as f:
-                execute(cmd, self.exe, '%s -> %s' % (src, dst),
-                    stdout=f,
-                    color='yellow')
+                if path.exists():
+                    found = True
+                    deps.append(path)
+            return found
 
-        return dst
+        for module in self.modules(src, *args, **kwargs):
+            if not f(module, None):
+                for include in chain(includes):
+                    f(module, include)
 
-    def compiled_dependencies(self, src, *args, **kwargs):
-        dst = self.run(src, *args, **kwargs)
+        if src.endswith('.ml'):
+            mli = Path(src).replaceext('.mli')
+            if mli.exists():
+                deps.append(mli)
 
-        # now, parse the output to determine the dependencies
-        d = {}
-        with open(dst) as f:
-            # we need to join lines ending in "\" together
-            for line in io.StringIO(f.read().replace('\\\n', '')):
-                name, *deps = line.split()
-                # strip off the trailing ':'
-                name = name[:-1]
-                d[Path.splitext(name)[1]] = [Path(p) for p in line.split()[1:]]
+        return deps
 
-        return d
+    def all_source_dependencies(self, src, *args, includes=(), **kwargs):
+        """Recursively compute all the source files this ocaml file depends
+        on."""
+        deps = set()
+        def add(src):
+            for dep in self.source_dependencies(src, *args,
+                    includes=includes,
+                    **kwargs):
+                add(dep)
+                deps.add(dep)
 
-    def __call__(self, *args, **kwargs):
-        extensions = {'.cmo': '.ml', '.cmx': '.ml', '.cmi': '.mli'}
-        return sorted({p.replaceexts(extensions) for p in
-            chain(*self.compiled_dependencies(*args, **kwargs).values())})
+        add(src)
+
+        return sorted(deps)
 
     def __str__(self):
         return self.exe
@@ -272,24 +278,9 @@ class Builder(AbstractCompilerBuilder):
         kwargs['includes'] = includes
         kwargs['buildroot'] = buildroot
 
-        def f(src):
-            dependencies = self.ocamldep.compiled_dependencies(src,
-                includes=includes)
-
-            if src.endswith('.mli'):
-                deps = dependencies.get('.cmi', ())
-            else:
-                deps = dependencies.get(self.obj_suffix, ())
-
-            # make sure we're looking in the buildroot.
-            deps = tuple(p.addroot(buildroot) for p in deps)
-
-            return self.compile.call_with_dependencies((src,), kwargs,
-                srcs=deps)
-
         return fbuild.scheduler.map_with_dependencies(
-            partial(self.ocamldep, includes=includes),
-            f,
+            partial(self.ocamldep.source_dependencies, includes=includes),
+            partial(self.compile, includes=includes),
             srcs)
 
     def _build_link(self, function, dst, srcs, *,
@@ -360,63 +351,67 @@ class BytecodeBuilder(Builder):
 
 # ------------------------------------------------------------------------------
 
-NativeObject = collections.namedtuple('NativeObject', 'cmx obj')
-
-class NATIVE_SRCS(fbuild.db.SRC):
-    @staticmethod
-    def convert(srcs):
-        new_srcs = []
-        for src in srcs:
-            if isinstance(src, NativeObject):
-                new_srcs.append(src.cmx)
-                new_srcs.append(src.obj)
-            else:
-                new_srcs.append(src)
-
-        return new_srcs
-
 class NativeBuilder(Builder):
-    @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DSTS:
+    def __init__(self, ocamldep, ocamlopt, bytecode, *args,
+            native_obj_suffix='.o',
+            native_lib_suffix='.a',
+            **kwargs):
+        super().__init__(ocamldep, ocamlopt, *args, **kwargs)
+
+        # We need the bytecode compiler to compile .mli files.
+        self.bytecode = bytecode
+        self.native_obj_suffix = native_obj_suffix
+        self.native_lib_suffix = native_lib_suffix
+
+    def compile(self, src, *args, **kwargs):
         """Compile an ocaml implementation or interface file and cache the
         results."""
-        return self.uncached_compile(src, *args, **kwargs)
+        # If the src is an interface file, use the bytecode compiler to create
+        # the .cmi file.
+        if src.endswith('.mli'):
+            return self.bytecode.compile(src, *args, **kwargs)
 
-    def uncached_compile(self, src:fbuild.db.SRC, *args,
-            **kwargs) -> fbuild.db.DSTS:
-        dst = super().uncached_compile(src, *args, **kwargs)
-        if dst.endswith('.cmi'):
-            return dst
-        return NativeObject(dst, dst.replaceext('.o'))
+        # Since ocamlopt can inline code from other .cmx files, we need to make
+        # sure we'll recompile if any of the source files we depend on change.
+        includes = kwargs.get('includes', ())
+        deps = self.ocamldep.all_source_dependencies(src, includes=includes)
+        return super().compile.call_with_dependencies((src,) + args, kwargs,
+            srcs=deps)
 
-    @fbuild.db.cachemethod
-    def link_lib(self, dst, srcs:NATIVE_SRCS, *args,
-            libs:NATIVE_SRCS=[],
-            **kwargs) -> fbuild.db.DST:
+    def uncached_compile(self, src, *args, **kwargs):
+        # If the src is an interface file, use the bytecode compiler to create
+        # the .cmi file.
+        if src.endswith('.mli'):
+            return self.bytecode.uncached_compile(src, *args, **kwargs)
+        return super().uncached_compile(src, *args, **kwargs)
+
+    def link_lib(self, dst, srcs, *args, **kwargs):
         """Link compiled ocaml files into a library and cache the results."""
-        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
+        libs = kwargs.get('libs', ())
+        deps = list(libs)
+        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs)
+        deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
+        return super().link_lib.call_with_dependencies(
+            (dst, srcs) + args, kwargs, srcs=deps)
 
-    @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:NATIVE_SRCS, *args,
-            libs:NATIVE_SRCS=[],
-            **kwargs) -> fbuild.db.DST:
+    def link_exe(self, dst, srcs, *args, **kwargs):
         """Link compiled ocaml files into a library and cache the results."""
-        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
+        libs = kwargs.get('libs', ())
+        deps = list(libs)
+        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs)
+        deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
+        return super().link_exe.call_with_dependencies(
+            (dst, srcs) + args, kwargs, srcs=deps)
 
-    def _link(self, dst, srcs, *args, **kwargs):
-        # The native builder doesn't support custom
-        try:
-            del kwargs['custom']
-        except KeyError:
-            pass
+    def build_lib(self, *args, **kwargs):
+        libs = kwargs.get('libs', ())
+        deps = [lib.replaceext(self.native_lib_suffix) for lib in libs]
+        return super().build_lib.call_with_dependencies(args, kwargs, srcs=deps)
 
-        new_srcs = []
-        for src in srcs:
-            if isinstance(src, NativeObject):
-                new_srcs.append(src.cmx)
-            else:
-                new_srcs.append(src)
-        return super()._link(dst, new_srcs, *args, **kwargs)
+    def build_exe(self, *args, **kwargs):
+        libs = kwargs.get('libs', ())
+        deps = [lib.replaceext(self.native_lib_suffix) for lib in libs]
+        return super().build_exe.call_with_dependencies(args, kwargs, srcs=deps)
 
 # ------------------------------------------------------------------------------
 
@@ -682,12 +677,15 @@ def config_ocaml(*,
         default_ocamlc=['ocamlc.opt', 'ocamlc'],
         ocamlopt=None,
         default_ocamlopt=['ocamlopt.opt', 'ocamlopt']):
+    ocamlc = ocamlc or find_program(default_ocamlc)
+    ocamlopt = ocamlopt or find_program(default_ocamlopt)
+
     ocamldep = Ocamldep(ocamldep or find_program(default_ocamldep))
-    bytecode = BytecodeBuilder(ocamldep, ocamlc or find_program(default_ocamlc),
+    bytecode = BytecodeBuilder(ocamldep, ocamlc,
         obj_suffix='.cmo',
         lib_suffix='.cma',
         exe_suffix='')
-    native = NativeBuilder(ocamldep, ocamlopt or find_program(default_ocamlopt),
+    native = NativeBuilder(ocamldep, ocamlopt, bytecode,
         obj_suffix='.cmx',
         lib_suffix='.cmxa',
         exe_suffix='')
