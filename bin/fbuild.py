@@ -60,6 +60,11 @@ def main(argv=None):
             action='store_true',
             default=False,
             help='print the state database'),
+        make_option('--clean',
+            dest='clean_buildroot',
+            action='store_true',
+            default=False,
+            help='clean the build directory'),
         make_option('--clear-function',
             action='store',
             help='clear cached data for the specified function'),
@@ -102,6 +107,17 @@ def main(argv=None):
     # convert the option paths into Path objects
     options.buildroot = fbuild.path.Path(options.buildroot)
     options.state_file = options.buildroot / options.state_file
+
+    # --------------------------------------------------------------------------
+
+    if options.clean_buildroot:
+        try:
+            options.buildroot.rmtree()
+        except OSError:
+            pass
+        return
+
+    # --------------------------------------------------------------------------
 
     # make sure the buildroot exists before running
     fbuild.buildroot = options.buildroot

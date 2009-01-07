@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.0
 import os
 import optparse
-import shutil
 import subprocess
 import sys
 
@@ -13,10 +12,9 @@ parser.add_option('--clean',
 options, args = parser.parse_args()
 
 for d in 'c', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
-    build_dir = os.path.join(d, 'build')
-    if options.clean and os.path.exists(build_dir):
+    if options.clean:
         print('cleaning:', d)
-        shutil.rmtree(build_dir)
+        subprocess.call('%s --clean' % os.path.join('..', '..', 'fbuild-light'), cwd=d, shell=True)
 
     print('running example:', d)
     print()
