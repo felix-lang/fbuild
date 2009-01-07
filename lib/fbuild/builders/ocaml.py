@@ -389,19 +389,23 @@ class NativeBuilder(Builder):
         """Link compiled ocaml files into a library and cache the results."""
         libs = kwargs.get('libs', ())
         deps = list(libs)
-        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs)
+        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs
+            if src.endswith('.cmx'))
         deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
         return super().link_lib.call_with_dependencies(
-            (dst, srcs) + args, kwargs, srcs=deps)
+            (dst, srcs) + args, kwargs,
+            srcs=[dep for dep in deps if Path(dep).exists()])
 
     def link_exe(self, dst, srcs, *args, **kwargs):
         """Link compiled ocaml files into a library and cache the results."""
         libs = kwargs.get('libs', ())
         deps = list(libs)
-        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs)
+        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs
+            if src.endswith('.cmx'))
         deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
         return super().link_exe.call_with_dependencies(
-            (dst, srcs) + args, kwargs, srcs=deps)
+            (dst, srcs) + args, kwargs,
+            srcs=[dep for dep in deps if Path(dep).exists()])
 
     def build_lib(self, *args, **kwargs):
         libs = kwargs.get('libs', ())
