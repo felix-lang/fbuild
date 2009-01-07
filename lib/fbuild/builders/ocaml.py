@@ -142,12 +142,12 @@ class Builder(AbstractCompilerBuilder):
         # the sources
         assert srcs or libs, "%s: no sources or libraries passed in" % dst
 
-        dst = Path.addroot(dst, buildroot)
+        dst = Path(dst).addroot(buildroot)
         dst.parent.makedirs()
 
         extra_srcs = []
         for lib in libs:
-            if Path.exists(lib):
+            if Path(lib).exists():
                 extra_srcs.append(lib)
             else:
                 extra_srcs.append(lib + self.lib_suffix)
@@ -172,7 +172,7 @@ class Builder(AbstractCompilerBuilder):
             cmd.append('-custom')
 
         for lib in c_libs:
-            if Path.exists(lib):
+            if Path(lib).exists():
                 cmd.extend(('-cclib', lib))
             else:
                 cmd.extend(('-cclib', '-l' + lib))
@@ -205,7 +205,7 @@ class Builder(AbstractCompilerBuilder):
         else:
             obj_suffix = self.obj_suffix
 
-        dst = (dst or src).replaceext(obj_suffix)
+        dst = Path(dst or src).replaceext(obj_suffix)
 
         return self._run(dst, [src],
             pre_flags=['-c'],

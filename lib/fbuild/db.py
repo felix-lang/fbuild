@@ -189,7 +189,7 @@ class Database:
                     dsts.extend(return_type.convert(old_result))
 
                 for dst in dsts:
-                    if not fbuild.path.Path.exists(dst):
+                    if not fbuild.path.Path(dst).exists():
                         dirty = True
                         break
 
@@ -376,7 +376,7 @@ class Database:
     def _add_file(self, filename):
         """Insert or update the file information. Returns True if the content
         of the file is different from what was in the table."""
-        mtime = fbuild.path.Path.getmtime(filename)
+        mtime = fbuild.path.Path(filename).getmtime()
         try:
             data = old_mtime, old_digest = self._files[filename]
         except KeyError:
