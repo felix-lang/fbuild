@@ -210,28 +210,16 @@ class Database:
                         break
 
             if not dirty:
-                # If the old_result was an exception, raise it.
-                if isinstance(old_result, fbuild.Error):
-                    raise old_result from old_result
-
                 # The call was not dirty, so return the cached value.
                 return old_result
 
         # The call was dirty, so recompute it.
-        try:
-            result = function(*args, **kwargs)
-        except fbuild.Error as e:
-            result = e
-        else:
-            # Make sure the result is not a generator.
-            assert not fbuild.inspect.isgenerator(result), \
-                "Cannot store generator in database"
+        result = function(*args, **kwargs)
+        # Make sure the result is not a generator.
+        assert not fbuild.inspect.isgenerator(result), \
+            "Cannot store generator in database"
 
         self._function_calls[function_name][call_id] = (bound, result)
-
-        # If the result was an exception, raise it.
-        if isinstance(result, fbuild.Error):
-            raise result from result
 
         return result
 
