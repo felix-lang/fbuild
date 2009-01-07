@@ -1,8 +1,6 @@
 #!/usr/bin/env python3.0
 
-import os
 import sys
-import pickle
 from optparse import OptionParser, make_option
 import pprint
 
@@ -155,8 +153,6 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
-        # Compiling the pickle string could raise an exception, so we'll pickle
-        # it first, then write it out to the state file.
         fbuild.db.database.save(options.state_file)
 
     return 0
