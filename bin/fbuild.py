@@ -66,6 +66,10 @@ def main(argv=None):
         make_option('--clear-file',
             action='store',
             help='clear cached data for the specified file'),
+        make_option('--do-not-save-database',
+            action='store_true',
+            default=False,
+            help='do not save the results of the database for testing.'),
     ])
 
     # -------------------------------------------------------------------------
@@ -153,7 +157,8 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
-        fbuild.db.database.save(options.state_file)
+        if not options.do_not_save_database:
+            fbuild.db.database.save(options.state_file)
 
     return 0
 
