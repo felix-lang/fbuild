@@ -185,7 +185,7 @@ class Database:
                 # If the result is a dst filename, make sure it exists. If not,
                 # we're dirty.
                 dsts = list(dsts)
-                if isinstance(return_type, DST):
+                if return_type is not None and issubclass(return_type, DST):
                     dsts.extend(return_type.convert(old_result))
 
                 for dst in dsts:
