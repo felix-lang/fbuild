@@ -323,11 +323,9 @@ class Builder(AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into a library."""
         return self._build_link(self.link_lib, dst, srcs, *args,
-            libs=libs,
             **kwargs)
 
     @fbuild.db.cachemethod
