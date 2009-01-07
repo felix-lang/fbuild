@@ -124,7 +124,7 @@ class Database:
             elif issubclass(avalue, SRC):
                 srcs.extend(avalue.convert(bound[akey]))
             elif issubclass(avalue, DST):
-                srcs.extend(avalue.convert(bound[akey]))
+                dsts.extend(avalue.convert(bound[akey]))
 
         # Get or create the function-level lock.
         with self._lock:
