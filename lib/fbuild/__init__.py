@@ -52,6 +52,8 @@ def execute(cmd,
         stderr=subprocess.PIPE,
         timeout=None,
         **kwargs):
+    """Execute the command and return the output."""
+
     if isinstance(cmd, str):
         cmd_string = cmd
     else:
@@ -111,12 +113,12 @@ def execute(cmd,
 
     if stdout:
         try:
-            logger.log(stdout.rstrip().decode('utf-8'), verbose=quieter)
+            logger.log(stdout.rstrip().decode(), verbose=quieter)
         except UnicodeDecodeError:
             logger.log(repr(stdout.rstrip()), verbose=quieter)
     if stderr:
         try:
-            logger.log(stderr.rstrip().decode('utf-8'), verbose=quieter)
+            logger.log(stderr.rstrip().decode(), verbose=quieter)
         except UnicodeDecodeError:
             logger.log(repr(stderr.rstrip()), verbose=quieter)
 
