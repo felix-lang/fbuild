@@ -283,7 +283,6 @@ class Path(str):
         symbolic links encountered in the path."""
         return Path(os.path.realpath(self))
 
-
     def relpath(self, start=None):
         """Return a relative version of a path.
 
@@ -294,6 +293,21 @@ class Path(str):
 
     remove = os.remove
     removedirs = os.removedirs
+
+    def removeroot(self, root):
+        """Remove the root of the path with "root", unless it doesn't already
+        start with "root". It uses character subsitution, so it could generate
+        invalud paths.
+
+        >>> Path.removeroot('foo/bar/baz.ext', 'foo/')
+        Path('bar/baz.ext')
+        >>> Path.removeroot('foo/bar/baz.ext', 'abc/')
+        Paht('foo/bar/baz.ext')
+        """
+        if self.startswith(root):
+            return Path(self[len(root):])
+        return Path(self)
+
     rename = os.rename
     renames = os.renames
 

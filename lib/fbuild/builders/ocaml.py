@@ -5,6 +5,7 @@ This builder is compatible with ocaml 3.10 and above.
 """
 
 import collections
+import os
 from functools import partial
 from itertools import chain
 
@@ -68,20 +69,28 @@ class Ocamldep(fbuild.db.PersistentObject):
 
         return deps
 
-    def all_source_dependencies(self, src, *args, includes=(), **kwargs):
+    def all_source_dependencies(self, srcs, *args, includes=(), **kwargs):
         """Recursively compute all the source files this ocaml file depends
         on."""
-        deps = set()
+        d = {}
+
         def add(src):
-            for dep in self.source_dependencies(src, *args,
-                    includes=includes,
-                    **kwargs):
-                add(dep)
-                deps.add(dep)
+            try:
+                deps = d[src]
+            except KeyError:
+                deps = d[src] = set()
+                for dep in self.source_dependencies(src, *args,
+                        includes=includes,
+                        **kwargs):
+                    deps.add(dep)
+                    deps.update(add(dep))
 
-        add(src)
+            return deps
 
-        return sorted(deps)
+        for src in srcs:
+            add(src)
+
+        return d
 
     def __str__(self):
         return self.exe
@@ -266,17 +275,14 @@ class Builder(AbstractCompilerBuilder):
         # build_objects.  Unfortunately, the db doesn't know about these new
         # files and so it can't tell when a function really needs to be rerun.
         # So, we'll just not cache this function.
-        buildroot = buildroot or fbuild.buildroot
-        includes = set(includes)
+        kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
+        kwargs['includes']  = includes  = set(includes)
         srcs = [Path(src) for src in srcs]
         for src in srcs:
             parent = src.parent
             if parent:
                 includes.add(parent)
                 includes.add(parent.addroot(fbuild.buildroot))
-
-        kwargs['includes'] = includes
-        kwargs['buildroot'] = buildroot
 
         return fbuild.scheduler.map_with_dependencies(
             partial(self.ocamldep.source_dependencies, includes=includes),
@@ -292,11 +298,14 @@ class Builder(AbstractCompilerBuilder):
             custom=False,
             c_libs=[],
             lflags=[],
-            lkwargs={}):
+            lkwargs={},
+            buildroot=None):
+        buildroot = buildroot or fbuild.buildroot
         includes = set(includes)
         for lib in libs:
             if isinstance(lib, Path):
                 includes.add(lib.parent)
+                includes.add(lib.parent.removeroot(buildroot + os.sep))
 
         objs = self.build_objects(srcs,
             includes=includes,
@@ -370,20 +379,43 @@ class NativeBuilder(Builder):
         # the .cmi file.
         if src.endswith('.mli'):
             return self.bytecode.compile(src, *args, **kwargs)
-
-        # Since ocamlopt can inline code from other .cmx files, we need to make
-        # sure we'll recompile if any of the source files we depend on change.
-        includes = kwargs.get('includes', ())
-        deps = self.ocamldep.all_source_dependencies(src, includes=includes)
-        return super().compile.call_with_dependencies((src,) + args, kwargs,
-            srcs=deps)
+        else:
+            return super().compile(src, *args, **kwargs)
 
     def uncached_compile(self, src, *args, **kwargs):
         # If the src is an interface file, use the bytecode compiler to create
         # the .cmi file.
         if src.endswith('.mli'):
             return self.bytecode.uncached_compile(src, *args, **kwargs)
-        return super().uncached_compile(src, *args, **kwargs)
+        else:
+            return super().uncached_compile(src, *args, **kwargs)
+
+    def build_objects(self, srcs, *, includes=[], buildroot=None, **kwargs):
+        # Since ocamlopt can inline code from other .cmx files, we need to make
+        # sure we'll recompile if any of the source files we depend on change.
+        kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
+        kwargs['includes']  = includes  = set(includes)
+        srcs = [Path(src) for src in srcs]
+        for src in srcs:
+            parent = src.parent
+            if parent:
+                includes.add(parent)
+                includes.add(parent.addroot(fbuild.buildroot))
+
+        deps = self.ocamldep.all_source_dependencies(srcs, includes=includes)
+        compile = super().compile
+
+        def f(src):
+            if src.endswith('.mli'):
+                return self.bytecode.compile(src, **kwargs)
+            else:
+                return compile.call_with_dependencies((src,), kwargs,
+                    srcs=deps.get(src, ()))
+
+        return fbuild.scheduler.map_with_dependencies(
+            partial(self.ocamldep.source_dependencies, includes=includes),
+            f,
+            srcs)
 
     def link_lib(self, dst, srcs, *args, **kwargs):
         """Link compiled ocaml files into a library and cache the results."""
