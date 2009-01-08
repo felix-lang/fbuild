@@ -79,8 +79,24 @@ class Database:
             self._files,
             self._call_files))
 
-        with open(filename, 'wb') as f:
+        # Try to save the state as atomically as possible. Unfortunately, if
+        # someone presses ctrl+c while we're saving, we might corrupt the db.
+        # So, we'll write to a temp file, then move the old state file out of
+        # the way, then rename the temp file to the filename.
+        path = fbuild.path.Path(filename)
+        tmp = path + '.tmp'
+        old = path + '.old'
+
+        with open(tmp, 'wb') as f:
             f.write(s)
+
+        if path.exists():
+            path.rename(old)
+
+        tmp.rename(path)
+
+        if old.exists():
+            old.remove()
 
     def load(self, filename):
         with open(filename, 'rb') as f:
