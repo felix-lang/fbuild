@@ -98,7 +98,8 @@ class Path(str):
     # -------------------------------------------------------------------------
     # methods
 
-    access = os.access
+    def access(self):
+        return os.access(self)
 
     def addprefix(self, prefix):
         """Add the prefix before the basename of the path.
@@ -135,14 +136,29 @@ class Path(str):
         """
         return Path(os.path.basename(self))
 
-    chmod = os.chmod
-    commonprefix = os.path.commonprefix
-    copy = shutil.copy
-    copy2 = shutil.copy2
-    copyfile = shutil.copyfile
-    copymode = shutil.copymode
-    copystat = shutil.copystat
-    copytree = shutil.copytree
+    def chmod(self):
+        return os.chmod(self)
+
+    def commonprefix(self):
+        return os.path.commonprefix(self)
+
+    def copy(self, dst):
+        return shutil.copy(self, dst)
+
+    def copy2(self, dst):
+        return shutil.copy2(self, dst)
+
+    def copyfile(self, dst):
+        return shutil.copyfile(self, dst)
+
+    def copymode(self, dst):
+        return shutil.copymode(self, dst)
+
+    def copystat(self, dst):
+        return shutil.copystat(self, dst)
+
+    def copytree(self, dst):
+        return shutil.copytree(self, dst)
 
     def dirname(self):
         """Returns the directory component of a pathname.
@@ -152,7 +168,8 @@ class Path(str):
         """
         return Path(os.path.dirname(self))
 
-    exists = os.path.exists
+    def exists(self):
+        return os.path.exists(self)
 
     def expanduser(self):
         """Expand ~ and ~user constructs.  If user or $HOME is unknown, do
@@ -197,10 +214,17 @@ class Path(str):
         """
         return fbuild.fnmatch.fnmatch(self, pattern)
 
-    getatime = os.path.getatime
-    getctime = os.path.getctime
-    getmtime = os.path.getmtime
-    getsize = os.path.getsize
+    def getatime(self):
+        return os.path.getatime(self)
+
+    def getctime(self):
+        return os.path.getctime(self)
+
+    def getmtime(self):
+        return os.path.getmtime(self)
+
+    def getsize(self):
+        return os.path.getsize(self)
 
     def glob(self, *args, **kwargs):
         return list(Path.iglob(self, *args, **kwargs))
@@ -217,8 +241,11 @@ class Path(str):
             else:
                 yield Path(path)
 
-    isabs = os.path.isabs
-    isdir = os.path.isdir
+    def isabs(self):
+        return os.path.isabs(self)
+
+    def isdir(self):
+        return os.path.isdir(self)
 
     def isdirty(self, *dependencies):
         """Returns True if the path doesn't exist or the modification time
@@ -235,16 +262,24 @@ class Path(str):
 
         return False
 
-    isfile = os.path.isfile
-    islink = os.path.islink
-    ismount = os.path.ismount
-    lexists = os.path.lexists
+    def isfile(self):
+        return os.path.isfile(self)
+
+    def islink(self):
+        return os.path.islink(self)
+
+    def ismount(self):
+        return os.path.ismount(self)
+
+    def lexists(self):
+        return os.path.lexists(self)
 
     def listdir(self):
         """Returns all the files in the path."""
         return [Path(f) for f in os.listdir(f)]
 
-    lstat = os.lstat
+    def lstat(self):
+        return os.lstat(self)
 
     def makedirs(self, *args, **kwargs):
         """Make the directories specified by this path. If they already exist
@@ -266,9 +301,14 @@ class Path(str):
                 m.update(d)
             return m.hexdigest()
 
-    mkdir = os.mkdir
-    mknod = os.mknod
-    move = shutil.move
+    def mkdir(self):
+        return os.mkdir(self)
+
+    def mknod(self):
+        return os.mknod(self)
+
+    def move(self):
+        return shutil.move(self)
 
     def normcase(self):
         """Normalize case of pathname.  Has no effect under Posix."""
@@ -291,8 +331,11 @@ class Path(str):
         """
         return Path(os.path.relpath(self, start))
 
-    remove = os.remove
-    removedirs = os.removedirs
+    def remove(self):
+        return os.remove(self)
+
+    def removedirs(self):
+        return removedirs(self)
 
     def removeroot(self, root):
         """Remove the root of the path with "root", unless it doesn't already
@@ -308,8 +351,11 @@ class Path(str):
             return Path(self[len(root):])
         return Path(self)
 
-    rename = os.rename
-    renames = os.renames
+    def rename(self, dst):
+        return os.rename(self, dst)
+
+    def renames(self, dst):
+        return os.renames(self, dst)
 
     def replaceext(self, ext):
         """Replace the extension with "ext".
@@ -336,8 +382,11 @@ class Path(str):
         else:
             return Path(root + ext)
 
-    rmdir = os.rmdir
-    rmtree = shutil.rmtree
+    def rmdir(self):
+        return os.rmdir(self)
+
+    def rmtree(self):
+        return shutil.rmtree(self)
 
     def split(self):
         """Split a pathname.  Returns tuple "(head, tail)" where "tail" is
@@ -389,8 +438,11 @@ class Path(str):
         root, ext = os.path.splitext(self)
         return Path(root), ext
 
-    stat = os.stat
-    utime = os.utime
+    def stat(self):
+        return os.stat(self)
+
+    def utime(self):
+        return os.utime(self)
 
     def walk(self, *args, **kwargs):
         """Walk the filesystem just like os.walk. Returns "(dirpath, dirnames,
@@ -403,18 +455,41 @@ class Path(str):
     # --------------------------------------------------------------------------
     # os-specific functions
 
-    if hasattr(os, 'chflags'):       chflags = os.chflags
-    if hasattr(os, 'chown'):         chown = os.chown
-    if hasattr(os, 'chroot'):        chroot = os.chroot
-    if hasattr(os, 'lchflags'):      lchflags = os.lchflags
-    if hasattr(os, 'lchmod'):        lchmod = os.lchmod
-    if hasattr(os, 'lchown'):        lchown = os.lchown
-    if hasattr(os, 'link'):          link = os.link
-    if hasattr(os, 'mkfifo'):        mkfifo = os.mkfifo
-    if hasattr(os, 'readlink'):      readlink = os.readlink
-    if hasattr(os, 'statvfs'):       statvfs = os.statvfs
-    if hasattr(os, 'symlink'):       symlink = os.symlink
-    if hasattr(os.path, 'samefile'): samefile = os.path.samefile
+    if hasattr(os, 'chflags'):
+        def chflags(self):  return os.chflags(self)
+
+    if hasattr(os, 'chown'):
+        def chown(self):    return os.chown(self)
+
+    if hasattr(os, 'chroot'):
+        def chroot(self):   return os.chroot(self)
+
+    if hasattr(os, 'lchflags'):
+        def lchflags(self): return os.lchflags(self)
+
+    if hasattr(os, 'lchmod'):
+        def lchmod(self):   return os.lchmod(self)
+
+    if hasattr(os, 'lchown'):
+        def lchown(self):   return os.lchown(self)
+
+    if hasattr(os, 'link'):
+        def link(self):     return os.link(self)
+
+    if hasattr(os, 'mkfifo'):
+        def mkfifo(self):   return os.mkfifo(self)
+
+    if hasattr(os, 'readlink'):
+        def readlink(self): return os.readlink(self)
+
+    if hasattr(os, 'statvfs'):
+        def statvfs(self):  return os.statvfs(self)
+
+    if hasattr(os, 'symlink'):
+        def symlink(self):  return os.symlink(self)
+
+    if hasattr(os.path, 'samefile'):
+        def samefile(self): return os.path.samefile(self)
 
     if hasattr(os.path, 'splitunc'):
         def splitunc(self):
