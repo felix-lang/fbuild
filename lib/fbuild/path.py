@@ -247,21 +247,6 @@ class Path(str):
     def isdir(self):
         return os.path.isdir(self)
 
-    def isdirty(self, *dependencies):
-        """Returns True if the path doesn't exist or the modification time
-        predates any of the dependencies."""
-        if not os.path.exists(self):
-            return True
-
-        timestamp = os.path.getmtime(self)
-
-        for dep in dependencies:
-            for d in (dep,) if isinstance(dep, str) else dep:
-                if isinstance(d, Path) and timestamp < os.path.getmtime(d):
-                    return True
-
-        return False
-
     def isfile(self):
         return os.path.isfile(self)
 

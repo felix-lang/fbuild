@@ -42,13 +42,9 @@ class Linker(fbuild.db.PersistentObject):
         suffix = suffix or self.suffix
         dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
-        srcs = list(Path.globall(srcs))
-
-        # exit early if not dirty
-        if not dst.isdirty(srcs, libs):
-            return dst
-
         dst.parent.makedirs()
+
+        srcs = list(Path.globall(srcs))
 
         cmd = [self.ar]
         cmd.extend(self.flags)

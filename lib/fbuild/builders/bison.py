@@ -20,10 +20,6 @@ class Bison:
         buildroot = buildroot or fbuild.buildroot
         suffix = suffix or self.suffix
         dst = Path.addroot(dst or src, buildroot).replaceext(suffix)
-
-        if not dst.isdirty(src):
-            return dst
-
         dst.parent.makedirs()
 
         cmd = [self.exe]

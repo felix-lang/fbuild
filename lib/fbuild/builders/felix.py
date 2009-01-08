@@ -112,9 +112,6 @@ class Felix(AbstractCompiler):
         else:
             dst = src_buildroot.replaceext(self.lib_suffix)
 
-        if not dst.isdirty(src):
-            return dst
-
         if src != src_buildroot:
             src_buildroot.parent.makedirs()
             src.copy(src_buildroot)
