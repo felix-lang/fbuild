@@ -1,6 +1,9 @@
-import time
-import subprocess
+import os
+import signal
 import threading
+import time
+
+import fbuild.subprocess.killableprocess
 
 # ------------------------------------------------------------------------------
 
@@ -81,11 +84,11 @@ def execute(cmd,
         def timeout_function(p):
             nonlocal timed_out
             timed_out = True
-            p.kill()
+            p.kill(group=True)
 
     starttime = time.time()
     try:
-        p = subprocess.Popen(cmd,
+        p = fbuild.subprocess.killableprocess.Popen(cmd,
             stdin=subprocess.PIPE if input else stdin,
             stdout=stdout,
             stderr=stderr,
