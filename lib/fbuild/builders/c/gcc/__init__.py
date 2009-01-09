@@ -376,29 +376,10 @@ class Builder(c.Builder):
         compiling temporary files."""
         return self.compiler(*args, **kwargs)
 
-    # --------------------------------------------------------------------------
-
-    @fbuild.db.cachemethod
-    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            **kwargs) -> fbuild.db.DST:
-        """Link compiled c files into a library and caches the results."""
-        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
-
     def uncached_link_lib(self, *args, **kwargs):
         """Link compiled c files into a library without caching the results.
         This is needed when linking temporary files."""
         return self.lib_linker(*args, **kwargs)
-
-    # --------------------------------------------------------------------------
-
-    @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            **kwargs) -> fbuild.db.DST:
-        """Link compiled c files into an executable without caching the
-        results.  This is needed when linking temporary files."""
-        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
 
     def uncached_link_exe(self, *args, **kwargs):
         """Link compiled c files into am executable without caching the

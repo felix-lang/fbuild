@@ -54,6 +54,21 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             partial(self.compile, **kwargs),
             srcs)
 
+    @fbuild.db.cachemethod
+    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled c files into a library and caches the results."""
+        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
+
+    @fbuild.db.cachemethod
+    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled c files into an executable without caching the
+        results.  This is needed when linking temporary files."""
+        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
+
     # --------------------------------------------------------------------------
 
     def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
@@ -62,7 +77,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             **kwargs) -> fbuild.db.DST:
         """Compile all of the passed in L{srcs} in parallel, then link them
         into a library."""
-        return self._build_link(self.uncached_link_lib, dst, srcs, *args,
+        return self._build_link(self.link_lib, dst, srcs, *args,
             libs=tuple(chain(external_libs, libs)),
             **kwargs)
 
@@ -72,7 +87,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             **kwargs) -> fbuild.db.DST:
         """Compile all of the passed in L{srcs} in parallel, then link them
         into an executable."""
-        return self._build_link(self.uncached_link_exe, dst, srcs, *args,
+        return self._build_link(self.link_exe, dst, srcs, *args,
             libs=tuple(chain(external_libs, libs)),
             **kwargs)
 
