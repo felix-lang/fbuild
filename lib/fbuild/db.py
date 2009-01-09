@@ -180,22 +180,24 @@ class Database:
                 "Cannot store generator in database"
 
         # Check if the function changed.
-        dirty = self._add_function(function, function_name)
+        function_dirty, function_digest = \
+            self._check_function(function, function_name)
 
         # Check if this is a new call and get the index.
-        d, call_id = self._add_call(function_name, bound)
-        dirty |= d
+        call_id = self._check_call(function_name, bound)
 
         # Add the source files to the database.
-        for src in srcs:
-            dirty |= self._add_call_file(src, function_name, call_id)
+        call_file_digests = self._check_call_files(srcs, function_name, call_id)
+
+        dirty = \
+            function_dirty or \
+            call_id is None or \
+            call_file_digests
 
         # Check if we have a result. If not, then we're dirty.
-        try:
+        if not dirty:
             old_result = self._function_calls[function_name][call_id][1]
-        except LookupError:
-            dirty = True
-        else:
+
             # Don't try to check return type if it's an exception.
             if not isinstance(old_result, fbuild.Error):
                 # If the result is a dst filename, make sure it exists. If not,
@@ -215,11 +217,19 @@ class Database:
 
         # The call was dirty, so recompute it.
         result = function(*args, **kwargs)
+
         # Make sure the result is not a generator.
         assert not fbuild.inspect.isgenerator(result), \
             "Cannot store generator in database"
 
-        self._function_calls[function_name][call_id] = (bound, result)
+        if function_dirty:
+            self._update_function(function_name, function_digest)
+
+        if call_id is None:
+            # Get the real call_id to use in the call files.
+            call_id = self._update_call(function_name, call_id, bound, result)
+
+        self._update_call_files(call_file_digests, function_name, call_id)
 
         return result
 
@@ -245,30 +255,29 @@ class Database:
 
         return digest
 
-    def _add_function(self, function, name):
-        """Insert or update the function information. Returns True if the
-        function changed."""
+    def _check_function(self, function, name):
+        """Returns whether or not the function is dirty. Returns True or false
+        as well as the function's digest."""
         digest = self._digest_function(function)
         try:
             old_digest = self._functions[name]
         except KeyError:
-            # This is the first time we've seen this function, so store it and
-            # return True.
-            self._functions[name] = digest
-            return True
+            # This is the first time we've seen this function.
+            return True, digest
 
         # Check if the function changed. If it didn't, assume that the function
         # didn't change either (although any sub-functions could have).
         if digest == old_digest:
-            return False
+            return False, digest
 
+        return True, digest
+
+    def _update_function(self, function, digest):
+        """Insert or update the function's digest."""
         # Since the function changed, clear out all the related data.
-        self.clear_function(name)
+        self.clear_function(function)
 
-        # Update the table with the new digest.
-        self._functions[name] = digest
-
-        return True
+        self._functions[function] = digest
 
     def _clear_function(self, name):
         """Actually clear the function from the database."""
@@ -318,43 +327,72 @@ class Database:
 
     # --------------------------------------------------------------------------
 
-    def _add_call(self, function, bound):
-        """Insert functon call information. Returns True if the function was
-        actually inserted and the index that it was inserted at."""
+    def _check_call(self, function, bound):
+        """Check if the function has been called before. Return the index if
+        the call was cached, or None."""
         try:
             datas = self._function_calls[function]
         except KeyError:
-            # This is the first time we've seen this function, so store it and
-            # return True.
-            self._function_calls[function] = [(bound,)]
-            return True, 0
+            # This is the first time we've seen this function.
+            return None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.
-        for index, data in enumerate(datas):
-            if bound == data[0]:
-                # We've found a matching call so just return it.
-                return False, index
+        for index, (old_bound, result) in enumerate(datas):
+            if bound == old_bound:
+                # We've found a matching call so just return the index.
+                return index
 
-        # Turns out we haven't called it with these args, so just append it.
-        datas.append((bound,))
-        return True, len(datas) - 1
+        # Turns out we haven't called it with these args.
+        return None
+
+    def _update_call(self, function, call_id, bound, result):
+        """Insert or update the function call."""
+        try:
+            datas = self._function_calls[function]
+        except KeyError:
+            assert call_id is None
+            self._function_calls[function] = [(bound, result)]
+            return 0
+        else:
+            if call_id is None:
+                datas.append((bound, result))
+                return len(datas) - 1
+            else:
+                datas[call_id] = (bound, result)
+        return call_id
 
     # --------------------------------------------------------------------------
 
-    def _add_call_file(self, filename, function, call_id):
-        """Insert or update file information for a call. Returns True if the
-        file was actually inserted or updated."""
+    def _check_call_files(self, filenames, function, call_id):
+        """Returns all of the dirty call files."""
+        digests = []
+        for filename in filenames:
+            d, digest = self._check_call_file(filename, function, call_id)
+            if d:
+                digests.append((filename, digest))
+
+        return digests
+
+    def _update_call_files(self, digests, function, call_id):
+        """Insert or update the call files."""
+        for src, digest in digests:
+            self._update_call_file(src, function, call_id, digest)
+    def _check_call_file(self, filename, function, call_id):
+        """Returns if the call file is dirty and the file's digest."""
         # Compute the digest of the file.
         dirty, (mtime, digest) = self._add_file(filename)
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return True, digest
 
         try:
             datas = self._call_files[filename]
         except KeyError:
             # This is the first time we've seen this call, so store it and
             # return True.
-            self._call_files[filename] = {function: {call_id: digest}}
-            return True
+            return True, digest
 
         # We've called this before, lets see if we can find the file.
         try:
@@ -362,18 +400,22 @@ class Database:
         except KeyError:
             # This is the first time we've seen this file, so store it and
             # return True.
-            datas.setdefault(function, {})[call_id] = digest
-            return True
+            return True, digest
 
         # Now, check if the file changed from the previous run. If it did then
         # return True.
         if digest == old_digest:
             # We're okay, so return if the file's been updated.
-            return dirty
+            return dirty, digest
         else:
             # The digest's different, so we're dirty.
-            datas.setdefault(function, {})[call_id] = digest
-            return True
+            return True, digest
+
+    def _update_call_file(self, filename, function, call_id, digest):
+        """Insert or update the call file."""
+        self._call_files. \
+            setdefault(filename, {}).\
+            setdefault(function, {})[call_id] = digest
 
     # --------------------------------------------------------------------------
 
