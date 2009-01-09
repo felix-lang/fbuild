@@ -310,6 +310,7 @@ class Builder(AbstractCompilerBuilder):
         objs = self.build_objects(srcs,
             includes=includes,
             flags=cflags,
+            buildroot=buildroot,
             **ckwargs)
 
         return function(dst, objs,
@@ -319,6 +320,7 @@ class Builder(AbstractCompilerBuilder):
             custom=custom,
             c_libs=c_libs,
             flags=lflags,
+            buildroot=buildroot,
             **lkwargs)
 
     @fbuild.db.cachemethod
