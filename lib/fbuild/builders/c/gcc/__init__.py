@@ -17,9 +17,23 @@ class Gcc:
         self.exe, *self.flags = str.split(exe)
         self.flags = tuple(chain(self.flags, flags))
 
-    def __call__(self, srcs, dst=None, flags=(), *, pre_flags=(), **kwargs):
+    def __call__(self, srcs, dst=None, flags=(), *,
+            pre_flags=(),
+            includes=(),
+            macros=(),
+            warnings=(),
+            libpaths=(),
+            libs=(),
+            **kwargs):
         cmd = [self.exe]
         cmd.extend(pre_flags)
+
+        # make sure that the path is converted into the native path format
+        cmd.extend('-I' + Path(i) for i in sorted(includes) if i)
+        cmd.extend('-D' + d for d in sorted(macros))
+        cmd.extend('-W' + w for w in sorted(warnings))
+        cmd.extend('-L' + p for p in sorted(libpaths) if p)
+        cmd.extend('-l' + l for l in sorted(libs))
 
         if dst is not None:
             cmd.extend(('-o', dst))
@@ -136,15 +150,14 @@ class Compiler:
         warnings = set(warnings)
         warnings.update(self.warnings)
 
-        # make sure that the path is converted into the native path format
-        cmd_flags.extend('-I' + Path(i) for i in sorted(includes) if i)
-        cmd_flags.extend('-D' + d for d in sorted(macros))
-        cmd_flags.extend('-W' + w for w in sorted(warnings))
         cmd_flags.extend(self.flags)
         cmd_flags.extend(flags)
 
         self.gcc([src], dst, cmd_flags,
             pre_flags=self.flags,
+            includes=includes,
+            macros=macros,
+            warnings=warnings,
             color='green',
             **kwargs)
 
@@ -242,22 +255,24 @@ class Linker:
         libpaths.update(self.libpaths)
 
         cmd_flags = []
-        cmd_flags.extend('-L' + p for p in sorted(libpaths) if p)
 
         libs = set(libs)
         libs.update(self.libs)
 
         extra_srcs = []
+        new_libs = []
         for lib in sorted(libs):
             if Path(lib).exists():
                 extra_srcs.append(lib)
             else:
-                cmd_flags.append('-l' + lib)
+                new_libs.append(lib)
 
         cmd_flags.extend(flags)
 
         self.gcc(srcs + extra_srcs, dst, cmd_flags,
             pre_flags=self.flags,
+            libpaths=libpaths,
+            libs=new_libs,
             color='cyan',
             **kwargs)
 
