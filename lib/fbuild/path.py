@@ -330,7 +330,7 @@ class Path(str):
         >>> Path.removeroot('foo/bar/baz.ext', 'foo/')
         Path('bar/baz.ext')
         >>> Path.removeroot('foo/bar/baz.ext', 'abc/')
-        Paht('foo/bar/baz.ext')
+        Path('foo/bar/baz.ext')
         """
         if self.startswith(root):
             return Path(self[len(root):])

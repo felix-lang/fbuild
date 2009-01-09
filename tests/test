@@ -35,6 +35,10 @@ def main():
             except ValueError as e:
                 # no doc test exists
                 pass
+            except ImportError:
+                # We can't portably
+                if module == 'fbuild.subprocess.winprocess':
+                    continue
             else:
                 suite.addTest(test)
 
