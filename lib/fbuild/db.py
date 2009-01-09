@@ -69,6 +69,8 @@ class Database:
         self._function_calls = {}
         self._files = {}
         self._call_files = {}
+        self._external_srcs = {}
+        self._external_dsts = {}
         self._lock = threading.RLock()
         self._function_locks = {}
 
@@ -77,7 +79,9 @@ class Database:
             self._functions,
             self._function_calls,
             self._files,
-            self._call_files))
+            self._call_files,
+            self._external_srcs,
+            self._external_dsts))
 
         # Try to save the state as atomically as possible. Unfortunately, if
         # someone presses ctrl+c while we're saving, we might corrupt the db.
@@ -101,7 +105,8 @@ class Database:
     def load(self, filename):
         with open(filename, 'rb') as f:
             self._functions, self._function_calls, self._files, \
-                self._call_files = pickle.load(f)
+                self._call_files, self._external_srcs, self._external_dsts = \
+                pickle.load(f)
 
     def call(self, function, *args, **kwargs):
         """Call the function and return the result. If the function has been
@@ -189,10 +194,15 @@ class Database:
         # Add the source files to the database.
         call_file_digests = self._check_call_files(srcs, function_name, call_id)
 
+        # Check extra external call files.
+        external_srcs, external_dsts, external_digests = \
+            self._check_external_files(function_name, call_id)
+
         dirty = \
             function_dirty or \
             call_id is None or \
-            call_file_digests
+            call_file_digests or \
+            external_digests
 
         # Check if we have a result. If not, then we're dirty.
         if not dirty:
@@ -202,11 +212,12 @@ class Database:
             if not isinstance(old_result, fbuild.Error):
                 # If the result is a dst filename, make sure it exists. If not,
                 # we're dirty.
-                dsts = list(dsts)
                 if return_type is not None and issubclass(return_type, DST):
-                    dsts.extend(return_type.convert(old_result))
+                    return_dsts = return_type.convert(old_result)
+                else:
+                    return_dsts = ()
 
-                for dst in dsts:
+                for dst in itertools.chain(return_dsts, dsts, external_dsts):
                     if not fbuild.path.Path(dst).exists():
                         dirty = True
                         break
@@ -230,6 +241,10 @@ class Database:
             call_id = self._update_call(function_name, call_id, bound, result)
 
         self._update_call_files(call_file_digests, function_name, call_id)
+        self._update_external_files(function_name, call_id,
+            external_srcs,
+            external_dsts,
+            external_digests)
 
         return result
 
@@ -293,6 +308,20 @@ class Database:
         # calls are dirty, so delete them.
         try:
             del self._function_calls[name]
+        except KeyError:
+            pass
+        else:
+            function_existed |= True
+
+        try:
+            del self._external_srcs[name]
+        except KeyError:
+            pass
+        else:
+            function_existed |= True
+
+        try:
+            del self._external_dsts[name]
         except KeyError:
             pass
         else:
@@ -378,6 +407,40 @@ class Database:
         """Insert or update the call files."""
         for src, digest in digests:
             self._update_call_file(src, function, call_id, digest)
+
+    # --------------------------------------------------------------------------
+
+    def _check_external_files(self, function, call_id):
+        """Returns all of the externally specified call files, and the dirty
+        list."""
+        digests = []
+        try:
+            srcs = self._external_srcs[function][call_id]
+        except KeyError:
+            srcs = set()
+        else:
+            for src in srcs:
+                d, digest = self._check_call_file(src, function, call_id)
+                if d:
+                    digests.append((src, digest))
+
+        try:
+            dsts = self._external_dsts[function][call_id]
+        except KeyError:
+            dsts = set()
+
+        return srcs, dsts, digests
+
+    def _update_external_files(self, function, call_id, srcs, dsts, digests):
+        """Insert or update the externall specified call files."""
+        self._external_srcs.setdefault(function, {})[call_id] = srcs
+        self._external_dsts.setdefault(function, {})[call_id] = dsts
+
+        for src, digest in digests:
+            self._update_call_file(src, function, call_id, digest)
+
+    # --------------------------------------------------------------------------
+
     def _check_call_file(self, filename, function, call_id):
         """Returns if the call file is dirty and the file's digest."""
         # Compute the digest of the file.
@@ -533,3 +596,36 @@ class cachemethod_wrapper:
 
     def call_with_dependencies(self, *args, **kwargs):
         return database.call_with_dependencies(self.method, *args, **kwargs)
+
+# ------------------------------------------------------------------------------
+
+def add_external_dependencies_to_call(*, srcs=(), dsts=()):
+    """When inside a cached method, register additional src dependencies for
+    the call. This function can only be called from a cached function and will
+    error out if it is called from an uncached function."""
+    # Hack in additional dependencies
+    i = 2
+    while True:
+        frame = fbuild.inspect.currentframe(i)
+        try:
+            if frame.f_code == database._cache.__code__:
+                function_name = frame.f_locals['function_name']
+                call_id = frame.f_locals['call_id']
+                external_digests = frame.f_locals['external_digests']
+                external_srcs = frame.f_locals['external_srcs']
+                external_dsts = frame.f_locals['external_dsts']
+
+                for src in srcs:
+                    external_srcs.add(src)
+                    dirty, digest = database._check_call_file(
+                        src, function_name, call_id)
+                    if dirty:
+                        external_digests.append((src, digest))
+
+                external_dsts.update(dsts)
+
+                return
+            else:
+                i += 1
+        finally:
+            del frame
