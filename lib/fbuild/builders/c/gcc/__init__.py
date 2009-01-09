@@ -95,6 +95,38 @@ def make_gcc(exe=None, default_exes=['gcc', 'cc']):
 
 # ------------------------------------------------------------------------------
 
+class Scanner:
+    def __init__(self, gcc, flags):
+        self.gcc = gcc
+        self.flags = flags
+
+    def __call__(self, src, *, includes=[], buildroot=None, **kwargs):
+        # Ignore the buildroot argument
+        src = Path(src)
+
+        fbuild.logger.check(' * %s %s' % (self.gcc, ' '.join(self.flags)), src,
+            color='yellow')
+
+        includes = set(includes)
+        includes.add(src.parent)
+
+        stdout, stderr = self.gcc((src,),
+            flags=list(chain(self.flags, kwargs.pop('flags', ()))),
+            includes=includes,
+            stdout_quieter=1,
+            **kwargs)
+
+        stdout = stdout.decode().replace('\\\n', '')
+
+        if not stdout:
+            return []
+
+        # Parse the output and return the module dependencies.
+        return [Path(p)
+            for p in stdout.split(':')[1].split()]
+
+# ------------------------------------------------------------------------------
+
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
             includes=(),
@@ -316,9 +348,15 @@ def make_linker(gcc, flags=(), **kwargs):
 # ------------------------------------------------------------------------------
 
 class Builder(c.Builder):
-    def __init__(self, *args, compiler, lib_linker, exe_linker, **kwargs):
+    def __init__(self, *args,
+            scanner,
+            compiler,
+            lib_linker,
+            exe_linker,
+            **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.scanner = scanner
         self.compiler = compiler
         self.lib_linker = lib_linker
         self.exe_linker = exe_linker
@@ -326,15 +364,19 @@ class Builder(c.Builder):
     def __str__(self):
         return str(self.compiler)
 
+    # --------------------------------------------------------------------------
+
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
-        """Compile a c file and cache the results."""
-        return self.uncached_compile(src, *args, **kwargs)
+    def scan(self, src:fbuild.db.SRC, *args, **kwargs):
+        """Scan a c file for dependencies and cache the results."""
+        return self.scanner(src, *args, **kwargs)
 
     def uncached_compile(self, *args, **kwargs):
         """Compile a c file without caching the results.  This is needed when
         compiling temporary files."""
         return self.compiler(*args, **kwargs)
+
+    # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
@@ -347,6 +389,8 @@ class Builder(c.Builder):
         """Link compiled c files into a library without caching the results.
         This is needed when linking temporary files."""
         return self.lib_linker(*args, **kwargs)
+
+    # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
     def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
@@ -390,6 +434,7 @@ def config_static(exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
+        scan_flags=['-MM'],
         compile_flags=['-c'],
         libpaths=(),
         libs=(),
@@ -400,6 +445,7 @@ def config_static(exe=None, *args,
     gcc = make_gcc(exe)
 
     builder = Builder(
+        scanner=Scanner(gcc, flags=scan_flags),
         compiler=make_compiler(gcc,
             flags=compile_flags,
             suffix=obj_suffix,
@@ -427,6 +473,7 @@ def config_shared(exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
+        scan_flags=['-MM'],
         compile_flags=['-c', '-fPIC'],
         libpaths=(),
         libs=(),
@@ -438,6 +485,7 @@ def config_shared(exe=None, *args,
     gcc = make_gcc(exe)
 
     builder = Builder(
+        scanner=Scanner(gcc, flags=scan_flags),
         compiler=make_compiler(gcc,
             flags=compile_flags,
             suffix=obj_suffix,

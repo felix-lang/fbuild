@@ -1,3 +1,4 @@
+import abc
 from functools import partial
 from itertools import chain
 
@@ -22,33 +23,39 @@ class MissingHeader(ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def build_objects(self, srcs, **kwargs):
+    @abc.abstractmethod
+    def scan(self, src, *args, **kwargs):
+        pass
+
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
+        """Compile a c file and cache the results."""
+        fbuild.db.add_external_dependencies_to_call(
+            srcs=self.scan(src, **kwargs))
+        return self.uncached_compile(src, *args, **kwargs)
+
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
         """Compile all of the passed in L{srcs} in parallel."""
         # When a object has extra external dependencies, such as .c files
         # depending on .h changes, depending on library changes, we need to add
         # the dependencies in build_objects.  Unfortunately, the db doesn't
         # know about these new files and so it can't tell when a function
         # really needs to be rerun.  So, we'll just not cache this function.
+        # We need to add extra dependencies to our call.
+        deps = []
+
+        for d in fbuild.scheduler.map(partial(self.scan, **kwargs), srcs):
+            deps.extend(d)
+
+        fbuild.db.add_external_dependencies_to_call(srcs=deps)
+
         return fbuild.scheduler.map(
             partial(self.compile, **kwargs),
             srcs)
 
-    def _build_link(self, function, dst, srcs, *,
-            includes=(),
-            macros=(),
-            cflags=(),
-            ckwargs={},
-            libs=(),
-            lflags=(),
-            lkwargs={}):
-        objs = self.build_objects(srcs,
-            includes=includes,
-            macros=macros,
-            flags=cflags)
+    # --------------------------------------------------------------------------
 
-        return function(dst, objs, libs=libs, flags=lflags, **lkwargs)
-
-    @fbuild.db.cachemethod
     def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=(),
             external_libs=(),
@@ -59,7 +66,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             libs=tuple(chain(external_libs, libs)),
             **kwargs)
 
-    @fbuild.db.cachemethod
     def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=(),
             external_libs=(),
@@ -69,6 +75,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return self._build_link(self.uncached_link_exe, dst, srcs, *args,
             libs=tuple(chain(external_libs, libs)),
             **kwargs)
+
+    def _build_link(self, function, dst, srcs, *,
+            includes=(),
+            macros=(),
+            warnings=(),
+            cflags=(),
+            ckwargs={},
+            libs=(),
+            lflags=(),
+            lkwargs={}):
+        """Actually compile and link the sources."""
+        objs = self.build_objects(srcs,
+            includes=includes,
+            macros=macros,
+            warnings=warnings,
+            flags=cflags,
+            **ckwargs)
+
+        return function(dst, objs, libs=libs, flags=lflags, **lkwargs)
 
     # -------------------------------------------------------------------------
 

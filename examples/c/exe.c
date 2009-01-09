@@ -1,5 +1,8 @@
-extern int fred();
+#include <stdio.h>
+#include "lib.h"
 
 int main(int argc, char** argv) {
-	return fred() != 5;
+  int x = fred();
+  printf("%d\n", x);
+	return x != 5;
 }
