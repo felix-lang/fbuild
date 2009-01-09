@@ -49,6 +49,8 @@ def execute(cmd,
         msg2=None,
         color=None,
         quieter=0,
+        stdout_quieter=None,
+        stderr_quieter=None,
         input=None,
         stdin=None,
         stdout=subprocess.PIPE,
@@ -62,6 +64,12 @@ def execute(cmd,
     else:
         cmd_string = ' '.join(cmd)
 
+    if stdout_quieter is None:
+        stdout_quieter = quieter
+
+    if stderr_quieter is None:
+        stderr_quieter = quieter
+
     logger.write('%-10s: starting %r\n' %
         (threading.current_thread().name, cmd_string),
         verbose=4,
@@ -71,11 +79,11 @@ def execute(cmd,
         if msg2:
             logger.check(' * ' + str(msg1), str(msg2),
                 color=color,
-                verbose=quieter)
+                verbose=stdout_quieter)
         else:
             logger.check(' * ' + str(msg1),
                 color=color,
-                verbose=quieter)
+                verbose=stdout_quieter)
 
     # Define a function that gets called if execution times out. We will
     # raise an exception if the timeout occurs.
@@ -116,14 +124,14 @@ def execute(cmd,
 
     if stdout:
         try:
-            logger.log(stdout.rstrip().decode(), verbose=quieter)
+            logger.log(stdout.rstrip().decode(), verbose=stdout_quieter)
         except UnicodeDecodeError:
-            logger.log(repr(stdout.rstrip()), verbose=quieter)
+            logger.log(repr(stdout.rstrip()), verbose=stdout_quieter)
     if stderr:
         try:
-            logger.log(stderr.rstrip().decode(), verbose=quieter)
+            logger.log(stderr.rstrip().decode(), verbose=stderr_quieter)
         except UnicodeDecodeError:
-            logger.log(repr(stderr.rstrip()), verbose=quieter)
+            logger.log(repr(stderr.rstrip()), verbose=stderr_quieter)
 
     logger.log(
         ' - exit %d, %.2f sec' % (returncode, endtime - starttime),

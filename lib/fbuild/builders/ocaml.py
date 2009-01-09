@@ -37,7 +37,7 @@ class Ocamldep(fbuild.db.PersistentObject):
         cmd.append(src)
 
         fbuild.logger.check(' * ' + self.exe, src, color='yellow')
-        stdout, stderr = execute(cmd, quieter=1)
+        stdout, stderr = execute(cmd, stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
         return stdout.decode().replace('\\\n', '').split(':')[1].split()
