@@ -42,7 +42,8 @@ class Ocamldep(fbuild.db.PersistentObject):
         # Parse the output and return the module dependencies.
         return stdout.decode().replace('\\\n', '').split(':')[1].split()
 
-    def source_dependencies(self, src, *args, includes=(), **kwargs):
+    @fbuild.db.cachemethod
+    def source_dependencies(self, src:fbuild.db.SRC, *, includes=(), **kwargs):
         """Compute the source files this ocaml file depends on."""
         deps = []
 
@@ -53,11 +54,12 @@ class Ocamldep(fbuild.db.PersistentObject):
                 if include is not None: path = include / path
 
                 if path.exists():
-                    found = True
                     deps.append(path)
+                    found = True
             return found
 
-        for module in self.modules(src, *args, **kwargs):
+        modules = self.modules(src, **kwargs)
+        for module in modules:
             if not f(module, None):
                 for include in chain(includes):
                     f(module, include)
@@ -68,29 +70,6 @@ class Ocamldep(fbuild.db.PersistentObject):
                 deps.append(mli)
 
         return deps
-
-    def all_source_dependencies(self, srcs, *args, includes=(), **kwargs):
-        """Recursively compute all the source files this ocaml file depends
-        on."""
-        d = {}
-
-        def add(src):
-            try:
-                deps = d[src]
-            except KeyError:
-                deps = d[src] = set()
-                for dep in self.source_dependencies(src, *args,
-                        includes=includes,
-                        **kwargs):
-                    deps.add(dep)
-                    deps.update(add(dep))
-
-            return deps
-
-        for src in srcs:
-            add(src)
-
-        return d
 
     def __str__(self):
         return self.exe
@@ -207,10 +186,17 @@ class Builder(AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
+    def compile(self, src:fbuild.db.SRC, *args,
+            includes=[],
+            **kwargs) -> fbuild.db.DST:
         """Compile an ocaml implementation or interface file and cache the
         results."""
-        return self.uncached_compile(src, *args, **kwargs)
+        dst = self.uncached_compile(src, *args,
+            includes=includes,
+            **kwargs)
+        self._add_compile_dependencies(dst, src, includes)
+        return dst
+
 
     def uncached_compile(self, src, dst=None, *args, **kwargs):
         """Compile an ocaml implementation or interface file without caching
@@ -227,6 +213,10 @@ class Builder(AbstractCompilerBuilder):
             color='green',
             *args, **kwargs)
 
+    def _add_compile_dependencies(self, dst, src, includes):
+        fbuild.db.add_external_dependencies_to_call(
+            srcs=self.scan(src, includes=includes))
+
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
@@ -234,7 +224,32 @@ class Builder(AbstractCompilerBuilder):
             libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into a library."""
-        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
+        return self._link(self.uncached_link_lib, dst, srcs, *args,
+            libs=libs,
+            **kwargs)
+
+    @fbuild.db.cachemethod
+    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=[],
+            **kwargs) -> fbuild.db.DST:
+        """Compile all the L{srcs} and link into an executable."""
+        return self._link(self.uncached_link_exe, dst, srcs, *args,
+            libs=libs,
+            **kwargs)
+
+    def _link(self, function, dst, srcs, *args, includes, libs, **kwargs):
+        dst = function(dst, srcs, *args,
+            includes=includes,
+            libs=libs,
+            **kwargs)
+        self._add_link_dependencies(dst, srcs, includes, libs)
+        return dst
+
+    def _add_link_dependencies(self, dst, srcs, includes, libs):
+        # Do nothing
+        pass
+
+    # --------------------------------------------------------------------------
 
     def uncached_link_lib(self, dst, *args,
             libs=[],
@@ -243,22 +258,15 @@ class Builder(AbstractCompilerBuilder):
         """Link compiled ocaml files into a library without caching the
         results.  This is needed when linking temporary files."""
         # ignore passed in libraries
-        return self._link(dst + self.lib_suffix,
+        return self._uncached_link(dst + self.lib_suffix,
             pre_flags=['-a'], *args, **kwargs)
-
-    @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
-            **kwargs) -> fbuild.db.DST:
-        """Compile all the L{srcs} and link into an executable."""
-        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
 
     def uncached_link_exe(self, dst, *args, **kwargs):
         """Link compiled ocaml files into an executable without caching the
         results.  This is needed when linking temporary files."""
-        return self._link(dst + self.exe_suffix, *args, **kwargs)
+        return self._uncached_link(dst + self.exe_suffix, *args, **kwargs)
 
-    def _link(self, dst, srcs, *args, libs=[], **kwargs):
+    def _uncached_link(self, dst, srcs, *args, libs=[], **kwargs):
         """Actually link the sources."""
         # Filter out the .cmi files, such as when we're using ocamlyacc source
         # files.
@@ -268,13 +276,12 @@ class Builder(AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
-    def build_objects(self, srcs, *, includes=[], buildroot=None, **kwargs):
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.SRCS, *,
+            includes=[],
+            buildroot=None,
+            **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
-        # When a object has extra external dependencies, such as .cmx files
-        # depending on library changes, we need to add the dependencies in
-        # build_objects.  Unfortunately, the db doesn't know about these new
-        # files and so it can't tell when a function really needs to be rerun.
-        # So, we'll just not cache this function.
         kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
         kwargs['includes']  = includes  = set(includes)
         srcs = [Path(src) for src in srcs]
@@ -284,10 +291,36 @@ class Builder(AbstractCompilerBuilder):
                 includes.add(parent)
                 includes.add(parent.addroot(fbuild.buildroot))
 
+        # Add additional source dependencies to the call.
+        deps = set()
+        for src in srcs:
+            deps.update(self.scan(src, includes=includes))
+
+        if deps:
+            fbuild.db.add_external_dependencies_to_call(srcs=deps)
+
         return fbuild.scheduler.map_with_dependencies(
             partial(self.ocamldep.source_dependencies, includes=includes),
             partial(self.compile, includes=includes),
             srcs)
+
+    # --------------------------------------------------------------------------
+
+    def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            **kwargs) -> fbuild.db.DST:
+        """Compile all the L{srcs} and link into a library."""
+        return self._build_link(self.link_lib, dst, srcs, *args,
+            **kwargs)
+
+    def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=[],
+            **kwargs) -> fbuild.db.DST:
+        """Compile all the L{srcs} and link into an executable."""
+        return self._build_link(self.link_exe, dst, srcs, *args,
+            libs=libs,
+            **kwargs)
+
+    # --------------------------------------------------------------------------
 
     def _build_link(self, function, dst, srcs, *,
             includes=[],
@@ -300,6 +333,7 @@ class Builder(AbstractCompilerBuilder):
             lflags=[],
             lkwargs={},
             buildroot=None):
+        # This must be called from a cached function to work properly.
         buildroot = buildroot or fbuild.buildroot
         includes = set(includes)
         for lib in libs:
@@ -323,22 +357,6 @@ class Builder(AbstractCompilerBuilder):
             buildroot=buildroot,
             **lkwargs)
 
-    @fbuild.db.cachemethod
-    def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            **kwargs) -> fbuild.db.DST:
-        """Compile all the L{srcs} and link into a library."""
-        return self._build_link(self.link_lib, dst, srcs, *args,
-            **kwargs)
-
-    @fbuild.db.cachemethod
-    def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
-            **kwargs) -> fbuild.db.DST:
-        """Compile all the L{srcs} and link into an executable."""
-        return self._build_link(self.link_exe, dst, srcs, *args,
-            libs=libs,
-            **kwargs)
-
     # -------------------------------------------------------------------------
 
     def __str__(self):
@@ -358,7 +376,27 @@ class Builder(AbstractCompilerBuilder):
 # ------------------------------------------------------------------------------
 
 class BytecodeBuilder(Builder):
-    pass
+    @fbuild.db.cachemethod
+    def scan(self, src:fbuild.db.SRC, *,
+            includes=[],
+            **kwargs):
+        """Recursively compute all the source files this ocaml file depends
+        on."""
+        lookup = {}
+        for dep in self.ocamldep.source_dependencies(src,
+                includes=includes,
+                **kwargs):
+            base, ext = dep.splitext()
+            if ext == '.mli' or base not in lookup:
+                lookup[base] = dep
+
+        deps = set()
+        for dep in lookup.values():
+            deps.add(dep)
+            d = self.scan(dep, includes=includes, **kwargs)
+            deps.update(d)
+
+        return deps
 
 # ------------------------------------------------------------------------------
 
@@ -373,6 +411,26 @@ class NativeBuilder(Builder):
         self.bytecode = bytecode
         self.native_obj_suffix = native_obj_suffix
         self.native_lib_suffix = native_lib_suffix
+
+    # --------------------------------------------------------------------------
+
+    @fbuild.db.cachemethod
+    def scan(self, src:fbuild.db.SRC, *,
+            includes=[],
+            **kwargs):
+        """Recursively compute all the source files this ocaml file depends
+        on."""
+        deps = set()
+        for dep in self.ocamldep.source_dependencies(src,
+                includes=includes,
+                **kwargs):
+            deps.add(dep)
+            d = self.scan(dep, includes=includes, **kwargs)
+            deps.update(d)
+
+        return deps
+
+    # --------------------------------------------------------------------------
 
     def compile(self, src, *args, **kwargs):
         """Compile an ocaml implementation or interface file and cache the
@@ -392,64 +450,33 @@ class NativeBuilder(Builder):
         else:
             return super().uncached_compile(src, *args, **kwargs)
 
-    def build_objects(self, srcs, *, includes=[], buildroot=None, **kwargs):
-        # Since ocamlopt can inline code from other .cmx files, we need to make
-        # sure we'll recompile if any of the source files we depend on change.
-        kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
-        kwargs['includes']  = includes  = set(includes)
-        srcs = [Path(src) for src in srcs]
-        for src in srcs:
-            parent = src.parent
-            if parent:
-                includes.add(parent)
-                includes.add(parent.addroot(fbuild.buildroot))
+    # --------------------------------------------------------------------------
 
-        deps = self.ocamldep.all_source_dependencies(srcs, includes=includes)
-        compile = super().compile
+    def _add_compile_dependencies(self, dst, src, includes):
+        super()._add_compile_dependencies(dst, src, includes)
 
-        def f(src):
-            if src.endswith('.mli'):
-                return self.bytecode.compile(src, **kwargs)
-            else:
-                return compile.call_with_dependencies((src,), kwargs,
-                    srcs=deps.get(src, ()))
+        fbuild.db.add_external_dependencies_to_call(
+            dsts=(dst.replaceext(self.native_obj_suffix),))
 
-        return fbuild.scheduler.map_with_dependencies(
-            partial(self.ocamldep.source_dependencies, includes=includes),
-            f,
-            srcs)
+    def _add_link_dependencies(self, dst, srcs, includes, libs):
+        super()._add_link_dependencies(dst, srcs, includes, libs)
 
-    def link_lib(self, dst, srcs, *args, **kwargs):
-        """Link compiled ocaml files into a library and cache the results."""
-        libs = kwargs.get('libs', ())
-        deps = list(libs)
-        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs
-            if src.endswith('.cmx'))
-        deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
-        return super().link_lib.call_with_dependencies(
-            (dst, srcs) + args, kwargs,
-            srcs=[dep for dep in deps if Path(dep).exists()])
+        # ocamlopt also produces native objects and libraries, so add
+        # additional dependencies on them.
+        srcs = chain(
+            (src.replaceext(self.native_obj_suffix) for src in srcs
+                if src.endswith('.cmx')),
+            (lib.replaceext(self.native_lib_suffix) for lib in libs))
 
-    def link_exe(self, dst, srcs, *args, **kwargs):
-        """Link compiled ocaml files into a library and cache the results."""
-        libs = kwargs.get('libs', ())
-        deps = list(libs)
-        deps.extend(src.replaceext(self.native_obj_suffix) for src in srcs
-            if src.endswith('.cmx'))
-        deps.extend(lib.replaceext(self.native_lib_suffix) for lib in libs)
-        return super().link_exe.call_with_dependencies(
-            (dst, srcs) + args, kwargs,
-            srcs=[dep for dep in deps if Path(dep).exists()])
+        # If the dst is a library, this cached call also depends on the native
+        # library.
+        if dst.endswith('.cmxa'):
+            dsts = (dst.replaceext(self.native_lib_suffix),)
+        else:
+            dsts = ()
 
-    def build_lib(self, *args, **kwargs):
-        libs = kwargs.get('libs', ())
-        deps = [lib.replaceext(self.native_lib_suffix) for lib in libs]
-        return super().build_lib.call_with_dependencies(args, kwargs, srcs=deps)
-
-    def build_exe(self, *args, **kwargs):
-        libs = kwargs.get('libs', ())
-        deps = [lib.replaceext(self.native_lib_suffix) for lib in libs]
-        return super().build_exe.call_with_dependencies(args, kwargs, srcs=deps)
+        # This function must be called by a cached function.
+        fbuild.db.add_external_dependencies_to_call(srcs=srcs, dsts=dsts)
 
 # ------------------------------------------------------------------------------
 
