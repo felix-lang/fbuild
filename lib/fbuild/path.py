@@ -270,10 +270,14 @@ class Path(str):
         """Make the directories specified by this path. If they already exist
         and are already directories, don't raise an exception.
         """
-        # We want an error thrown if the file exists and is not a directory.
-        if os.path.exists(self) and os.path.isdir(self):
-            return
-        os.makedirs(self, *args, **kwargs)
+        try:
+            os.makedirs(self, *args, **kwargs)
+        except OSError:
+            # We want an error thrown if the file exists and is not a
+            # directory.
+            if os.path.exists(self) and os.path.isdir(self):
+                return
+            raise
 
     def digest(self, chunksize=65536):
         """Hash the file usind md5 and return the digest."""
