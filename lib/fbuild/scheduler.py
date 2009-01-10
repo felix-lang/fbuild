@@ -21,23 +21,17 @@ class Scheduler:
         return self.__count
 
     def map(self, function, srcs):
-        '''
-        Run the function over the input sources concurrently. This function
-        returns the results in their initial order.
-        '''
-
+        """Run the function over the input sources concurrently. This function
+        returns the results in their initial order."""
         nodes = (Node(function, src, index) for index, src in enumerate(srcs))
         nodes = sorted(self._evaluate(nodes), key=operator.attrgetter('index'))
 
         return [n.result for n in nodes]
 
     def map_with_dependencies(self, depends, function, srcs):
-        '''
-        Calculate the dependencies between the input sources and run them
+        """Calculate the dependencies between the input sources and run them
         concurrently. This function returns the results in the order that they
-        finished, not their initial order.
-        '''
-
+        finished, not their initial order."""
         nodes = {}
 
         for src in srcs:
