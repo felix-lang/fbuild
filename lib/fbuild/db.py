@@ -72,7 +72,6 @@ class Database:
         self._external_srcs = {}
         self._external_dsts = {}
         self._lock = threading.RLock()
-        self._function_locks = {}
 
     def save(self, filename):
         s = pickle.dumps((
@@ -147,19 +146,10 @@ class Database:
             elif issubclass(avalue, DST):
                 dsts.extend(avalue.convert(bound[akey]))
 
-        # Get or create the function-level lock.
-        with self._lock:
-            try:
-                function_lock = self._function_locks[function_name]
-            except KeyError:
-                function_lock = self._function_locks[function_name] = \
-                        threading.RLock()
-
-        with function_lock:
-            return self._cache(function_name, function, args, kwargs, bound,
-                srcs=srcs,
-                dsts=dsts,
-                return_type=return_type)
+        return self._cache(function_name, function, args, kwargs, bound,
+            srcs=srcs,
+            dsts=dsts,
+            return_type=return_type)
 
     def clear_function(self, function):
         """Remove the function name from the database."""
@@ -233,40 +223,45 @@ class Database:
         assert not fbuild.inspect.isgenerator(result), \
             "Cannot store generator in database"
 
-        if function_dirty:
-            self._update_function(function_name, function_digest)
+        # Lock the db since we're updating data structures.
+        with self._lock:
+            if function_dirty:
+                self._update_function(function_name, function_digest)
 
-        if call_id is None:
-            # Get the real call_id to use in the call files.
-            call_id = self._update_call(function_name, call_id, bound, result)
+            if call_id is None:
+                # Get the real call_id to use in the call files.
+                call_id = self._update_call(
+                    function_name, call_id, bound, result)
 
-        self._update_call_files(call_file_digests, function_name, call_id)
-        self._update_external_files(function_name, call_id,
-            external_srcs,
-            external_dsts,
-            external_digests)
+            self._update_call_files(call_file_digests, function_name, call_id)
+            self._update_external_files(function_name, call_id,
+                external_srcs,
+                external_dsts,
+                external_digests)
 
         return result
 
     # Create an in-process cache of the function digests, since they shouldn't
     # change while we're running.
+    _digest_function_lock = threading.Lock()
     _digest_function_cache = {}
     def _digest_function(self, function):
         """Compute the digest for a function or a function object. Cache this
         for this instance."""
-        try:
-            digest = self._digest_function_cache[function]
-        except KeyError:
-            if fbuild.inspect.isroutine(function):
-                # The function is a function, method, or lambda, so digest the
-                # source. If the function is a builtin, we will raise an
-                # exception.
-                src = fbuild.inspect.getsource(function)
-                digest = hashlib.md5(src.encode()).hexdigest()
-            else:
-                # The function is a functor so let it digest itself.
-                digest = hash(function)
-            self._digest_function_cache[function] = digest
+        with self._digest_function_lock:
+            try:
+                digest = self._digest_function_cache[function]
+            except KeyError:
+                if fbuild.inspect.isroutine(function):
+                    # The function is a function, method, or lambda, so digest
+                    # the source. If the function is a builtin, we will raise
+                    # an exception.
+                    src = fbuild.inspect.getsource(function)
+                    digest = hashlib.md5(src.encode()).hexdigest()
+                else:
+                    # The function is a functor so let it digest itself.
+                    digest = hash(function)
+                self._digest_function_cache[function] = digest
 
         return digest
 
@@ -491,9 +486,10 @@ class Database:
         except KeyError:
             # This is the first time we've seen this file, so store it in the
             # table and return that this is new data.
-            data = self._files[filename] = (
-                mtime,
-                fbuild.path.Path.digest(filename))
+            with self._lock:
+                data = self._files[filename] = (
+                    mtime,
+                    fbuild.path.Path.digest(filename))
             return True, data
 
         # If the file was modified less than 1.0 seconds ago, recompute the
@@ -505,18 +501,19 @@ class Database:
         # The mtime changed, but maybe the content didn't.
         digest = fbuild.path.Path.digest(filename)
 
-        # If the file's contents didn't change, just return.
-        if digest == old_digest:
-            # The timestamp did change, so update the row.
-            self._files[filename] = (mtime, old_digest)
-            return False, data
+        with self._lock:
+            # If the file's contents didn't change, just return.
+            if digest == old_digest:
+                # The timestamp did change, so update the row.
+                self._files[filename] = (mtime, old_digest)
+                return False, data
 
-        # Since the function changed, all of the calls that used this function
-        # are dirty.
-        self.clear_file(filename)
+            # Since the function changed, all of the calls that used this
+            # function are dirty.
+            self._clear_file(filename)
 
-        # Now, add the file back to the database.
-        data = self._files[filename] = (mtime, digest)
+            # Now, add the file back to the database.
+            data = self._files[filename] = (mtime, digest)
 
         # Returns True since the file changed.
         return True, data
