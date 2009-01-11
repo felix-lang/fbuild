@@ -174,45 +174,38 @@ class Database:
             assert not fbuild.inspect.isgenerator(arg), \
                 "Cannot store generator in database"
 
-        # Check if the function changed.
-        function_dirty, function_digest = \
-            self._check_function(function, function_name)
+        with self._lock:
+            # Check if the function changed.
+            function_dirty, function_digest = \
+                self._check_function(function, function_name)
 
-        # Check if this is a new call and get the index.
-        call_id = self._check_call(function_name, bound)
+            # Check if this is a new call and get the index.
+            call_id, old_result = self._check_call(function_name, bound)
 
-        # Add the source files to the database.
-        call_file_digests = self._check_call_files(srcs, function_name, call_id)
+            # Add the source files to the database.
+            call_file_digests = \
+                self._check_call_files(srcs, function_name, call_id)
 
-        # Check extra external call files.
-        external_srcs, external_dsts, external_digests = \
-            self._check_external_files(function_name, call_id)
-
-        dirty = \
-            function_dirty or \
-            call_id is None or \
-            call_file_digests or \
-            external_digests
+            # Check extra external call files.
+            external_srcs, external_dsts, external_digests = \
+                self._check_external_files(function_name, call_id)
 
         # Check if we have a result. If not, then we're dirty.
-        if not dirty:
-            old_result = self._function_calls[function_name][call_id][1]
+        if not (function_dirty or \
+                call_id is None or \
+                call_file_digests or \
+                external_digests):
+            # If the result is a dst filename, make sure it exists. If not,
+            # we're dirty.
+            if return_type is not None and issubclass(return_type, DST):
+                return_dsts = return_type.convert(old_result)
+            else:
+                return_dsts = ()
 
-            # Don't try to check return type if it's an exception.
-            if not isinstance(old_result, fbuild.Error):
-                # If the result is a dst filename, make sure it exists. If not,
-                # we're dirty.
-                if return_type is not None and issubclass(return_type, DST):
-                    return_dsts = return_type.convert(old_result)
-                else:
-                    return_dsts = ()
-
-                for dst in itertools.chain(return_dsts, dsts, external_dsts):
-                    if not fbuild.path.Path(dst).exists():
-                        dirty = True
-                        break
-
-            if not dirty:
+            for dst in itertools.chain(return_dsts, dsts, external_dsts):
+                if not fbuild.path.Path(dst).exists():
+                    break
+            else:
                 # The call was not dirty, so return the cached value.
                 return old_result
 
@@ -358,17 +351,17 @@ class Database:
             datas = self._function_calls[function]
         except KeyError:
             # This is the first time we've seen this function.
-            return None
+            return None, None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.
         for index, (old_bound, result) in enumerate(datas):
             if bound == old_bound:
                 # We've found a matching call so just return the index.
-                return index
+                return index, result
 
         # Turns out we haven't called it with these args.
-        return None
+        return None, None
 
     def _update_call(self, function, call_id, bound, result):
         """Insert or update the function call."""
