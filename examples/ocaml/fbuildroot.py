@@ -1,4 +1,3 @@
-import fbuild
 import fbuild.builders.ocaml
 from fbuild.path import Path
 

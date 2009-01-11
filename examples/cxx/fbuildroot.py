@@ -1,4 +1,3 @@
-import fbuild
 import fbuild.builders.cxx.guess
 
 def build():
