@@ -131,6 +131,9 @@ class Database:
             args = (function.__self__,) + args
             function = function.__func__
 
+        if not fbuild.inspect.isroutine(function):
+            function = function.__call__
+
         # Bind the arguments so that we can look up normal args by name.
         bound = fbuild.functools.bind_args(function, args, kwargs)
 
