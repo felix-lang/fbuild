@@ -100,11 +100,16 @@ class Scanner:
         self.gcc = gcc
         self.flags = flags
 
-    def __call__(self, src, *, includes=[], buildroot=None, **kwargs):
+    def __call__(self, src, *,
+            includes=[],
+            buildroot=None,
+            quieter=0,
+            **kwargs):
         # Ignore the buildroot argument
         src = Path(src)
 
         fbuild.logger.check(' * %s %s' % (self.gcc, ' '.join(self.flags)), src,
+            verbose=quieter,
             color='yellow')
 
         includes = set(includes)
@@ -113,7 +118,8 @@ class Scanner:
         stdout, stderr = self.gcc((src,),
             flags=list(chain(self.flags, kwargs.pop('flags', ()))),
             includes=includes,
-            stdout_quieter=1,
+            quieter=quieter,
+            stdout_quieter=1 if quieter == 0 else quieter,
             **kwargs)
 
         stdout = stdout.decode().replace('\\\n', '')
