@@ -1,12 +1,13 @@
 import fbuild
-from fbuild.builders import find_program
+import fbuild.builders
+import fbuild.db
 from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
-class Bison:
-    def __init__(self, exe, flags=[], *, suffix='.c'):
-        self.exe = exe
+class Bison(fbuild.db.PersistentObject):
+    def __init__(self, exe=None, flags=[], *, suffix='.c'):
+        self.exe = fbuild.builders.find_program([exe or 'bison'])
         self.flags = flags
         self.suffix = suffix
 
@@ -41,8 +42,3 @@ class Bison:
         fbuild.execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
 
         return dst
-
-def config(exe=None, default_exes=['bison'], **kwargs):
-    exe = exe or find_program(default_exes)
-
-    return Bison(exe, **kwargs)
