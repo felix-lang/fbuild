@@ -7,6 +7,7 @@ import fbuild.builders.cxx
 import fbuild.config as config
 import fbuild.config.c.c90 as c90
 import fbuild.config.c.c99 as c99
+import fbuild.config.c.posix04 as posix04
 
 # ------------------------------------------------------------------------------
 
@@ -43,7 +44,7 @@ def build():
 
     for lang in fbuild.builders.c, fbuild.builders.cxx:
         for builder in lang.guess_static(), lang.guess_shared():
-            for module in c90, c99:
+            for module in c90, c99, posix04:
                 for name in dir(module):
                     header = getattr(module, name)
                     if \
