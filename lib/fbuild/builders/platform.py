@@ -43,82 +43,82 @@ archmap = {
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config(platform=None):
+def platform(arch=None):
     """L{platform} returns a platform set that describes the various features
     of the specified I{platform}. If I{platform} is I{None}, try to determine
     which platform the system is and return that value. If the platform cannot
     be determined, return I{None}."""
     fbuild.logger.check('determining platform')
-    if platform is None:
+    if arch is None:
         try:
             stdout, stderr = fbuild.execute(('uname', '-s'), quieter=1)
         except fbuild.ExecutionError:
-            platform = os.name
+            arch = os.name
         else:
-            platform = stdout.decode('utf-8').strip().lower()
+            arch = stdout.decode('utf-8').strip().lower()
 
     try:
-        platform = archmap[platform]
+        architecture = archmap[arch]
     except KeyError:
         fbuild.logger.failed()
-        raise UnknownPlatform(platform)
+        raise UnknownPlatform(arch)
     else:
-        fbuild.logger.passed(platform)
-        return platform
+        fbuild.logger.passed(architecture)
+        return architecture
 
 # ------------------------------------------------------------------------------
 
-def static_obj_suffix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def static_obj_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return '.obj'
     else:
         return '.o'
 
-def static_lib_prefix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def static_lib_prefix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return ''
     else:
         return 'lib'
 
-def static_lib_suffix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def static_lib_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return '.lib'
     else:
         return '.a'
 
 # ------------------------------------------------------------------------------
 
-def shared_obj_suffix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def shared_obj_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return '.obj'
     else:
         return '.os'
 
-def shared_lib_prefix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def shared_lib_prefix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return ''
     else:
         return 'lib'
 
-def shared_lib_suffix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def shared_lib_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return '.lib'
-    elif 'darwin' in platform:
+    elif 'darwin' in arch:
         return '.dylib'
     else:
         return '.so'
 
 # ------------------------------------------------------------------------------
 
-def exe_suffix(platform=None):
-    platform = config(platform)
-    if 'windows' in platform:
+def exe_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
         return '.exe'
     else:
         return ''
