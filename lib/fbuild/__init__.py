@@ -102,12 +102,17 @@ def execute(cmd,
             stderr=stderr,
             **kwargs)
 
-        if timeout:
-            timer = threading.Timer(timeout, timeout_function, (p,))
-            timer.start()
+        try:
+            if timeout:
+                timer = threading.Timer(timeout, timeout_function, (p,))
+                timer.start()
 
-        stdout, stderr = p.communicate(input)
-        returncode = p.wait()
+            stdout, stderr = p.communicate(input)
+            returncode = p.wait()
+        except KeyboardInterrupt:
+            # Make sure if we get a keyboard interrupt to kill the process.
+            p.kill(group=True)
+            raise
     except OSError as e:
         # flush the logger
         logger.log('command failed: ' + cmd_string, color='red')
