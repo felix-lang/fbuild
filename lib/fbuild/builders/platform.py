@@ -65,3 +65,60 @@ def config(platform=None):
     else:
         fbuild.logger.passed(platform)
         return platform
+
+# ------------------------------------------------------------------------------
+
+def static_obj_suffix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return '.obj'
+    else:
+        return '.o'
+
+def static_lib_prefix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return ''
+    else:
+        return 'lib'
+
+def static_lib_suffix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return '.lib'
+    else:
+        return '.a'
+
+# ------------------------------------------------------------------------------
+
+def shared_obj_suffix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return '.obj'
+    else:
+        return '.os'
+
+def shared_lib_prefix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return ''
+    else:
+        return 'lib'
+
+def shared_lib_suffix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return '.lib'
+    elif 'darwin' in platform:
+        return '.dylib'
+    else:
+        return '.so'
+
+# ------------------------------------------------------------------------------
+
+def exe_suffix(platform=None):
+    platform = config(platform)
+    if 'windows' in platform:
+        return '.exe'
+    else:
+        return ''
