@@ -1,52 +1,48 @@
+import fbuild
+import fbuild.builders
+import fbuild.builders.c.gcc
 import fbuild.db
-from fbuild import ConfigFailed
-from fbuild.builders import find_program
-from fbuild.builders.c import MissingHeader, gcc
-from fbuild.record import Record
+import fbuild.record
 
 # ------------------------------------------------------------------------------
 
 def make_gxx(exe=None, default_exes=['g++', 'c++']):
-    exe = exe or find_program(default_exes)
-
-    if not exe:
-        raise ConfigFailed('cannot find g++')
-
-    gxx = gcc.Gcc(exe)
+    gxx = fbuild.builders.c.gcc.Gcc(
+        fbuild.builders.find_program([exe] if exe else default_exes))
 
     if not gxx.check_flags([]):
-        raise ConfigFailed('g++ failed to compile an exe')
+        raise fbuild.ConfigFailed('g++ failed to compile an exe')
 
     return gxx
 
 def make_compiler(*args, make_gcc=make_gxx, **kwargs):
-    return gcc.make_compiler(make_gcc=make_gcc, *args, **kwargs)
+    return fbuild.builders.gcc.make_compiler(*args, make_gcc=make_gcc, **kwargs)
 
 def make_linker(*args, make_gcc=make_gxx, **kwargs):
-    return gcc.make_linker(make_gcc=make_gcc, *args, **kwargs)
+    return fbuild.builders.gcc.make_linker(*args, make_gcc=make_gcc, **kwargs)
 
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_static(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
-    return gcc.config_static(
+def static(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
+    return fbuild.builders.c.gcc.static(*args,
         make_gcc=make_gxx,
         src_suffix=src_suffix,
-        *args, **kwargs)
+        **kwargs)
 
 @fbuild.db.caches
-def config_shared(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
-    return gcc.config_shared(
+def shared(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
+    return fbuild.builders.c.gcc.shared(*args,
         make_gcc=make_gxx,
         src_suffix=src_suffix,
-        *args, **kwargs)
+        **kwargs)
 
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
 def config_ext_hash_map(builder):
     if not builder.check_header_exists('ext/hash_map'):
-        raise MissingHeader('ext/hash_map')
+        raise fbuild.builders.c.MissingHeader('ext/hash_map')
 
     hash_map = builder.check_compile('''
         #include <ext/hash_map>
@@ -57,14 +53,14 @@ def config_ext_hash_map(builder):
         }
     ''', 'checking if gnu hash_map is supported')
 
-    return Record(hash_map=hash_map)
+    return fbuild.record.Record(hash_map=hash_map)
 
 def config_ext_headers(builder):
-    return Record(
+    return fbuild.record.Record(
         hash_map=config_ext_hash_map(builder),
     )
 
 def config_extensions(builder):
-    return Record(
+    return fbuild.record.Record(
         headers=config_ext_headers(builder),
     )
