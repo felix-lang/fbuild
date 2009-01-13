@@ -1,15 +1,9 @@
-from .. import gcc
+import fbuild.builders.c.gcc as gcc
 
 # ------------------------------------------------------------------------------
 
-def config_static(*args, **kwargs):
-    return gcc.config_static(*args, **kwargs)
+def static(*args, **kwargs):
+    return gcc.static(*args, **kwargs)
 
-def config_shared(*args,
-        lib_suffix='.dylib',
-        lib_link_flags=['-dynamiclib'],
-        **kwargs):
-    return gcc.config_shared(
-        lib_suffix=lib_suffix,
-        lib_link_flags=lib_link_flags,
-        *args, **kwargs)
+def shared(*args, lib_link_flags=['-dynamiclib'], **kwargs):
+    return gcc.shared(*args, lib_link_flags=lib_link_flags, **kwargs)

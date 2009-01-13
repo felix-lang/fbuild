@@ -2,28 +2,28 @@ from itertools import chain
 
 import fbuild
 import fbuild.builders.ar
+import fbuild.builders.c
 import fbuild.db
+import fbuild.record
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
-from fbuild.record import Record
 from fbuild.temp import tempfile
-from fbuild.builders import MissingProgram, find_program, c
 
 # ------------------------------------------------------------------------------
 
 class Gcc:
-    def __init__(self, exe, flags=()):
+    def __init__(self, exe, flags=[]):
         # we split exe in case extra arguments were specified in the name
         self.exe, *self.flags = str.split(exe)
-        self.flags = tuple(chain(self.flags, flags))
+        self.flags = list(chain(self.flags, flags))
 
-    def __call__(self, srcs, dst=None, flags=(), *,
-            pre_flags=(),
-            includes=(),
-            macros=(),
-            warnings=(),
-            libpaths=(),
-            libs=(),
+    def __call__(self, srcs, dst=None, flags=[], *,
+            pre_flags=[],
+            includes=[],
+            macros=[],
+            warnings=[],
+            libpaths=[],
+            libs=[],
             **kwargs):
         cmd = [self.exe]
         cmd.extend(pre_flags)
@@ -81,12 +81,7 @@ class Gcc:
         return hash((self.exe, self.flags))
 
 def make_gcc(exe=None, default_exes=['gcc', 'cc']):
-    exe = exe or find_program(default_exes)
-
-    if not exe:
-        raise MissingProgram('gcc')
-
-    gcc = Gcc(exe)
+    gcc = Gcc(fbuild.builders.find_program([exe] if exe else default_exes))
 
     if not gcc.check_flags(()):
         raise ConfigFailed('gcc failed to compile an exe')
@@ -135,30 +130,30 @@ class Scanner:
 
 class Compiler:
     def __init__(self, gcc, flags, *, suffix,
-            includes=(),
-            macros=(),
-            warnings=(),
+            includes=[],
+            macros=[],
+            warnings=[],
             debug=None,
             optimize=None,
-            debug_flags=(),
-            optimize_flags=()):
+            debug_flags=[],
+            optimize_flags=[]):
         self.gcc = gcc
         self.suffix = suffix
-        self.includes = tuple(includes)
-        self.macros = tuple(macros)
-        self.warnings = tuple(warnings)
-        self.flags = tuple(flags)
+        self.includes = includes
+        self.macros = macros
+        self.warnings = warnings
+        self.flags = flags
         self.debug = debug
         self.optimize = optimize
-        self.debug_flags = tuple(debug_flags)
-        self.optimize_flags = tuple(optimize_flags)
+        self.debug_flags = debug_flags
+        self.optimize_flags = optimize_flags
 
     def __call__(self, src, dst=None, *,
             suffix=None,
-            includes=(),
-            macros=(),
-            warnings=(),
-            flags=(),
+            includes=[],
+            macros=[],
+            warnings=[],
+            flags=[],
             debug=None,
             optimize=None,
             buildroot=None,
@@ -260,23 +255,23 @@ def make_compiler(gcc, flags=(), *,
 # ------------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, gcc, flags=(), *, prefix, suffix,
-            libpaths=(),
-            libs=()):
+    def __init__(self, gcc, flags=[], *, prefix, suffix,
+            libpaths=[],
+            libs=[]):
         self.gcc = gcc
-        self.flags = tuple(flags)
+        self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
-        self.libpaths = tuple(libpaths)
-        self.libs = tuple(libs)
-        self.flags = tuple(flags)
+        self.libpaths = libpaths
+        self.libs = libs
+        self.flags = flags
 
     def __call__(self, dst, srcs, *,
             prefix=None,
             suffix=None,
-            libpaths=(),
-            libs=(),
-            flags=(),
+            libpaths=[],
+            libs=[],
+            flags=[],
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
@@ -353,19 +348,20 @@ def make_linker(gcc, flags=(), **kwargs):
 
 # ------------------------------------------------------------------------------
 
-class Builder(c.Builder):
+class Builder(fbuild.builders.c.Builder):
     def __init__(self, *args,
             scanner,
             compiler,
             lib_linker,
             exe_linker,
             **kwargs):
-        super().__init__(*args, **kwargs)
-
         self.scanner = scanner
         self.compiler = compiler
         self.lib_linker = lib_linker
         self.exe_linker = exe_linker
+
+        # This needs to come last as the parent class tests the builder.
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return str(self.compiler)
@@ -416,83 +412,79 @@ class Builder(c.Builder):
 
 # ------------------------------------------------------------------------------
 
-@fbuild.db.caches
-def config_static(exe=None, *args,
+def static(exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
+        platform=None,
+        flags=[],
         scan_flags=['-MM'],
         compile_flags=['-c'],
-        libpaths=(),
-        libs=(),
-        src_suffix='.c', obj_suffix='.o',
-        lib_prefix='lib', lib_suffix='.a',
-        exe_suffix='',
+        libpaths=[],
+        libs=[],
+        link_flags=[],
+        exe_link_flags=[],
+        src_suffix='.c',
         **kwargs):
     gcc = make_gcc(exe)
 
-    builder = Builder(
+    return Builder(
         scanner=Scanner(gcc, flags=scan_flags),
         compiler=make_compiler(gcc,
-            flags=compile_flags,
-            suffix=obj_suffix,
+            flags=list(chain(flags, compile_flags)),
+            suffix=fbuild.builders.platform.static_obj_suffix(platform),
             **kwargs),
-        lib_linker=fbuild.builders.ar.config(
+        lib_linker=fbuild.builders.ar.Ar(
             libs=libs,
             libpaths=libpaths,
-            prefix=lib_prefix,
-            suffix=lib_suffix),
+            prefix=fbuild.builders.platform.static_lib_prefix(platform),
+            suffix=fbuild.builders.platform.static_lib_suffix(platform)),
         exe_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
+            flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=exe_suffix),
+            suffix=fbuild.builders.platform.exe_suffix(platform)),
         src_suffix=src_suffix)
-
-    c.check_builder(builder)
-
-    return builder
 
 # ------------------------------------------------------------------------------
 
-@fbuild.db.caches
-def config_shared(exe=None, *args,
+def shared(exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=make_compiler,
         make_linker=make_linker,
+        platform=None,
+        flags=[],
         scan_flags=['-MM'],
         compile_flags=['-c', '-fPIC'],
-        libpaths=(),
-        libs=(),
+        libpaths=[],
+        libs=[],
+        link_flags=[],
         lib_link_flags=['-fPIC', '-shared'],
-        src_suffix='.c', obj_suffix='.os',
-        lib_prefix='lib', lib_suffix='.so',
-        exe_suffix='',
+        exe_link_flags=[],
+        src_suffix='.c',
         **kwargs):
     gcc = make_gcc(exe)
 
-    builder = Builder(
+    return Builder(
         scanner=Scanner(gcc, flags=scan_flags),
         compiler=make_compiler(gcc,
-            flags=compile_flags,
-            suffix=obj_suffix,
+            flags=list(chain(flags, compile_flags)),
+            suffix=fbuild.builders.platform.shared_obj_suffix(platform),
             **kwargs),
         lib_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
-            prefix=lib_prefix,
-            suffix=lib_suffix,
-            flags=lib_link_flags),
+            flags=list(chain(flags, link_flags, lib_link_flags)),
+            prefix=fbuild.builders.platform.shared_lib_prefix(platform),
+            suffix=fbuild.builders.platform.shared_lib_suffix(platform)),
         exe_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,
+            flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=exe_suffix),
+            suffix=fbuild.builders.platform.exe_suffix(platform)),
         src_suffix=src_suffix)
-
-    c.check_builder(builder)
-
-    return builder
 
 # ------------------------------------------------------------------------------
 
@@ -560,7 +552,7 @@ def config_asm_labels(builder):
 
 @fbuild.db.caches
 def config_extensions(builder):
-    return Record(
+    return fbuild.record.Record(
         builtin_expect=config_builtin_expect(builder),
         named_registers_x86=config_named_registers_x86(builder),
         named_registers_x86_64=config_named_registers_x86_64(builder),
