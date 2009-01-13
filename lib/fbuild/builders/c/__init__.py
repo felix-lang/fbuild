@@ -230,34 +230,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-
-# ------------------------------------------------------------------------------
-
-def config_compile_flags(builder, flags):
-    logger.check('checking if "%s" supports %s' % (builder.compiler, flags))
-
-    if builder.try_tempfile_compile(flags=flags):
-        logger.passed()
-        return True
-
-    logger.failed()
-    return False
-
-# ------------------------------------------------------------------------------
-
-def check_compiler(compiler, suffix):
-    logger.check('checking if "%s" can make objects' % compiler)
-
-    with compiler.tempfile(suffix=suffix) as f:
-        try:
-            compiler([f], quieter=1)
-        except ExecutionError as e:
-            raise ConfigFailed('compiler failed') from e
-
-    logger.passed()
-
-# ------------------------------------------------------------------------------
-
 @fbuild.db.caches
 def config_little_endian(builder):
     code = '''
