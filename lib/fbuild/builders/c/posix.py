@@ -1,4 +1,4 @@
-import fbuild.builders.c.guess
+import fbuild.builders.c
 import fbuild.db
 from fbuild import ConfigFailed, logger
 from fbuild.record import Record
@@ -22,7 +22,7 @@ def config_dlfcn_h(builder, shared=None):
         raise MissingHeader('dlfcn.h')
 
     if shared is None:
-        shared = fbuild.builders.c.guess.config_shared()
+        shared = fbuild.builders.c.guess_shared()
 
     lib_code = '''
         #ifdef __cplusplus

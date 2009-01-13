@@ -6,6 +6,8 @@ import fbuild
 import fbuild.db
 import fbuild.temp
 import fbuild.builders
+import fbuild.builders.platform
+import fbuild.functools
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 
 # ------------------------------------------------------------------------------
@@ -227,6 +229,46 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         return self.check_statements(*items,
             msg='checking if type %r exists', **kwargs)
+
+# ------------------------------------------------------------------------------
+
+def _guess_builder(name, functions, *args, platform=None, **kwargs):
+    platform = fbuild.builders.platform.platform(platform)
+
+    for subplatform, function in functions:
+        if subplatform <= platform:
+            return fbuild.functools.call(function, *args, **kwargs)
+
+    raise fbuild.ConfigFailed('cannot find a builder for %s' %
+        (name, platform))
+
+@fbuild.db.caches
+def guess_static(*args, **kwargs):
+    """L{static} tries to guess the static system c compiler according to the
+    platform. It accepts a I{platform} keyword that overrides the system's
+    platform. This can be used to use a non-default compiler. Any extra
+    arguments and keywords are passed to the compiler's configuration
+    functions."""
+
+    return _guess_builder('c static', (
+        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.static'),
+        ({'posix'}, 'fbuild.builders.c.gcc.static'),
+        ({'windows'}, 'fbuild.builders.c.msvc.static'),
+    ), *args, **kwargs)
+
+@fbuild.db.caches
+def guess_shared(*args, **kwargs):
+    """L{shared} tries to guess the shared system c compiler according to the
+    platform. It accepts a I{platform} keyword that overrides the system's
+    platform. This can be used to use a non-default compiler. Any extra
+    arguments and keywords are passed to the compiler's configuration
+    functions."""
+
+    return _guess_builder('c shared', (
+        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.shared'),
+        ({'posix'}, 'fbuild.builders.c.gcc.shared'),
+        ({'windows'}, 'fbuild.builders.c.msvc.shared'),
+    ), *args, **kwargs)
 
 # ------------------------------------------------------------------------------
 

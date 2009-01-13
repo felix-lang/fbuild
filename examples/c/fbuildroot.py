@@ -1,10 +1,11 @@
-import fbuild.builders.c.guess
+import fbuild.builders.c
 
 def build():
-    c = fbuild.builders.c.guess.config()
+    static = fbuild.builders.c.guess_static()
+    shared = fbuild.builders.c.guess_shared()
 
-    lib = c.static.build_lib('static', ['lib.c'])
-    exe = c.static.build_exe('static', ['exe.c'], libs=[lib])
+    lib = static.build_lib('static', ['lib.c'])
+    exe = static.build_exe('static', ['exe.c'], libs=[lib])
 
-    lib = c.shared.build_lib('shared', ['lib.c'])
-    exe = c.shared.build_exe('shared', ['exe.c'], libs=[lib])
+    lib = shared.build_lib('shared', ['lib.c'])
+    exe = shared.build_exe('shared', ['exe.c'], libs=[lib])
