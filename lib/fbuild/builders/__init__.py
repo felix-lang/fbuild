@@ -9,14 +9,15 @@ import fbuild.temp
 # ------------------------------------------------------------------------------
 
 class MissingProgram(fbuild.ConfigFailed):
-    def __init__(self, program=None):
-        self.program = program
+    def __init__(self, programs=None):
+        self.programs = programs
 
     def __str__(self):
-        if self.program is None:
+        if self.programs is None:
             return 'cannot find program'
         else:
-            return 'cannot find "%s"' % self.program
+            return 'cannot find any of the programs %s' % \
+                ' '.join(repr(str(p)) for p in self.programs)
 
 # ------------------------------------------------------------------------------
 
@@ -32,15 +33,18 @@ def find_program(names, paths=None):
     for name in names:
         fbuild.logger.check('looking for program ' + name)
 
-        for path in paths:
-            filename = os.path.join(path, name)
-            if os.path.exists(filename):
-                fbuild.logger.passed('ok %s' % name)
-                return fbuild.path.Path(name)
+        filename = fbuild.path.Path(name)
+        if filename.exists():
+            fbuild.logger.passed('ok %s' % filename)
+            return filename
         else:
-            fbuild.logger.failed('not found')
+            for path in paths:
+                filename = fbuild.path.Path(path, name)
+                if filename.exists():
+                    fbuild.logger.passed('ok %s' % filename)
+                    return filename
 
-    raise fbuild.ConfigFailed('failed to find %s' % ' '.join(names))
+    raise MissingProgram(names)
 
 # ------------------------------------------------------------------------------
 
