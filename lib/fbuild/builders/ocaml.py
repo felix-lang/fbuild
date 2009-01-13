@@ -10,20 +10,21 @@ from functools import partial
 from itertools import chain
 
 import fbuild
+import fbuild.builders
+import fbuild.builders.platform
 import fbuild.db
+import fbuild.temp
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
-from fbuild.record import Record
-from fbuild.temp import tempdir
-from fbuild.builders import find_program, AbstractCompilerBuilder
 
 # ------------------------------------------------------------------------------
 
 class Ocamldep(fbuild.db.PersistentObject):
     """Use ocamldoc to generate dependencies for ocaml files."""
 
-    def __init__(self, exe, module_flags=[]):
-        self.exe = exe
+    def __init__(self, exe=None, module_flags=[]):
+        self.exe = fbuild.builders.find_program(
+            [exe] if exe else ['ocamldep.opt', 'ocamldep'])
         self.module_flags = module_flags
 
     @fbuild.db.cachemethod
@@ -43,7 +44,7 @@ class Ocamldep(fbuild.db.PersistentObject):
         return stdout.decode().replace('\\\n', '').split(':')[1].split()
 
     @fbuild.db.cachemethod
-    def source_dependencies(self, src:fbuild.db.SRC, *, includes=(), **kwargs):
+    def source_dependencies(self, src:fbuild.db.SRC, *, includes=[], **kwargs):
         """Compute the source files this ocaml file depends on."""
         deps = []
 
@@ -87,36 +88,84 @@ class Ocamldep(fbuild.db.PersistentObject):
 
 # ------------------------------------------------------------------------------
 
-class Builder(AbstractCompilerBuilder):
-    def __init__(self, ocamldep, exe, *,
+class Builder(fbuild.builders.AbstractCompilerBuilder):
+    def __init__(self, exe, *,
+            platform=None,
             obj_suffix,
             lib_suffix,
-            exe_suffix,
             includes=[],
             libs=[],
             pre_flags=[],
             flags=[],
-            debug_flags=['-g']):
+            debug_flags=['-g'],
+            ocamldep=None):
         super().__init__(src_suffix='.ml')
 
-        self.ocamldep = ocamldep
+        self.ocamldep = ocamldep or Ocamldep()
         self.exe = exe
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
-        self.exe_suffix = exe_suffix
+        self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
         self.includes = includes
         self.libs = libs
         self.pre_flags = pre_flags
         self.flags = flags
         self.debug_flags = debug_flags
 
-    # -------------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        # Check the builder to make sure it works.
+
+        logger.check('checking if %s can make objects' % self.exe)
+        if self.try_compile():
+            logger.passed()
+        else:
+            raise ConfigFailed('%s compiler failed' % self.exe)
+
+        logger.check('checking if %s can make libraries' % self.exe)
+        if self.try_link_lib():
+            logger.passed()
+        else:
+            raise ConfigFailed('%s lib linker failed' % self.exe)
+
+        logger.check('checking if %s can make exes' % self.exe)
+        if self.try_link_exe():
+            logger.passed()
+        else:
+            raise ConfigFailed('%s exe linker failed' % self.exe)
+
+        logger.check('checking if %s can link lib to exe' % self.exe)
+        with fbuild.temp.tempdir() as parent:
+            src_lib = parent / 'lib.ml'
+            with open(src_lib, 'w') as f:
+                print('let x = 5;;', file=f)
+
+            src_exe = parent / 'exe.ml'
+            with open(src_exe, 'w') as f:
+                print('print_int Lib.x;;', file=f)
+
+            obj = self.uncached_compile(src_lib, quieter=1)
+            lib = self.uncached_link_lib(parent / 'lib', [obj], quieter=1)
+
+            obj = self.uncached_compile(src_exe, quieter=1)
+            exe = self.uncached_link_exe(parent / 'exe', [obj], libs=[lib],
+                quieter=1)
+
+            try:
+                stdout, stderr = execute([exe], quieter=1)
+            except ExecutionError:
+                raise ConfigFailed('failed to link %s lib to exe' % self.exe)
+            else:
+                if stdout != b'5':
+                   raise ConfigFailed('failed to link %s lib to exe' % self.exe)
+                logger.passed()
+
+    # --------------------------------------------------------------------------
 
     def where(self):
         stdout, stderr = execute([self.exe, '-where'], quieter=1)
         return Path(stdout.decode().strip())
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def _run(self, dst, srcs, *,
             includes=[],
@@ -274,7 +323,7 @@ class Builder(AbstractCompilerBuilder):
 
         return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, *,
@@ -357,7 +406,7 @@ class Builder(AbstractCompilerBuilder):
             buildroot=buildroot,
             **lkwargs)
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def __str__(self):
         return self.exe
@@ -375,7 +424,18 @@ class Builder(AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-class BytecodeBuilder(Builder):
+class Ocamlc(Builder):
+    def __init__(self, exe=None, *args,
+            obj_suffix='.cmo',
+            lib_suffix='.cma',
+            **kwargs):
+        exe = fbuild.builders.find_program(
+            [exe] if exe else ['ocamlc.opt', 'ocamlc'])
+        super().__init__(exe, *args,
+            obj_suffix=obj_suffix,
+            lib_suffix=lib_suffix,
+            **kwargs)
+
     @fbuild.db.cachemethod
     def scan(self, src:fbuild.db.SRC, *,
             includes=[],
@@ -400,17 +460,27 @@ class BytecodeBuilder(Builder):
 
 # ------------------------------------------------------------------------------
 
-class NativeBuilder(Builder):
-    def __init__(self, ocamldep, ocamlopt, bytecode, *args,
-            native_obj_suffix='.o',
-            native_lib_suffix='.a',
+class Ocamlopt(Builder):
+    def __init__(self, exe=None, *args,
+            platform=None,
+            obj_suffix='.cmx',
+            lib_suffix='.cmxa',
+            ocamlc=None,
             **kwargs):
-        super().__init__(ocamldep, ocamlopt, *args, **kwargs)
-
         # We need the bytecode compiler to compile .mli files.
-        self.bytecode = bytecode
-        self.native_obj_suffix = native_obj_suffix
-        self.native_lib_suffix = native_lib_suffix
+        self.ocamlc = ocamlc or Ocamlc()
+        self.native_obj_suffix = \
+            fbuild.builders.platform.static_obj_suffix(platform)
+        self.native_lib_suffix = \
+            fbuild.builders.platform.static_lib_suffix(platform)
+
+        exe = fbuild.builders.find_program(
+            [exe] if exe else ['ocamlopt.opt', 'ocamlopt'])
+        super().__init__(exe, *args,
+            platform=platform,
+            obj_suffix=obj_suffix,
+            lib_suffix=lib_suffix,
+            **kwargs)
 
     # --------------------------------------------------------------------------
 
@@ -438,7 +508,7 @@ class NativeBuilder(Builder):
         # If the src is an interface file, use the bytecode compiler to create
         # the .cmi file.
         if src.endswith('.mli'):
-            return self.bytecode.compile(src, *args, **kwargs)
+            return self.ocamlc.compile(src, *args, **kwargs)
         else:
             return super().compile(src, *args, **kwargs)
 
@@ -446,7 +516,7 @@ class NativeBuilder(Builder):
         # If the src is an interface file, use the bytecode compiler to create
         # the .cmi file.
         if src.endswith('.mli'):
-            return self.bytecode.uncached_compile(src, *args, **kwargs)
+            return self.ocamlc.uncached_compile(src, *args, **kwargs)
         else:
             return super().uncached_compile(src, *args, **kwargs)
 
@@ -480,56 +550,124 @@ class NativeBuilder(Builder):
 
 # ------------------------------------------------------------------------------
 
-def check_builder(builder):
-    logger.check('checking if ocaml can make objects')
-    if builder.try_compile():
-        logger.passed()
-    else:
-        raise ConfigFailed('ocaml compiler failed')
+class Ocaml(fbuild.builders.AbstractCompilerBuilder):
+    Tuple = collections.namedtuple('Tuple', 'bytecode native')
 
-    logger.check('checking if ocaml can make libraries')
-    if builder.try_link_lib():
-        logger.passed()
-    else:
-        raise ConfigFailed('ocaml lib linker failed')
+    def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None):
+        self.ocamldep = ocamldep or Ocamldep()
+        self.ocamlc = Ocamlc(ocamldep=ocamldep, exe=ocamlc)
+        self.ocamlopt = Ocamlopt(
+            ocamldep=ocamldep,
+            ocamlc=self.ocamlc,
+            exe=ocamlopt)
 
-    logger.check('checking if ocaml can make exes')
-    if builder.try_link_exe():
-        logger.passed()
-    else:
-        raise ConfigFailed('ocaml exe linker failed')
+    # --------------------------------------------------------------------------
 
-    logger.check('checking if ocaml can link lib to exe')
-    with tempdir() as parent:
-        src_lib = parent / 'lib.ml'
-        with open(src_lib, 'w') as f:
-            print('let x = 5;;', file=f)
+    def compile(self, *args, **kwargs):
+        """Compile an ocaml implementation or interface file and cache the
+        results.  This returns a tuple of the generated bytecode and native
+        object filename."""
+        # The sub-compilers will handle the actual caching.
+        return self._compile(
+            self.ocamlc.compile,
+            self.ocamlopt.compile)
 
-        src_exe = parent / 'exe.ml'
-        with open(src_exe, 'w') as f:
-            print('print_int Lib.x;;', file=f)
+    def uncached_compile(self, *args, **kwargs):
+        """Compile an ocaml implementation or interface file without caching
+        the results.  This is needed when compiling temporary files. This
+        returns a tuple of the generated bytecode and native object
+        filename."""
+        return self._compile(
+            self.ocamlc.uncached_compile,
+            self.ocamlopt.uncached_compile)
 
-        obj = builder.uncached_compile(src_lib, quieter=1)
-        lib = builder.uncached_link_lib(parent / 'lib', [obj], quieter=1)
+    def link_lib(self, *args, **kwargs):
+        """Link compiled ocaml files into a bytecode and native library and
+        cache the results."""
+        # The sub-linkers will handle the actual caching.
+        return self._link(
+            self.ocamlc.link_lib,
+            self.ocamlopt.link_lib)
 
-        obj = builder.uncached_compile(src_exe, quieter=1)
-        exe = builder.uncached_link_exe(parent / 'exe', [obj], libs=[lib],
-            quieter=1)
+    def uncached_link_lib(self, *args, **kwargs):
+        """Link compiled ocaml files into a bytecode and native library without
+        caching the results.  This is needed when linking temporary files."""
+        return self._link(
+            self.ocamlc.uncached_link_lib,
+            self.ocamlopt.uncached_link_lib)
 
-        try:
-            stdout, stderr = execute([exe], quieter=1)
-        except ExecutionError:
-            raise ConfigFailed('failed to link ocaml lib to exe')
+    def link_exe(self, *args, **kwargs):
+        """Link compiled ocaml files into a bytecode and native executable and
+        cache the results."""
+        # The sub-linkers will handle the actual caching.
+        return self._link(self.ocamlc.link_exe, self.ocamlopt.link_exe)
+
+    def uncached_link_exe(self, *args, **kwargs):
+        """Link compiled ocaml files into a bytecode and native executable
+        without caching the results.  This is needed when linking temporary
+        files."""
+        return self._link(
+            self.ocamlc.uncached_link_exe,
+            self.ocamlopt.uncached_link_exe)
+
+    # --------------------------------------------------------------------------
+
+    def build_objects(self, srcs, *args, **kwargs):
+        """Compile all the L{srcs} in parallel."""
+        return \
+            self.ocamlc.build_objects(srcs, *args, **kwargs) + \
+            self.ocamlopt.build_objects(srcs, *args, **kwargs)
+
+    def build_lib(self, *args, **kwargs):
+        """Compile and link ocaml source files into a bytecode and native
+        library."""
+        return self._link(
+            self.ocamlc.build_lib,
+            self.ocamlopt.build_lib, *args, **kwargs)
+
+    def build_exe(self, *args, **kwargs):
+        """Compile and link ocaml source files into a bytecode and native
+        executable."""
+        return self._link(
+            self.ocamlc.build_exe,
+            self.ocamlopt.build_exe, *args, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    def _compile(self, bcompile, ncompile, *args, **kwargs):
+        """Actually compile the source using the bytecode and native
+        compilers."""
+        bobj = bcompile(*args, **kwargs)
+
+        if src.endswith('.mli'):
+            # We only need to generate the interface once.
+            nobj = bobj
         else:
-            if stdout != b'5':
-               raise ConfigFailed('failed to link ocaml lib to exe')
-            logger.passed()
+            nobj = ncompile(*args, **kwargs)
+
+        return self.Tuple(bobj, nobj)
+
+    def _link(self, blink, nlink, dst, srcs, *args, libs=[], **kwargs):
+        """Actually link the sources using the bytecode and native compilers."""
+        # the first item is the bytecode object, the second the native one
+        bsrcs = [(s[0] if isinstance(s, self.Tuple) else s) for s in srcs]
+        nsrcs = [(s[1] if isinstance(s, self.Tuple) else s) for s in srcs]
+
+        # the first item is the bytecode lib, the second the native one
+        blibs = [(l[0] if isinstance(l, self.Tuple) else l) for l in libs]
+        nlibs = [(l[1] if isinstance(l, self.Tuple) else l) for l in libs]
+
+        blib = blink(dst, bsrcs, *args, libs=blibs, **kwargs)
+        nlib = nlink(dst, nsrcs, *args, libs=nlibs, **kwargs)
+
+        return self.Tuple(blib, nlib)
 
 # ------------------------------------------------------------------------------
 
 class Ocamllex(fbuild.db.PersistentObject):
-    def __init__(self, exe, flags=[]):
-        self.exe = exe
+    def __init__(self, exe=None, flags=[]):
+        self.exe = fbuild.builders.find_program(
+            [exe] if exe else ['ocamllex.opt', 'ocamllex'])
         self.flags = flags
 
     @fbuild.db.cachemethod
@@ -563,17 +701,12 @@ class Ocamllex(fbuild.db.PersistentObject):
             self.exe == other.exe and \
             self.flags == other.flags
 
-@fbuild.db.caches
-def config_ocamllex(exe=None, default_exes=['ocamllex.opt', 'ocamllex']):
-    exe = exe or find_program(default_exes)
-
-    return Ocamllex(exe)
-
 # ------------------------------------------------------------------------------
 
 class Ocamlyacc(fbuild.db.PersistentObject):
-    def __init__(self, exe, flags=[]):
-        self.exe = exe
+    def __init__(self, exe=None, flags=[]):
+        self.exe = fbuild.builders.find_program(
+            [exe] if exe else ['ocamlyacc.opt', 'ocamlyacc'])
         self.flags = flags
 
     @fbuild.db.cachemethod
@@ -613,156 +746,3 @@ class Ocamlyacc(fbuild.db.PersistentObject):
         return isinstance(other, Ocamlyacc) and \
             self.exe == other.exe and \
             self.flags == other.flags
-
-@fbuild.db.caches
-def config_ocamlyacc(exe=None, default_exes=['ocamlyacc.opt', 'ocamlyacc'],
-        **kwargs):
-    exe = exe or find_program(default_exes)
-
-    return Ocamlyacc(exe, **kwargs)
-
-# ------------------------------------------------------------------------------
-
-class BothBuilders(AbstractCompilerBuilder):
-    Tuple = collections.namedtuple('Tuple', 'bytecode native')
-
-    def __init__(self, ocamldep, bytecode, native):
-        self.ocamldep = ocamldep
-        self.bytecode = bytecode
-        self.native = native
-
-    # --------------------------------------------------------------------------
-
-    def compile(self, *args, **kwargs):
-        """Compile an ocaml implementation or interface file and cache the
-        results.  This returns a tuple of the generated bytecode and native
-        object filename."""
-        # The sub-compilers will handle the actual caching.
-        return self._compile(
-            self.bytecode.compile,
-            self.native.compile)
-
-    def uncached_compile(self, *args, **kwargs):
-        """Compile an ocaml implementation or interface file without caching
-        the results.  This is needed when compiling temporary files. This
-        returns a tuple of the generated bytecode and native object
-        filename."""
-        return self._compile(
-            self.bytecode.uncached_compile,
-            self.native.uncached_compile)
-
-    def link_lib(self, *args, **kwargs):
-        """Link compiled ocaml files into a bytecode and native library and
-        cache the results."""
-        # The sub-linkers will handle the actual caching.
-        return self._link(
-            self.bytecode.link_lib,
-            self.native.link_lib)
-
-    def uncached_link_lib(self, *args, **kwargs):
-        """Link compiled ocaml files into a bytecode and native library without
-        caching the results.  This is needed when linking temporary files."""
-        return self._link(
-            self.bytecode.uncached_link_lib,
-            self.native.uncached_link_lib)
-
-    def link_exe(self, *args, **kwargs):
-        """Link compiled ocaml files into a bytecode and native executable and
-        cache the results."""
-        # The sub-linkers will handle the actual caching.
-        return self._link(self.bytecode.link_exe, self.native.link_exe)
-
-    def uncached_link_exe(self, *args, **kwargs):
-        """Link compiled ocaml files into a bytecode and native executable
-        without caching the results.  This is needed when linking temporary
-        files."""
-        return self._link(
-            self.bytecode.uncached_link_exe,
-            self.native.uncached_link_exe)
-
-    # --------------------------------------------------------------------------
-
-    def build_objects(self, srcs, *args, **kwargs):
-        """Compile all the L{srcs} in parallel."""
-        return \
-            self.bytecode.build_objects(srcs, *args, **kwargs) + \
-            self.native.build_objects(srcs, *args, **kwargs)
-
-    def build_lib(self, *args, **kwargs):
-        """Compile and link ocaml source files into a bytecode and native
-        library."""
-        return self._link(
-            self.bytecode.build_lib,
-            self.native.build_lib, *args, **kwargs)
-
-    def build_exe(self, *args, **kwargs):
-        """Compile and link ocaml source files into a bytecode and native
-        executable."""
-        return self._link(
-            self.bytecode.build_exe,
-            self.native.build_exe, *args, **kwargs)
-
-    # --------------------------------------------------------------------------
-
-    def _compile(self, bcompile, ncompile, *args, **kwargs):
-        """Actually compile the source using the bytecode and native
-        compilers."""
-        bobj = bcompile(*args, **kwargs)
-
-        if src.endswith('.mli'):
-            # We only need to generate the interface once.
-            nobj = bobj
-        else:
-            nobj = ncompile(*args, **kwargs)
-
-        return self.Tuple(bobj, nobj)
-
-    def _link(self, blink, nlink, dst, srcs, *args, libs=[], **kwargs):
-        """Actually link the sources using the bytecode and native compilers."""
-        # the first item is the bytecode object, the second the native one
-        bsrcs = [(s[0] if isinstance(s, self.Tuple) else s) for s in srcs]
-        nsrcs = [(s[1] if isinstance(s, self.Tuple) else s) for s in srcs]
-
-        # the first item is the bytecode lib, the second the native one
-        blibs = [(l[0] if isinstance(l, self.Tuple) else l) for l in libs]
-        nlibs = [(l[1] if isinstance(l, self.Tuple) else l) for l in libs]
-
-        blib = blink(dst, bsrcs, *args, libs=blibs, **kwargs)
-        nlib = nlink(dst, nsrcs, *args, libs=nlibs, **kwargs)
-
-        return self.Tuple(blib, nlib)
-
-# ------------------------------------------------------------------------------
-
-@fbuild.db.caches
-def config_ocaml(*,
-        ocamldep=None,
-        default_ocamldep=['ocamldep.opt', 'ocamldep'],
-        ocamlc=None,
-        default_ocamlc=['ocamlc.opt', 'ocamlc'],
-        ocamlopt=None,
-        default_ocamlopt=['ocamlopt.opt', 'ocamlopt']):
-    ocamlc = ocamlc or find_program(default_ocamlc)
-    ocamlopt = ocamlopt or find_program(default_ocamlopt)
-
-    ocamldep = Ocamldep(ocamldep or find_program(default_ocamldep))
-    bytecode = BytecodeBuilder(ocamldep, ocamlc,
-        obj_suffix='.cmo',
-        lib_suffix='.cma',
-        exe_suffix='')
-    native = NativeBuilder(ocamldep, ocamlopt, bytecode,
-        obj_suffix='.cmx',
-        lib_suffix='.cmxa',
-        exe_suffix='')
-
-    check_builder(bytecode)
-    check_builder(native)
-
-    return BothBuilders(ocamldep, bytecode, native)
-
-def config(*, ocamllex=None, ocamlyacc=None, **kwargs):
-    return Record(
-        ocaml=config_ocaml(**kwargs),
-        ocamllex=config_ocamllex(ocamllex),
-        ocamlyacc=config_ocamlyacc(ocamlyacc),
-    )
