@@ -45,9 +45,9 @@ archmap = {
 @fbuild.db.caches
 def config(platform=None):
     """L{platform} returns a platform set that describes the various features
-    of the specified I{architecture}. If I{architecture} is I{None}, try to
-    determine which platform the system is and return that value. If the
-    platform cannot be determined, return I{None}."""
+    of the specified I{platform}. If I{platform} is I{None}, try to determine
+    which platform the system is and return that value. If the platform cannot
+    be determined, return I{None}."""
     fbuild.logger.check('determining platform')
     if platform is None:
         try:
@@ -64,5 +64,4 @@ def config(platform=None):
         raise UnknownPlatform(platform)
     else:
         fbuild.logger.passed(platform)
-
-    return platform
+        return platform
