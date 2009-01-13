@@ -2,20 +2,32 @@ from itertools import chain
 
 import fbuild
 import fbuild.builders
+import fbuild.builders.platform
 from fbuild import ConfigFailed, execute
 from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
-class Linker(fbuild.db.PersistentObject):
-    def __init__(self, ar, ranlib, flags=(), *, prefix, suffix,
-            libpaths=(),
-            libs=(),
-            ranlib_flags=()):
-        self.ar = ar
-        self.ranlib = ranlib
-        self.prefix = prefix
-        self.suffix = suffix
+class Ar(fbuild.db.PersistentObject):
+    def __init__(self, ar=None, *,
+            platform=None,
+            prefix=None,
+            suffix=None,
+            flags=['-rc'],
+            libpaths=[],
+            libs=[],
+            ranlib=None,
+            ranlib_flags=[]):
+        self.ar = fbuild.builders.find_program([ar or 'ar'])
+        try:
+            self.ranlib = fbuild.builders.find_program([ranlib or 'ranlib'])
+        except fbuild.ConfigFailed:
+            self.ranlib = None
+
+        self.prefix = prefix or \
+            fbuild.builders.platform.static_lib_prefix(platform)
+        self.suffix = suffix or \
+            fbuild.builders.platform.static_lib_suffix(platform)
         self.libpaths = tuple(libpaths)
         self.libs = tuple(libs)
         self.flags = tuple(flags)
@@ -23,9 +35,9 @@ class Linker(fbuild.db.PersistentObject):
 
     @fbuild.db.cachemethod
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
-            libs=(),
-            flags=(),
-            ranlib_flags=(),
+            libs=[],
+            flags=[],
+            ranlib_flags=[],
             prefix=None,
             suffix=None,
             buildroot=None,
@@ -84,43 +96,3 @@ class Linker(fbuild.db.PersistentObject):
             self.flags,
             self.prefix,
             self.suffix)
-
-    def __eq__(self, other):
-        return isinstance(other, Linker) and \
-            self.ar == other.ar and \
-            self.ranlib == other.ranlib and \
-            self.flags == other.flags and \
-            self.prefix == other.prefix and \
-            self.suffix == other.suffix
-
-    def __hash__(self):
-        return hash((
-            self.ar,
-            self.ranlib,
-            self.prefix,
-            self.suffix,
-            self.libpaths,
-            self.libs,
-            self.flags,
-            self.ranlib_flags,
-        ))
-
-# ------------------------------------------------------------------------------
-
-@fbuild.db.caches
-def config(ar=None, ranlib=None, *,
-        prefix='lib',
-        suffix='.a',
-        flags=['-rc'],
-        **kwargs):
-    ar = ar or fbuild.builders.find_program(['ar'])
-
-    if not ar:
-        raise ConfigFailed('cannot find ar')
-
-    ranlib = ranlib or fbuild.builders.find_program(['ranlib'])
-
-    return Linker(ar, ranlib, flags,
-        prefix=prefix,
-        suffix=suffix,
-        **kwargs)
