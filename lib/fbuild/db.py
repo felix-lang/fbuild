@@ -558,7 +558,18 @@ class PersistentObject(metaclass=PersistentMeta):
 
 class caches:
     """L{caches} decorates a function and caches the results.  The first
-    argument of the function must be an instance of L{database}."""
+    argument of the function must be an instance of L{database}.
+
+    >>> @caches
+    ... def test():
+    ...     print('running test')
+    ...     return 5
+    >>> test()
+    running test
+    5
+    >>> test()
+    5
+    """
 
     def __init__(self, function):
         functools.update_wrapper(self, function)
@@ -571,7 +582,20 @@ class caches:
         return database.call_with_dependencies(self.function, *args, **kwargs)
 
 class cachemethod:
-    """L{cachemethod} decorates a method of a class to cache the results."""
+    """L{cachemethod} decorates a method of a class to cache the results.
+
+    >>> class C:
+    ...     @cachemethod
+    ...     def test(self):
+    ...         print('running test')
+    ...         return 5
+    >>> c = C()
+    >>> c.test()
+    running test
+    5
+    >>> c.test()
+    5
+    """
     def __init__(self, method):
         self.method = method
 
@@ -589,6 +613,31 @@ class cachemethod_wrapper:
 
     def call_with_dependencies(self, *args, **kwargs):
         return database.call_with_dependencies(self.method, *args, **kwargs)
+
+class cacheproperty:
+    """L{cacheproperty} acts like a normal I{property} but will memoize the
+    result in the store.  The first argument of the function it wraps must be a
+    store or a class that has has an attribute named I{store}.
+
+    >>> class C:
+    ...     @cacheproperty
+    ...     def test(self):
+    ...         print('running test')
+    ...         return 5
+    >>> c = C()
+    >>> c.test
+    running test
+    5
+    >>> c.test
+    5
+    """
+    def __init__(self, method):
+        self.method = method
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return database.call(types.MethodType(self.method, instance))
 
 # ------------------------------------------------------------------------------
 
