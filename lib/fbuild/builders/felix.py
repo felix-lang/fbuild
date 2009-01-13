@@ -1,11 +1,13 @@
 from functools import partial
+from itertools import chain
 
 import fbuild
+import fbuild.builders
+import fbuild.builders.platform
 import fbuild.db
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
-from fbuild.builders import AbstractCompiler, find_program
 
 # ------------------------------------------------------------------------------
 
@@ -13,8 +15,10 @@ class Flx:
     def __init__(self, exe, flags=[]):
         # we split exe in case extra arguments were specified in the name
         self.exe, *self.flags = str.split(exe)
-        self.exe = Path(self.exe)
-        self.flags.extend(flags)
+        self.flags = list(chain(self.flags, flags))
+
+        if not self.check_flags([]):
+            raise ConfigFailed('%s failed to compile an exe' % self)
 
     def __call__(self, src, *args,
             static=False,
@@ -59,32 +63,20 @@ class Flx:
         return isinstance(other, Flx) and \
             self.exe == other.exe
 
-@fbuild.db.caches
-def config_flx(exe=None, default_exes=['flx'], *, flags=[]):
-    exe = exe or find_program(default_exes)
-
-    if not exe:
-        raise MissingProgram('exe')
-
-    flx = Flx(exe, flags)
-
-    if not flx.check_flags([]):
-        raise ConfigFailed('flx failed to compile an exe')
-
-    return flx
-
 # ------------------------------------------------------------------------------
 
-class Felix(AbstractCompiler):
-    def __init__(self, flx, *, exe_suffix, lib_suffix,
+class Felix(fbuild.builders.AbstractCompiler):
+    def __init__(self, exe=None, *,
+            platform=None,
             static=False,
             includes=[],
             flags=[]):
         super().__init__(src_suffix='.flx')
 
-        self.flx = flx
-        self.exe_suffix = exe_suffix
-        self.lib_suffix = lib_suffix
+        self.flx = Flx(fbuild.builders.find_program([exe or 'flx']),
+            flags=flags)
+        self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
+        self.lib_suffix = fbuild.builders.platform.shared_lib_suffix(platform)
         self.static = static
         self.includes = includes
         self.flags = flags
@@ -153,14 +145,3 @@ class Felix(AbstractCompiler):
         return isinstance(other, Felix) and \
             self.exe == other.exe and \
             self.exe_suffix == other.exe_suffix
-
-# ------------------------------------------------------------------------------
-
-def config(exe=None, *,
-        flags=[],
-        exe_suffix='',
-        lib_suffix='.dylib',
-        **kwargs):
-    flx = config_flx(exe, flags=flags)
-
-    return Felix(flx, exe_suffix=exe_suffix, lib_suffix=lib_suffix)
