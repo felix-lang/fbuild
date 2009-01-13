@@ -23,8 +23,63 @@ class MissingHeader(ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ----------------------------------------------------------------------
+        # Check the builder to make sure it works.
+
+        logger.check('checking if %s can make objects' % self)
+        if self.try_compile('int main(int argc, char** argv) { return 0; }'):
+            logger.passed()
+        else:
+            raise ConfigFailed('compiler failed')
+
+        logger.check('checking if %s can make libraries' % self)
+        if self.try_link_lib('int foo() { return 5; }'):
+            logger.passed()
+        else:
+            raise ConfigFailed('lib linker failed')
+
+        logger.check('checking if %s can make exes' % self)
+        if self.try_run('int main(int argc, char** argv) { return 0; }'):
+            logger.passed()
+        else:
+            raise ConfigFailed('exe linker failed')
+
+        logger.check('checking if %s can link lib to exe' % self)
+        with fbuild.temp.tempdir() as dirname:
+            src_lib = dirname / 'templib' + self.src_suffix
+            with open(src_lib, 'w') as f:
+                print('int foo() { return 5; }', file=f)
+
+            src_exe = dirname / 'tempexe' + self.src_suffix
+            with open(src_exe, 'w') as f:
+                print('#include <stdio.h>', file=f)
+                print('extern int foo();', file=f)
+                print('int main(int argc, char** argv) {', file=f)
+                print('  printf("%d\\n", foo());', file=f)
+                print('  return 0;', file=f)
+                print('}', file=f)
+
+            obj = self.uncached_compile(src_lib, quieter=1)
+            lib = self.uncached_link_lib(dirname / 'temp', [obj], quieter=1)
+            obj = self.uncached_compile(src_exe, quieter=1)
+            exe = self.uncached_link_exe(dirname / 'temp', [obj], libs=[lib],
+                    quieter=1)
+
+            try:
+                stdout, stderr = execute([exe], quieter=1)
+            except ExecutionError:
+                raise ConfigFailed('failed to link lib to exe')
+            else:
+                if stdout != b'5\n':
+                    raise ConfigFailed('failed to link lib to exe')
+                logger.passed()
+
     @abc.abstractmethod
     def scan(self, src, *args, **kwargs):
+        """Scan a c file for dependencies."""
         pass
 
     @fbuild.db.cachemethod
@@ -175,61 +230,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-def check_builder(builder):
-    logger.check('checking if can make objects')
-    if builder.try_compile('int main(int argc, char** argv) { return 0; }'):
-        logger.passed()
-    else:
-        logger.failed('compiler failed')
-        return False
-
-    logger.check('checking if can make libraries')
-    if builder.try_link_lib('int foo() { return 5; }'):
-        logger.passed()
-    else:
-        logger.failed('lib linker failed')
-        return False
-
-    logger.check('checking if can make exes')
-    if builder.try_run('int main(int argc, char** argv) { return 0; }'):
-        logger.passed()
-    else:
-        logger.failed('exe linker failed')
-        return False
-
-    logger.check('checking if can link lib to exe')
-    with fbuild.temp.tempdir() as dirname:
-        src_lib = dirname / 'templib' + builder.src_suffix
-        with open(src_lib, 'w') as f:
-            print('int foo() { return 5; }', file=f)
-
-        src_exe = dirname / 'tempexe' + builder.src_suffix
-        with open(src_exe, 'w') as f:
-            print('#include <stdio.h>', file=f)
-            print('extern int foo();', file=f)
-            print('int main(int argc, char** argv) {', file=f)
-            print('  printf("%d\\n", foo());', file=f)
-            print('  return 0;', file=f)
-            print('}', file=f)
-
-        obj = builder.uncached_compile(src_lib, quieter=1)
-        lib = builder.uncached_link_lib(dirname / 'temp', [obj], quieter=1)
-        obj = builder.uncached_compile(src_exe, quieter=1)
-        exe = builder.uncached_link_exe(dirname / 'temp', [obj], libs=[lib],
-                quieter=1)
-
-        try:
-            stdout, stderr = execute([exe], quieter=1)
-        except ExecutionError:
-            logger.failed('failed to link lib to exe')
-            return False
-        else:
-            if stdout != b'5\n':
-                logger.failed('failed to link lib to exe')
-                return False
-            logger.passed()
-
-            return True
 
 # ------------------------------------------------------------------------------
 
