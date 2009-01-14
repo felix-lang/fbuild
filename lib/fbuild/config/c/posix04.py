@@ -600,6 +600,97 @@ class sys_shm_h(c.Header):
 class sys_socket_h(c.Header):
     header = 'sys/socket.h'
 
+    socklen_t = c.int_type_test()
+    sa_family_t = c.int_type_test()
+    sockaddr = c.struct_test(
+        ('sa_family_t', 'sa_family'),
+        ('char*', 'sa_data'))
+    sockaddr_storage = c.struct_test(
+        ('sa_family_t', 'ss_family'))
+    msghdr = c.struct_test(
+        ('void*', 'msg_name'),
+        ('socklen_t', 'msg_namelen'),
+        ('struct iovec*', 'msg_iov'),
+        ('int', 'msg_iovlen'),
+        ('void*', 'msg_control'),
+        ('socklen_t', 'msg_controllen'),
+        ('int', 'msg_flags'))
+    cmsghdr = c.struct_test(
+        ('socklen_t', 'cmsg_len'),
+        ('int', 'cmsg_level'),
+        ('int', 'cmsg_type'))
+    SCM_RIGHTS = c.macro_test()
+    CMSG_DATA = c.macro_test()
+    CMSG_NXTHDR = c.macro_test()
+    CMSG_FIRSTHDR = c.macro_test()
+    linger = c.struct_test(
+        ('int', 'l_onoff'),
+        ('int', 'l_linger'))
+    SOCK_DGRAM = c.macro_test()
+    SOCK_RAW = c.macro_test()
+    SOCK_SEQPACKET = c.macro_test()
+    SOCK_STREAM = c.macro_test()
+    SOL_SOCKET = c.macro_test()
+    SO_ACCEPTCONN = c.macro_test()
+    SO_BROADCAST = c.macro_test()
+    SO_DEBUG = c.macro_test()
+    SO_DONTROUTE = c.macro_test()
+    SO_ERROR = c.macro_test()
+    SO_KEEPALIVE = c.macro_test()
+    SO_LINGER = c.macro_test()
+    SO_OOBINLINE = c.macro_test()
+    SO_RCVBUF = c.macro_test()
+    SO_RCVLOWAT = c.macro_test()
+    SO_RCVTIMEO = c.macro_test()
+    SO_REUSEADDR = c.macro_test()
+    SO_SNDBUF = c.macro_test()
+    SO_SNDLOWAT = c.macro_test()
+    SO_SNDTIMEO = c.macro_test()
+    SO_TYPE = c.macro_test()
+    SOMAXCONN = c.macro_test()
+    MSG_CTRUNC = c.macro_test()
+    MSG_DONTROUTE = c.macro_test()
+    MSG_EOR = c.macro_test()
+    MSG_OOB = c.macro_test()
+    MSG_PEEK = c.macro_test()
+    MSG_TRUNC = c.macro_test()
+    MSG_WAITALL = c.macro_test()
+    AF_INET = c.macro_test()
+    AF_INET6 = c.macro_test()
+    AF_UNIX = c.macro_test()
+    AF_UNSPEC = c.macro_test()
+    SHUT_RD = c.macro_test()
+    SHUT_RDWR = c.macro_test()
+    SHUT_WR = c.macro_test()
+    accept = c.function_test('int', 'int', 'struct sockaddr*', 'socklen_t*')
+    bind = c.function_test('int', 'int', 'const struct sockaddr*', 'socklen_t')
+    connect = c.function_test('int', 'int', 'const struct sockaddr*', 'socklen_t')
+    getpeername = c.function_test('int', 'int', 'struct sockaddr*', 'socklen_t*')
+    getsockname = c.function_test('int', 'int', 'struct sockaddr*', 'socklen_t*')
+    getsockopt = c.function_test('int', 'int', 'int', 'int', 'void*', 'socklen_t*')
+    listen = c.function_test('int', 'int', 'int')
+    recv = c.function_test('ssize_t', 'int', 'void*', 'size_t', 'int')
+    recvfrom = c.function_test('ssize_t', 'int', 'void*', 'size_t', 'int', 'struct sockaddr*', 'socklen_t*')
+    recvmsg = c.function_test('ssize_t', 'int', 'struct msghdr*', 'int')
+    send = c.function_test('ssize_t', 'int', 'const void*', 'size_t', 'int')
+    sendmsg = c.function_test('ssize_t', 'int', 'const struct msghdr*', 'int')
+    sendto = c.function_test('ssize_t', 'int', 'const void*', 'size_t', 'int', 'const struct sockaddr*', 'socklen_t')
+    setsockopt = c.function_test('int', 'int', 'int', 'int', 'const void*', 'socklen_t')
+    shutdown = c.function_test('int', 'int', 'int')
+    socket = c.function_test('int', 'int', 'int', 'int')
+    sockatmark = c.function_test('int', 'int')
+    socketpair = c.function_test('int', 'int', 'int', 'int', 'int[2]', test='''
+        #include <sys/socket.h>
+        int main() {
+            int arg_0;
+            int arg_1;
+            int arg_2;
+            int arg_3[2];
+            int res = socketpair(arg_0, arg_1, arg_2, arg_3);
+            return 0;
+        }
+        ''')
+
 class sys_stat_h(c.Header):
     header = 'sys/stat.h'
 
