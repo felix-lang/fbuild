@@ -25,6 +25,15 @@ class complex_h(c.Header):
     imaginary = c.macro_test()
     _Imaginary_I = c.macro_test()
     I = c.macro_test()
+
+    float_complex = c.type_test(name='float complex')
+    double_complex = c.type_test(name='double complex')
+    long_double_complex = c.type_test(name='long double complex')
+
+    float_imaginary = c.type_test(name='float imaginary')
+    double_imaginary = c.type_test(name='double imaginary')
+    long_double_imaginary = c.type_test(name='long double imaginary')
+
     cacos = c.function_test('double complex', 'double complex')
     cacosf = c.function_test('float complex', 'float complex')
     cacosl = c.function_test('long double complex', 'long double complex')
@@ -923,7 +932,7 @@ class wchar_h(c.Header):
     size_t = c.int_type_test()
     mbstate_t = c.type_test()
     wint_t = c.int_type_test()
-    tm = c.type_test(name='struct tm')
+    tm = c.struct_test()
     NULL = c.macro_test()
     WCHAR_MAX = c.macro_test()
     WCHAR_MIN = c.macro_test()

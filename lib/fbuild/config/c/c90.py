@@ -135,8 +135,7 @@ class locale_h(c.Header):
          ('char', 'n_cs_precedes'),
          ('char', 'n_sep_by_space'),
          ('char', 'p_sign_posn'),
-         ('char', 'n_sign_posn'),
-         name='struct lconv')
+         ('char', 'n_sign_posn'))
     setlocale = c.function_test('char*', 'int', 'const char*')
     localeconv = c.function_test('struct lconv*', 'void')
 
@@ -953,8 +952,7 @@ class time_h(c.Header):
         ('int', 'tm_year'),
         ('int', 'tm_wday'),
         ('int', 'tm_yday'),
-        ('int', 'tm_isdst'),
-        name='struct tm'),
+        ('int', 'tm_isdst'))
     clock = c.function_test('clock_t', 'void')
     difftime = c.function_test('double', 'time_t', 'time_t')
     mktime = c.function_test('time_t', 'struct tm*', test='''

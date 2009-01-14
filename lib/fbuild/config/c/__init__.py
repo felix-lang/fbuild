@@ -382,6 +382,12 @@ class struct_test(AbstractFieldDescriptor):
         super().__init__(**kwargs)
         self.members = members
 
+    def contribute_to_class(self, cls, key):
+        self.__name__ = key
+        if self.name is None:
+            self.name = 'struct ' + key
+        cacheproperty(self).contribute_to_class(cls, key)
+
     def format_test(self, header=None):
         if header is None:
             header = ''

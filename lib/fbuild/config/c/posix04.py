@@ -96,8 +96,7 @@ class dirent_h(c.Header):
     DIR = c.type_test()
     dirent = c.struct_test(
         ('ino_t', 'd_ino'),
-        ('char*', 'd_name'),
-        name='struct dirent')
+        ('char*', 'd_name'))
     ino_t = c.type_test()
     closedir = c.function_test('int', 'DIR*', test='''
         #include <dirent.h>
