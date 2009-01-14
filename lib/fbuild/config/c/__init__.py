@@ -26,6 +26,9 @@ class Function:
             self.return_type == other.return_type and \
             self.args == other.size
 
+    def __hash__(self):
+        return hash((self.__class__, self.return_type, self.args))
+
 class Macro:
     """L{Macro} describes the features of a macro.  It contains no data."""
 
@@ -34,6 +37,9 @@ class Macro:
 
     def __eq__(self, other):
         return type(self) is type(other)
+
+    def __hash__(self):
+        return hash(self.__class__)
 
 class Type:
     """L{Type} describes the features of a type.  It contains the type's
@@ -55,6 +61,9 @@ class Type:
             type(self) is type(other) and \
             self.alignment == other.alignment and \
             self.size == other.size
+
+    def __hash__(self):
+        return hash((self.__class__, self.alignment, self.size))
 
 class IntType(Type):
     """L{IntType} describes L{Type}s that are mapped to an integer type.  It
@@ -79,6 +88,9 @@ class IntType(Type):
             self.size == other.size and \
             self.signed == other.signed
 
+    def __hash__(self):
+        return hash((self.__class__, self.alignment, self.size, self.signed))
+
 class Struct:
     """L{Struct} describes a struct type.  It contains the type and name of all
     of the structures's members."""
@@ -97,6 +109,9 @@ class Struct:
             type(self) is type(other) and \
             self.members == other.members
 
+    def __hash__(self):
+        return hash((self.__class__, self.members))
+
 class Variable:
     """L{Variable} describes a global variable.  It contains no data."""
 
@@ -105,6 +120,9 @@ class Variable:
 
     def __eq__(self, other):
         return type(self) is type(other)
+
+    def __hash__(self):
+        return hash(self.__class__)
 
 # ------------------------------------------------------------------------------
 
