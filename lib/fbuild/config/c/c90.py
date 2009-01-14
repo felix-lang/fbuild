@@ -37,10 +37,19 @@ class types(c.Test):
     enum = c.int_type_test(name='enum enum_t {tag}')
 
     def structural_alias(self, ctype):
-        for field in self.__meta__.fields:
-            t = getattr(self, field.__name__)
-            if t == ctype:
-                return field.method.name
+        if ctype is None:
+            return None
+
+        for name, type_ in self.int_types():
+            if type_ is None:
+                continue
+
+            if isinstance(ctype, c.IntType):
+                if type_ == ctype:
+                    return name
+            elif type_.size == ctype.size and \
+                    type_.alignment == ctype.alignment:
+                return name
         return None
 
 # ------------------------------------------------------------------------------
