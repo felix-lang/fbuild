@@ -404,6 +404,47 @@ class sys_ipc_h(c.Header):
 class sys_mman_h(c.Header):
     header = 'sys/mman.h'
 
+    MAP_FAILED = c.macro_test()
+    MAP_FIXED = c.macro_test()
+    MAP_PRIVATE = c.macro_test()
+    MAP_SHARED = c.macro_test()
+    MCL_CURRENT = c.macro_test()
+    MCL_FUTURE = c.macro_test()
+    MS_ASYNC = c.macro_test()
+    MS_INVALIDATE = c.macro_test()
+    MS_SYNC = c.macro_test()
+    POSIX_MADV_DONTNEED = c.macro_test()
+    POSIX_MADV_NORMAL = c.macro_test()
+    POSIX_MADV_RANDOM = c.macro_test()
+    POSIX_MADV_SEQUENTIAL = c.macro_test()
+    POSIX_MADV_WILLNEED = c.macro_test()
+    POSIX_TYPED_MEM_ALLOCATE = c.macro_test()
+    POSIX_TYPED_MEM_ALLOCATE_CONTIG = c.macro_test()
+    POSIX_TYPED_MEM_MAP_ALLOCATABLE = c.macro_test()
+    PROT_EXEC = c.macro_test()
+    PROT_NONE = c.macro_test()
+    PROT_READ = c.macro_test()
+    PROT_WRITE = c.macro_test()
+    mode_t = c.type_test()
+    off_t = c.type_test()
+    size_t = c.type_test()
+    posix_typed_mem_info = c.struct_test(
+        ('size_t', 'posix_tmi_length'))
+    mlock = c.function_test('int', 'const void*', 'size_t')
+    mlockall = c.function_test('int', 'int')
+    mmap = c.function_test('void*', 'size_t', 'int', 'int', 'int', 'off_t')
+    mprotect = c.function_test('int', 'void*', 'size_t', 'int')
+    msync = c.function_test('int', 'void*', 'size_t', 'int')
+    munlock = c.function_test('int', 'const void*', 'size_t')
+    munlockall = c.function_test('int', 'void')
+    munmap = c.function_test('int', 'void*', 'size_t')
+    posix_madvise = c.function_test('int', 'void*', 'size_t', 'int')
+    posix_mem_offset = c.function_test('int', 'const void*', 'size_t', 'off_t*', 'size_t*', 'int*')
+    posix_typed_mem_get_info = c.function_test('int', 'int', 'struct posix_typed_mem_info*')
+    posix_typed_mem_open = c.function_test('int', 'const char*', 'int', 'int')
+    shm_open = c.function_test('int', 'const char*', 'int', 'mode_t')
+    shm_unlink = c.function_test('int', 'const char*')
+
 class sys_msg_h(c.Header):
     header = 'sys/msg.h'
 
