@@ -459,6 +459,41 @@ class Test(fbuild.config.Test):
     def __init__(self, builder):
         self.builder = builder
 
+    def fields(self):
+        for field in self.__meta__.fields:
+            type_ = getattr(self, field.__name__)
+            yield field.method.name, type_
+
+    def functions(self):
+        for name, field in self.fields():
+            if isinstance(field, Function):
+                yield name, field
+
+    def macros(self):
+        for name, field in self.fields():
+            if isinstance(field, Macro):
+                yield name, field
+
+    def types(self):
+        for name, field in self.fields():
+            if isinstance(field, Type):
+                yield name, field
+
+    def int_types(self):
+        for name, field in self.fields():
+            if isinstance(field, IntType):
+                yield name, field
+
+    def structs(self):
+        for name, field in self.fields():
+            if isinstance(field, Struct):
+                yield name, field
+
+    def variables(self):
+        for name, field in self.fields():
+            if isinstance(field, Variable):
+                yield name, field
+
 # ------------------------------------------------------------------------------
 
 class HeaderMeta(fbuild.config.TestMeta):
