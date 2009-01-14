@@ -34,7 +34,18 @@ class types(c.Test):
     long_double = c.type_test(name='long double')
 
     voidp = c.type_test(name='void*')
-    enum = c.int_type_test(name='enum enum_t {tag}')
+    enum = c.type_test(test=r'''
+        #include <stddef.h>
+        #include <stdio.h>
+
+        typedef enum enum_t {tag} type;
+        struct TEST { char c; type mem; };
+        int main() {
+            printf("%d\n", (int)offsetof(struct TEST, mem));
+            printf("%d\n", (int)sizeof(type));
+            return 0;
+        }
+        ''')
 
     def structural_alias(self, ctype):
         if ctype is None:
