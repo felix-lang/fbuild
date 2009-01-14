@@ -3,6 +3,7 @@ import tempfile
 import fbuild
 import fbuild.config as config
 import fbuild.config.c as c
+import fbuild.db
 import fbuild.temp
 
 # ------------------------------------------------------------------------------
@@ -62,6 +63,45 @@ class types(c.Test):
                     type_.alignment == ctype.alignment:
                 return name
         return None
+
+    @fbuild.db.cachemethod
+    def conversion_map(self, *args, **kwargs):
+        type_pairs = [(name1, name2)
+            for name1, type1 in self.int_types() if type1 is not None
+            for name2, type2 in self.int_types() if type2 is not None]
+
+        lines = []
+        for t1, t2 in type_pairs:
+            lines.append(
+                'printf("%%d %%d\\n", '
+                '(int)sizeof((%(t1)s)0 + (%(t2)s)0), '
+                '(%(t1)s)~3 + (%(t2)s)1 < (%(t1)s)0 + (%(t2)s)0);' %
+                {'t1': t1, 't2': t2})
+
+        code = '''
+        #include <stdio.h>
+        int main(int argc, char** argv) {
+            %s
+            return 0;
+        }
+        ''' % '\n'.join(lines)
+
+        try:
+            stdout, stderr = self.builder.tempfile_run(code, *args, **kwargs)
+        except fbuild.ExecutionError:
+            raise fbuild.ConfigFailed('failed to detect type conversions')
+
+        lookup = {(t.size, t.signed): self.structural_alias(t)
+            for n, t in self.int_types() if t is not None}
+
+        d = {}
+        for line, (t1, t2) in zip(
+                stdout.decode('utf-8').split('\n'),
+                type_pairs):
+            size, sign = line.split()
+            d[(t1, t2)] = lookup[(int(size), int(sign) == 1)]
+
+        return d
 
 # ------------------------------------------------------------------------------
 
