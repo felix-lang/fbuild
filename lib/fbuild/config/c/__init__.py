@@ -480,7 +480,7 @@ class HeaderMeta(fbuild.config.TestMeta):
         def header(self):
             if self.builder.check_header_exists(filename):
                 return filename
-            raise AttributeError('header does not exist')
+            return None
         new_class.header = cacheproperty(header)
 
         return new_class
