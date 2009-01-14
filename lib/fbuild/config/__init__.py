@@ -68,4 +68,15 @@ class TestMeta(fbuild.db.PersistentMeta):
             setattr(cls, key, value)
 
 class Test(metaclass=TestMeta):
-    pass
+    def get(self, key, default=None):
+        """Look in the test for an attribute named "key". If "key" contains
+        any periods, recursively walk down the attributes to find the final
+        value. Returns the default value if any of the attributes do not
+        exist."""
+        obj = self
+        for key in key.split('.'):
+            obj = getattr(obj, key, None)
+            if obj is None:
+                return default
+
+        return obj
