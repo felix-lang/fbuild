@@ -136,15 +136,6 @@ class cacheproperty(fbuild.db.cacheproperty):
 
 # ------------------------------------------------------------------------------
 
-class header_cache:
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, instance):
-        return instance.builder.check_header_exists(self.name)
-
-# ------------------------------------------------------------------------------
-
 class AbstractFieldDescriptor:
     """L{AbstractFieldDescriptor} represents a descriptor for the L{Test} class
     that when accessed, evaluates a cache and returns the appropriate field if
