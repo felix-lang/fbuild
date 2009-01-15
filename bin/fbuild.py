@@ -173,6 +173,8 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
+        fbuild.scheduler.shutdown()
+
         if not options.do_not_save_database:
             fbuild.db.database.save(options.state_file)
 

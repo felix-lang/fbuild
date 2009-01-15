@@ -107,6 +107,9 @@ class Scheduler:
         return results
 
     def __del__(self):
+        self.shutdown()
+
+    def shutdown(self):
         # make sure we kill the threads
         for thread in self.__threads:
             self.__ready_queue.put(None)
