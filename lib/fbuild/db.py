@@ -74,13 +74,14 @@ class Database:
         self._lock = threading.RLock()
 
     def save(self, filename):
-        s = pickle.dumps((
-            self._functions,
-            self._function_calls,
-            self._files,
-            self._call_files,
-            self._external_srcs,
-            self._external_dsts))
+        with self._lock:
+            s = pickle.dumps((
+                self._functions,
+                self._function_calls,
+                self._files,
+                self._call_files,
+                self._external_srcs,
+                self._external_dsts))
 
         # Try to save the state as atomically as possible. Unfortunately, if
         # someone presses ctrl+c while we're saving, we might corrupt the db.
@@ -102,10 +103,11 @@ class Database:
             old.remove()
 
     def load(self, filename):
-        with open(filename, 'rb') as f:
-            self._functions, self._function_calls, self._files, \
-                self._call_files, self._external_srcs, self._external_dsts = \
-                pickle.load(f)
+        with self._lock:
+            with open(filename, 'rb') as f:
+                self._functions, self._function_calls, self._files, \
+                    self._call_files, self._external_srcs, \
+                    self._external_dsts = pickle.load(f)
 
     def call(self, function, *args, **kwargs):
         """Call the function and return the result. If the function has been
