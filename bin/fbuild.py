@@ -1,8 +1,9 @@
 #!/usr/bin/env python3.0
 
+import pprint
+import signal
 import sys
 from optparse import OptionParser, make_option
-import pprint
 
 import fbuild
 import fbuild.db
@@ -166,6 +167,18 @@ def main(argv=None):
 
             return 0
 
+        # ----------------------------------------------------------------------
+        # Register a new SIGINT handler since threads can make shutting down a
+        # little slow.
+
+        prev_handler = signal.getsignal(signal.SIGINT)
+        def new_int_handler(*args, **kwargs):
+            fbuild.logger.write('Shutting down due to keyboard interrupt...\n',
+                buffer=False,
+                color='red')
+            prev_handler(*args, **kwargs)
+        signal.signal(signal.SIGINT, new_int_handler)
+
         # ---------------------------------------------------------------------
         # finally, do the build
         fbuildroot.build()
@@ -173,6 +186,7 @@ def main(argv=None):
         fbuild.logger.log(e, color='red')
         return 1
     finally:
+        # Make sure the threads shutdown cleanly.
         fbuild.scheduler.shutdown()
 
         if not options.do_not_save_database:

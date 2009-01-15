@@ -110,11 +110,13 @@ class Scheduler:
         self.shutdown()
 
     def shutdown(self):
-        # make sure we kill the threads
-        for thread in self.__threads:
-            self.__ready_queue.put(None)
+        # make sure we wake the threads before we kill them.
+        with self.__ready_queue.mutex:
+            for thread in self.__threads:
+                self.__ready_queue.queue.appendleft(None)
 
         for thread in self.__threads:
+            thread.shutdown()
             thread.join()
 
 # ------------------------------------------------------------------------------
@@ -127,10 +129,13 @@ class WorkerThread(threading.Thread):
         self.__ready_queue = ready_queue
         self.__finished = False
 
+    def shutdown(self):
+        self.__finished = True
+
     def run(self):
         from fbuild import logger
 
-        while True:
+        while not self.__finished:
             with logger.log_from_thread():
                 if self.run_one():
                     break
@@ -138,6 +143,10 @@ class WorkerThread(threading.Thread):
     def run_one(self, *args, **kwargs):
         queue_task = self.__ready_queue.get(*args, **kwargs)
         if queue_task is None:
+            return True
+
+        if self.__finished:
+            self.__ready_queue.task_done()
             return True
 
         done_queue, task = queue_task
