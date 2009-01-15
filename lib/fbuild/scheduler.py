@@ -8,7 +8,7 @@ import operator
 class Scheduler:
     def __init__(self, count=0):
         self.__count = max(1, count)
-        self.__ready_queue = queue.Queue()
+        self.__ready_queue = queue.LifoQueue()
         self.__threads = []
 
         for i in range(self.__count):
@@ -56,7 +56,7 @@ class Scheduler:
     def _evaluate(self, tasks):
         count = 0
         children = {}
-        done_queue = queue.Queue()
+        done_queue = queue.LifoQueue()
         results = []
 
         for task in tasks:
@@ -111,9 +111,8 @@ class Scheduler:
 
     def shutdown(self):
         # make sure we wake the threads before we kill them.
-        with self.__ready_queue.mutex:
-            for thread in self.__threads:
-                self.__ready_queue.queue.appendleft(None)
+        for thread in self.__threads:
+            self.__ready_queue.put(None)
 
         for thread in self.__threads:
             thread.shutdown()
@@ -145,12 +144,12 @@ class WorkerThread(threading.Thread):
         if queue_task is None:
             return True
 
-        if self.__finished:
-            self.__ready_queue.task_done()
-            return True
-
-        done_queue, task = queue_task
         try:
+            if self.__finished:
+                self.__ready_queue.task_done()
+                return True
+
+            done_queue, task = queue_task
             task.run()
         finally:
             self.__ready_queue.task_done()
