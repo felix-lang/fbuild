@@ -40,6 +40,8 @@ class sys_epoll_h(c.Header):
     epoll_wait = c.function_test('int', 'int', 'struct epoll_event*', 'int', 'int')
 
 class sys_mman_h(posix04.sys_mman_h):
+    header = 'sys/mman.h'
+
     MADV_DOFORK = c.macro_test()
     MADV_DONTFORK = c.macro_test()
     MADV_DONTNEED = c.macro_test()
@@ -52,6 +54,7 @@ class sys_mman_h(posix04.sys_mman_h):
     MAP_ANON = c.macro_test()
     MAP_ANONYMOUS = c.macro_test()
     MAP_DENYWRITE = c.macro_test()
+    MAP_FILE = c.macro_test()
     MAP_EXECUTABLE = c.macro_test()
     MAP_GROWSDOWN = c.macro_test()
     MAP_LOCKED = c.macro_test()
