@@ -245,8 +245,7 @@ class math_h(c.Header):
 class setjmp_h(c.Header):
     jmp_buf = c.type_test()
 
-    setjmp = c.function_test('int', 'jmp_buf',
-        test='''
+    longjmp = c.function_test('void', 'jmp_buf', 'int', test='''
         #include <setjmp.h>
         int main() {
             jmp_buf env;
@@ -255,10 +254,12 @@ class setjmp_h(c.Header):
             longjmp(env, 2);
             return 2;
         }
-    ''')
+        ''')
 
-    longjmp = c.function_test('jmp_buf', 'int',
-        test=setjmp.test)
+    @property
+    def setjmp(self):
+        if self.longjmp:
+            return c.Function('int', 'jmp_buf')
 
 # -----------------------------------------------------------------------------
 
