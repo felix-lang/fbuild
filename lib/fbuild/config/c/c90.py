@@ -274,7 +274,9 @@ class signal_h(c.Header):
     SIGINT = c.macro_test()
     SIGSEGV = c.macro_test()
     SIGTERM = c.macro_test()
-    signal = c.function_test('void (*f)(int)', 'int', 'void (*f)(int)', test='''
+    signal = c.function_test(
+        c.Function('void', 'int'), 'int', c.Function('void', 'int'),
+        test='''
         #include <signal.h>
         void foo(int x) {}
         int main() {
@@ -734,7 +736,14 @@ class stdlib_h(c.Header):
         ''')
     getenv = c.function_test('char*', 'const char*')
     system = c.function_test('int', 'const char*', default_args=('NULL',))
-    bsearch = c.function_test('void*', 'const void*', 'const void*', 'size_t', 'size_t', 'int (*f)(const void*, const void*)', test='''
+    bsearch = c.function_test(
+        'void*',
+        'const void*',
+        'const void*',
+        'size_t',
+        'size_t',
+        'int (*f)(const void*, const void*)',
+        test='''
         #include <stdlib.h>
         int f(const void* a, const void* b) { return *(int*)a - *(int*)b; }
         int main() {
