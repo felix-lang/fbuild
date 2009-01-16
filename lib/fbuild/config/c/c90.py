@@ -118,7 +118,7 @@ class assert_h(c.Header):
                 }
                 '''):
             fbuild.logger.failed()
-            raise fbuild.ConfigFailed('assert failed to configure')
+            return None
 
         if self.builder.try_run('''
                 #include <assert.h>
@@ -128,7 +128,7 @@ class assert_h(c.Header):
                 }
                 '''):
             fbuild.logger.failed()
-            raise fbuild.ConfigFailed('assert failed to configure')
+            return None
 
         if not self.builder.try_run('''
                 #include <assert.h>
@@ -138,7 +138,7 @@ class assert_h(c.Header):
                 }
                 ''', ckwargs={'macros': ['NDEBUG']}):
             fbuild.logger.failed()
-            raise fbuild.ConfigFailed('assert failed to configure')
+            return None
 
         fbuild.logger.passed()
         return c.Macro()
