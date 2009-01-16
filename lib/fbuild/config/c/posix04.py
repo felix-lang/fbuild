@@ -102,15 +102,56 @@ class dirent_h(c.Header):
         #include <dirent.h>
         int main() {
             DIR* d = opendir(".");
-            return d && closedir(d);
+            struct dirent* s;
+            long l;
+
+            if (!d) return 1;
+            s = readdir(d);
+            seekdir(d, 0);
+            l = telldir(d);
+            rewinddir(d);
+
+            return closedir(d);
         }
         ''')
-    opendir = c.function_test('DIR*', 'const char*', test=closedir.test)
-    readdir = c.function_test('struct dirent*', 'DIR');
-    readdir_r = c.function_test('int', 'DIR*', 'struct dirent*', 'struct dirent**')
-    rewinddir = c.function_test('void', 'DIR*')
-    seekdir = c.function_test('void', 'DIR*', 'long')
-    telldir = c.function_test('long', 'DIR*')
+
+    @property
+    def opendir(self):
+        if self.closedir:
+            return c.Function('DIR*', 'const char*')
+
+    @property
+    def readdir(self):
+        if self.closedir:
+            return c.Function('struct dirent*', 'DIR*')
+
+    readdir_r = c.function_test('int', 'DIR*', 'struct dirent*', 'struct dirent**',
+        test='''
+        #include <dirent.h>
+        int main() {
+            DIR* d = opendir(".");
+            struct dirent s;
+            struct dirent* p;
+            if (!d) return 1;
+            if (readdir_r(d, &s, &p) != 0) return 1;
+            return closedir(d);
+        }
+        ''')
+
+    @property
+    def rewinddir(self):
+        if self.closedir:
+            return c.Function('void', 'DIR*')
+
+    @property
+    def seekdir(self):
+        if self.closedir:
+            return c.Function('void', 'DIR*', 'long')
+
+    @property
+    def telldir(self):
+        if self.closedir:
+            return c.Function('long', 'DIR*')
 
 # ------------------------------------------------------------------------------
 
@@ -503,7 +544,23 @@ class semaphore_h(c.Header):
     pass
 
 class setjmp_h(c99.setjmp_h):
-    pass
+    sigjmp_buf = c.type_test()
+
+    siglongjmp = c.function_test('void', 'sigjmp_buf', 'int', test='''
+        #include <setjmp.h>
+        int main() {
+            jmp_buf env;
+            int i = sigsetjmp(env, 0);
+            if (i == 2) return 0;
+            siglongjmp(env, 2);
+            return 2;
+        }
+        ''')
+
+    @property
+    def sigsetjmp(self):
+        if self.siglongjmp:
+            return c.Function('int', 'sigjmp_buf', 'int')
 
 class signal_h(c99.signal_h):
     pass
@@ -524,13 +581,20 @@ class stdio_h(c99.stdio_h):
     pass
 
 class stdlib_h(c99.stdlib_h):
-    pass
+    srand = c.function_test('void', 'unsigned int')
+    srand48 = c.function_test('void', 'long')
+    drand48 = c.function_test('double', 'void')
+    lrand48 = c.function_test('long', 'void')
+    realpath = c.function_test('char*', 'const char*', 'char*')
 
 class string_h(c99.string_h):
-    pass
+    strdup = c.function_test('char*', 'const char*')
+    strerror_r = c.function_test('int', 'int', 'char*', 'size_t',
+        default_args=(0, 0, 0))
 
 class strings_h(c.Header):
-    pass
+    bcopy = c.function_test('void', 'const void*', 'void*', 'size_t',
+        default_args=(0, 0, 0))
 
 class stropts_h(c.Header):
     pass
@@ -587,6 +651,10 @@ class sys_msg_h(c.Header):
 
 class sys_resource_h(c.Header):
     header = 'sys/resource.h'
+
+    getrlimit = c.function_test('int', 'int', 'struct rlimit*')
+    getrusage = c.function_test('int', 'int', 'struct rusage*')
+    setrlimit = c.function_test('int', 'int', 'struct rlimit*')
 
 class sys_select_h(c.Header):
     header = 'sys/select.h'
@@ -700,6 +768,9 @@ class sys_statvfs_h(c.Header):
 class sys_time_h(c.Header):
     header = 'sys/time.h'
 
+    gettimeofday = c.function_test('int', 'struct timeval*', 'void*')
+    settimeofday = c.function_test('int', 'struct timeval*', 'void*')
+
 class sys_timeb_h(c.Header):
     header = 'sys/timeb.h'
 
@@ -708,6 +779,9 @@ class sys_times_h(c.Header):
 
 class sys_types_h(c.Header):
     header = 'sys/types.h'
+
+    pid_t = c.type_test()
+    size_t = c.type_test()
 
 class sys_uio_h(c.Header):
     header = 'sys/uio.h'
@@ -745,7 +819,17 @@ class ulimit_h(c.Header):
     pass
 
 class unistd_h(c.Header):
-    pass
+    getcwd = c.function_test('char*', 'char*', 'size_t')
+    getpagesize = c.function_test('int', 'void')
+    getwd = c.function_test('char*', 'char*')
+    isatty = c.function_test('int', 'int')
+    mkdtemp = c.function_test('char*', 'char*')
+    mkstemp = c.function_test('int', 'char*')
+    mkstemps = c.function_test('int', 'char*', 'int')
+    mktemp = c.function_test('char*', 'char*')
+    sysconf = c.function_test('long', 'int', default_args=('0',))
+    ttyname = c.function_test('char*', 'int')
+    ttyslot = c.function_test('int', 'void')
 
 class utime_h(c.Header):
     pass
