@@ -163,7 +163,14 @@ class AbstractFieldDescriptor:
 
     def __call__(self, instance):
         # We couldn't find a previous call to this function, so regenerate it.
-        header = instance.header if isinstance(instance, Header) else None
+        if not isinstance(instance, Header):
+            header = None
+        else:
+            # If the header is undefined in the instance then don't try to
+            # compute this function.
+            header = instance.header
+            if header is None:
+                return None
         formatted_test = self.test if self.test else self.format_test(header)
 
         msg = 'checking %s' % self.name
