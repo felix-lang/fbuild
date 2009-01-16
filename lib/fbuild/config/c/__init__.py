@@ -256,8 +256,15 @@ class function_test(AbstractFieldDescriptor):
             for i, arg in enumerate(self.args):
                 # we need to filter out void arguments
                 if arg != 'void':
-                    args.append('arg_%d' % i)
-                    defs.append('%s arg_%d;' % (arg, i))
+                    if isinstance(arg, Function):
+                        args.append('%s (arg_%d)(%s)' % (
+                            arg.return_type,
+                            i,
+                            ', '.join(arg.args)))
+                        defs.append('%s arg_%d;' % (arg, i))
+                    else:
+                        args.append('arg_%d' % i)
+                        defs.append('%s arg_%d;' % (arg, i))
         call = self.format_call(args)
 
         if self.return_type != 'void':
