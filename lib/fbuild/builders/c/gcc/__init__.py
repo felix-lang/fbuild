@@ -12,10 +12,24 @@ from fbuild.temp import tempfile
 # ------------------------------------------------------------------------------
 
 class Gcc:
-    def __init__(self, exe, flags=[]):
+    def __init__(self, exe, flags=[], *,
+            includes=[],
+            macros=[],
+            warnings=[],
+            debug=None,
+            optimize=None,
+            debug_flags=[],
+            optimize_flags=[]):
         # we split exe in case extra arguments were specified in the name
         self.exe, *self.flags = str.split(exe)
         self.flags = list(chain(self.flags, flags))
+        self.includes = includes
+        self.macros = macros
+        self.warnings = warnings
+        self.debug = debug
+        self.optimize = optimize
+        self.debug_flags = debug_flags
+        self.optimize_flags = optimize_flags
 
     def __call__(self, srcs, dst=None, flags=[], *,
             pre_flags=[],
@@ -24,9 +38,27 @@ class Gcc:
             warnings=[],
             libpaths=[],
             libs=[],
+            debug=None,
+            optimize=None,
             **kwargs):
         cmd = [self.exe]
         cmd.extend(pre_flags)
+
+        includes = set(includes)
+        includes.update(self.includes)
+        includes.update(src.parent for src in srcs)
+
+        macros = set(macros)
+        macros.update(self.macros)
+
+        warnings = set(warnings)
+        warnings.update(self.warnings)
+
+        if debug is None and self.debug or debug:
+            cmd.extend(self.debug_flags)
+
+        if optimize is None and self.optimize or optimize:
+            cmd.extend(self.optimize_flags)
 
         # make sure that the path is converted into the native path format
         cmd.extend('-I' + Path(i) for i in sorted(includes) if i)
@@ -47,7 +79,7 @@ class Gcc:
 
         return execute(cmd, str(self), msg2, **kwargs)
 
-    def check_flags(self, flags=()):
+    def check_flags(self, flags):
         if flags:
             logger.check('checking %s with %s' % (self, ' '.join(flags)))
         else:
@@ -69,22 +101,56 @@ class Gcc:
         return ' '.join(str(s) for s in chain((self.exe,), self.flags))
 
     def __repr__(self):
-        return '%s(%r%s)' % (
+        return '%s(%r%s, debug_flags=%r, optimize_flags=%r)' % (
             self.__class__.__name__,
             self.exe,
-            ', flags=%r' % self.flags if self.flags else '')
+            ', flags=%r' % self.flags if self.flags else '',
+            self.debug_flags,
+            self.optimize_flags)
 
     def __eq__(self, other):
-        return isinstance(other, Gcc) and self.exe == other.exe
+        return isinstance(other, Gcc) and \
+            self.exe == other.exe and \
+            self.flags == other.flags and \
+            self.includes == other.includes and \
+            self.macros == other.macros and \
+            self.warnings == other.warnings and \
+            self.debug == other.debug and \
+            self.optimize == other.optimize and \
+            self.debug_flags == other.debug_flags and \
+            self.optimize_flags == other.optimize_flags
 
     def __hash__(self):
-        return hash((self.exe, self.flags))
+        return hash((
+            self.exe,
+            self.flags,
+            self.includes,
+            self.macros,
+            self.warnings,
+            self.debug,
+            self.optimize,
+            self.debug_flags,
+            self.optimize_flags,
+        ))
 
-def make_gcc(exe=None, default_exes=['gcc', 'cc']):
-    gcc = Gcc(fbuild.builders.find_program([exe] if exe else default_exes))
+def make_gcc(exe=None, default_exes=['gcc', 'cc'],
+        debug_flags=['-g'],
+        optimize_flags=['-O2'],
+        **kwargs):
+    gcc = Gcc(
+        fbuild.builders.find_program([exe] if exe else default_exes),
+        debug_flags=debug_flags,
+        optimize_flags=optimize_flags,
+        **kwargs)
 
-    if not gcc.check_flags(()):
+    if not gcc.check_flags([]):
         raise ConfigFailed('gcc failed to compile an exe')
+
+    if not gcc.check_flags(debug_flags):
+        debug_flags = []
+
+    if not gcc.check_flags(optimize_flags):
+        optimize_flags = []
 
     return gcc
 
@@ -95,11 +161,7 @@ class Scanner:
         self.gcc = gcc
         self.flags = flags
 
-    def __call__(self, src, *,
-            includes=[],
-            buildroot=None,
-            quieter=0,
-            **kwargs):
+    def __call__(self, src, *, buildroot=None, quieter=0, **kwargs):
         # Ignore the buildroot argument
         src = Path(src)
 
@@ -107,12 +169,8 @@ class Scanner:
             verbose=quieter,
             color='yellow')
 
-        includes = set(includes)
-        includes.add(src.parent)
-
-        stdout, stderr = self.gcc((src,),
-            flags=list(chain(self.flags, kwargs.pop('flags', ()))),
-            includes=includes,
+        stdout, stderr = self.gcc([src],
+            pre_flags=self.flags,
             quieter=quieter,
             stdout_quieter=1 if quieter == 0 else quieter,
             **kwargs)
@@ -129,31 +187,13 @@ class Scanner:
 # ------------------------------------------------------------------------------
 
 class Compiler:
-    def __init__(self, gcc, flags, *, suffix,
-            includes=[],
-            macros=[],
-            warnings=[],
-            debug=None,
-            optimize=None,
-            debug_flags=[],
-            optimize_flags=[]):
+    def __init__(self, gcc, flags, *, suffix):
         self.gcc = gcc
-        self.suffix = suffix
-        self.includes = includes
-        self.macros = macros
-        self.warnings = warnings
         self.flags = flags
-        self.debug = debug
-        self.optimize = optimize
-        self.debug_flags = debug_flags
-        self.optimize_flags = optimize_flags
+        self.suffix = suffix
 
     def __call__(self, src, dst=None, *,
             suffix=None,
-            includes=[],
-            macros=[],
-            warnings=[],
-            flags=[],
             debug=None,
             optimize=None,
             buildroot=None,
@@ -165,34 +205,7 @@ class Compiler:
         dst = (dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
-        cmd_flags = []
-
-        if debug is None and self.debug or debug:
-            cmd_flags.extend(self.debug_flags)
-
-        if optimize is None and self.optimize or optimize:
-            cmd_flags.extend(self.optimize_flags)
-
-        includes = set(includes)
-        includes.update(self.includes)
-        includes.add(src.parent)
-
-        macros = set(macros)
-        macros.update(self.macros)
-
-        warnings = set(warnings)
-        warnings.update(self.warnings)
-
-        cmd_flags.extend(self.flags)
-        cmd_flags.extend(flags)
-
-        self.gcc([src], dst, cmd_flags,
-            pre_flags=self.flags,
-            includes=includes,
-            macros=macros,
-            warnings=warnings,
-            color='green',
-            **kwargs)
+        self.gcc([src], dst, pre_flags=self.flags, color='green', **kwargs)
 
         return dst
 
@@ -200,57 +213,26 @@ class Compiler:
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
     def __repr__(self):
-        return '%s(%r, %r, debug_flags=%r, optimize_flags=%r, suffix=%r)' % (
+        return '%s(%r, %r, suffix=%r)' % (
             self.__class__.__name__,
             self.gcc,
             self.flags,
-            self.debug_flags,
-            self.optimize_flags,
             self.suffix)
 
     def __eq__(self, other):
         return isinstance(other, Compiler) and \
-                self.gcc == other.gcc and \
-                self.suffix == other.suffix and \
-                self.macros == other.macros and \
-                self.warnings == other.warnings and \
-                self.flags == other.flags and \
-                self.debug == other.debug and \
-                self.optimize == other.optimize and \
-                self.debug_flags == other.debug_flags and \
-                self.optimize_flags == other.optimize_flags
+            self.gcc == other.gcc and \
+            self.suffix == other.suffix and \
+            self.flags == other.flags
 
     def __hash__(self):
-        return hash((
-            self.gcc,
-            self.flags,
-            self.suffix,
-            self.macros,
-            self.warnings,
-            self.flags,
-            self.debug,
-            self.optimize,
-            self.debug_flags,
-            self.optimize_flags,
-        ))
+        return hash((self.gcc, self.flags, self.suffix, self.flags))
 
-def make_compiler(gcc, flags=(), *,
-        debug_flags=['-g'],
-        optimize_flags=['-O2'],
-        **kwargs):
+def make_compiler(gcc, flags=[], **kwargs):
     if flags and not gcc.check_flags(flags):
         raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
 
-    if not gcc.check_flags(debug_flags):
-        debug_flags = ()
-
-    if not gcc.check_flags(optimize_flags):
-        optimize_flags = ()
-
-    return Compiler(gcc, flags,
-        debug_flags=debug_flags,
-        optimize_flags=optimize_flags,
-        **kwargs)
+    return Compiler(gcc, flags, **kwargs)
 
 # ------------------------------------------------------------------------------
 
@@ -340,7 +322,7 @@ class Linker:
             self.flags,
         ))
 
-def make_linker(gcc, flags=(), **kwargs):
+def make_linker(gcc, flags=[], **kwargs):
     if flags and not gcc.check_flags(flags):
         raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
 
@@ -426,14 +408,13 @@ def static(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    gcc = make_gcc(exe)
+    gcc = make_gcc(exe, **kwargs)
 
     return Builder(
-        scanner=Scanner(gcc, flags=scan_flags),
+        scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
         compiler=make_compiler(gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.static_obj_suffix(platform),
-            **kwargs),
+            suffix=fbuild.builders.platform.static_obj_suffix(platform)),
         lib_linker=fbuild.builders.ar.Ar(
             libs=libs,
             libpaths=libpaths,
@@ -464,14 +445,13 @@ def shared(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    gcc = make_gcc(exe)
+    gcc = make_gcc(exe, **kwargs)
 
     return Builder(
-        scanner=Scanner(gcc, flags=scan_flags),
+        scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
         compiler=make_compiler(gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.shared_obj_suffix(platform),
-            **kwargs),
+            suffix=fbuild.builders.platform.shared_obj_suffix(platform)),
         lib_linker=make_linker(gcc,
             libs=libs,
             libpaths=libpaths,

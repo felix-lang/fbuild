@@ -6,9 +6,10 @@ import fbuild.record
 
 # ------------------------------------------------------------------------------
 
-def make_gxx(exe=None, default_exes=['g++', 'c++']):
+def make_gxx(exe=None, default_exes=['g++', 'c++'], **kwargs):
     gxx = fbuild.builders.c.gcc.Gcc(
-        fbuild.builders.find_program([exe] if exe else default_exes))
+        fbuild.builders.find_program([exe] if exe else default_exes),
+        **kwargs)
 
     if not gxx.check_flags([]):
         raise fbuild.ConfigFailed('g++ failed to compile an exe')
