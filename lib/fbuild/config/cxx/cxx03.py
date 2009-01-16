@@ -6,6 +6,11 @@ import fbuild.config.cxx as cxx
 class types(c90.types):
     bool = cxx.int_type_test()
 
+class iterator(cxx.Header):
+    namespace = 'std'
+
+    iterator = cxx.template_test(test_types=['int', 'int', 'int'])
+
 class cmath(cxx.Header):
     namespace = 'std'
 
