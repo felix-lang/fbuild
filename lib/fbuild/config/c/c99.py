@@ -811,6 +811,48 @@ class stdlib_h(c90.stdlib_h):
             return atoll("1234") == 1234LL ? 0 : 1;
         }
         ''')
+    strtod = c.function_test('double', 'const char*', 'char**', test='''
+        #include <stdlib.h>
+        int main() {
+            char* s1 = "15";
+            char* s2 = "abc";
+            char* endp;
+            double d = strtod(s1, &endp);
+            if (s1 != endp && *endp == '\0' && d == 15.0) {
+                d = strtod(s2, &endp);
+                return s1 == endp || *endp != '\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
+    strtof = c.function_test('float', 'const char*', 'char**', test='''
+        #include <stdlib.h>
+        int main() {
+            char* s1 = "15";
+            char* s2 = "abc";
+            char* endp;
+            float d = strtof(s1, &endp);
+            if (s1 != endp && *endp == '\0' && d == 15.0f) {
+                d = strtof(s2, &endp);
+                return s1 == endp || *endp != '\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
+    strtold = c.function_test('long double', 'const char*', 'char**', test='''
+        #include <stdlib.h>
+        int main() {
+            char* s1 = "15";
+            char* s2 = "abc";
+            char* endp;
+            long double d = strtold(s1, &endp);
+            if (s1 != endp && *endp == '\0' && d == 15.0ld) {
+                d = strtold(s2, &endp);
+                return s1 == endp || *endp != '\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
     strtoll = c.function_test('long long int', 'const char*', 'char**', 'int', test='''
         #include <stdlib.h>
         int main() {
