@@ -761,4 +761,3 @@ class wctype_h(c99.wctype_h):
 
 class wordexp_h(c.Header):
     pass
-    pass
