@@ -646,7 +646,10 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
 
         return self.Tuple(bobj, nobj)
 
-    def _link(self, blink, nlink, dst, srcs, *args, libs=[], **kwargs):
+    def _link(self, blink, nlink, dst, srcs, *args,
+            libs=[],
+            custom=False,
+            **kwargs):
         """Actually link the sources using the bytecode and native compilers."""
         # the first item is the bytecode object, the second the native one
         bsrcs = [(s[0] if isinstance(s, self.Tuple) else s) for s in srcs]
@@ -656,7 +659,7 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
         blibs = [(l[0] if isinstance(l, self.Tuple) else l) for l in libs]
         nlibs = [(l[1] if isinstance(l, self.Tuple) else l) for l in libs]
 
-        blib = blink(dst, bsrcs, *args, libs=blibs, **kwargs)
+        blib = blink(dst, bsrcs, *args, libs=blibs, custom=custom, **kwargs)
         nlib = nlink(dst, nsrcs, *args, libs=nlibs, **kwargs)
 
         return self.Tuple(blib, nlib)
