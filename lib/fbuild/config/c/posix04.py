@@ -1,5 +1,6 @@
 import fbuild.config.c as c
 import fbuild.config.c.c99 as c99
+import fbuild.config.c.posix01 as posix01
 
 # ------------------------------------------------------------------------------
 
@@ -346,8 +347,7 @@ class langinfo_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class libgen_h(c.Header):
-    pass
+libgen_h = posix01.libgen_h
 
 # ------------------------------------------------------------------------------
 
@@ -593,8 +593,7 @@ class string_h(c99.string_h):
         default_args=(0, 0, 0))
 
 class strings_h(c.Header):
-    bcopy = c.function_test('void', 'const void*', 'void*', 'size_t',
-        default_args=(0, 0, 0))
+    pass
 
 class stropts_h(c.Header):
     pass
@@ -821,15 +820,12 @@ class ulimit_h(c.Header):
 class unistd_h(c.Header):
     getcwd = c.function_test('char*', 'char*', 'size_t')
     getpagesize = c.function_test('int', 'void')
-    getwd = c.function_test('char*', 'char*')
     isatty = c.function_test('int', 'int')
     mkdtemp = c.function_test('char*', 'char*')
     mkstemp = c.function_test('int', 'char*')
     mkstemps = c.function_test('int', 'char*', 'int')
-    mktemp = c.function_test('char*', 'char*')
     sysconf = c.function_test('long', 'int', default_args=('0',))
     ttyname = c.function_test('char*', 'int')
-    ttyslot = c.function_test('int', 'void')
 
 class utime_h(c.Header):
     pass
