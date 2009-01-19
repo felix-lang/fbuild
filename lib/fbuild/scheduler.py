@@ -150,10 +150,12 @@ class WorkerThread(threading.Thread):
                 return True
 
             done_queue, task = queue_task
-            task.run()
+            try:
+                task.run()
+            finally:
+                done_queue.put(task)
         finally:
             self.__ready_queue.task_done()
-            done_queue.put(task)
 
 # ------------------------------------------------------------------------------
 
