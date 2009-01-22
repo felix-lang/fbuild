@@ -1,4 +1,5 @@
-import fbuild.builders
+import fbuild
+import fbuild.builders.c
 import fbuild.config.c as c
 import fbuild.temp
 
@@ -36,19 +37,21 @@ class windows_h(c.Header):
 
         fbuild.logger.check("checking LoadLibrary in 'windows.h'")
 
-        with tempfile(lib_code, builder.src_suffix) as lib_src:
+        with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
                 obj = shared.compile(lib_src, quieter=1)
-                lib = shared.link_lib(lib_src.parent / 'temp', [obj], quieter=1)
+                lib = shared.link_lib(lib_src.parent / 'temp', [obj],
+                    quieter=1)
             except fbuild.ExecutionError:
-                fbuild.logger.failed()
-                return None
+                pass
+            else:
+                if self.builder.try_run(exe_code % lib, quieter=1):
+                    fbuild.logger.passed()
+                    return c.Function('HMODULE', 'char*')
 
-            if builder.try_run(exe_code % lib):
-                return c.Function('HMODULE', 'char*')
+            fbuild.logger.failed()
             return None
 
-    @c.cacheproperty
     def GetProcAddress(self):
         if self.LoadLibrary:
             return c.Function('void*', 'HMODULE', 'char*')
