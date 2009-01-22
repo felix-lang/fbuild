@@ -42,7 +42,7 @@ def test_header(builder, header_class):
 
     for result in fbuild.scheduler.map(
             functools.partial(test_field, header),
-            header.__meta__.fields):
+            (f for n, f in header.fields())):
         total += 1
         if result:
             passed += 1

@@ -131,7 +131,7 @@ class cacheproperty(fbuild.db.cacheproperty):
         """Register itself inside the class."""
 
         self.__name__ = key
-        cls.__meta__.add_field(key, self)
+        cls.__field_names__.append(key)
         setattr(cls, key, self)
 
 # ------------------------------------------------------------------------------
@@ -482,40 +482,71 @@ class Test(fbuild.config.Test):
     def __init__(self, builder):
         self.builder = builder
 
-    def fields(self):
-        for field in self.__meta__.fields:
-            type_ = getattr(self, field.__name__)
-            yield field.method.name, type_
-
     def functions(self):
         for name, field in self.fields():
-            if isinstance(field, Function):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, function_test):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, Function):
+                    yield field.method.name, f
 
     def macros(self):
         for name, field in self.fields():
-            if isinstance(field, Macro):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, macro_test):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, Macro):
+                    yield field.method.name, f
 
     def types(self):
         for name, field in self.fields():
-            if isinstance(field, Type):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, (type_test, int_type_test)):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, Type):
+                    yield field.method.name, f
 
     def int_types(self):
         for name, field in self.fields():
-            if isinstance(field, IntType):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, int_type_test):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, IntType):
+                    yield field.method.name, f
 
     def structs(self):
         for name, field in self.fields():
-            if isinstance(field, Struct):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, struct_test):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, Struct):
+                    yield field.method.name, f
 
     def variables(self):
         for name, field in self.fields():
-            if isinstance(field, Variable):
-                yield name, field
+            if isinstance(field, cacheproperty):
+                if isinstance(field.method, variable_test):
+                    f = getattr(self, name)
+                    yield field.method.name, f
+            else:
+                f = getattr(self, name)
+                if isinstance(f, Variable):
+                    yield field.method.name, f
 
 # ------------------------------------------------------------------------------
 

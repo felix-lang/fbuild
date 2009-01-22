@@ -27,7 +27,7 @@ class HeaderMeta(c.HeaderMeta):
         new_class = super().__new__(cls, name, bases, attrs)
 
         if namespace is not None:
-            for field in new_class.__meta__.fields:
+            for name, field in new_class.fields():
                 # Macros shouldn't get the namespace prepended.
                 if not isinstance(field.method, macro_test):
                     field.method.name = namespace + '::' + field.method.name

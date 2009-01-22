@@ -5,19 +5,6 @@ import fbuild.db
 
 # ------------------------------------------------------------------------------
 
-class Options:
-    def __init__(self):
-        self.field_names = []
-        self.fields = []
-
-    def add_field(self, key, value):
-        self.field_names.append(key)
-        self.fields.append(value)
-
-    def update(self, options):
-        self.field_names.extend(options.field_names)
-        self.fields.extend(options.fields)
-
 class _FieldTable(dict):
     """A dictionary that stores Just a dict that records the order of the
     stored items."""
@@ -44,11 +31,13 @@ class TestMeta(fbuild.db.PersistentMeta):
 
         module = attrs.pop('__module__')
         new_class = super().__new__(cls, name, bases, {'__module__': module})
-        new_class.add_to_class('__meta__', Options())
+        new_class.__field_names__ = []
 
         for parent in parents:
-            if hasattr(parent, '__meta__'):
-                new_class.__meta__.update(parent.__meta__)
+            if hasattr(parent, '__field_names__'):
+                for key in parent.__field_names__:
+                    if key not in attrs:
+                        new_class.__field_names__.append(key)
 
         # add the fields in the order that they were declared
         for key in attrs.field_names:
@@ -68,6 +57,11 @@ class TestMeta(fbuild.db.PersistentMeta):
             setattr(cls, key, value)
 
 class Test(metaclass=TestMeta):
+    @classmethod
+    def fields(cls):
+        for field_name in cls.__field_names__:
+            yield field_name, getattr(cls, field_name)
+
     def get(self, key, default=None):
         """Look in the test for an attribute named "key". If "key" contains
         any periods, recursively walk down the attributes to find the final
