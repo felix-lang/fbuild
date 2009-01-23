@@ -56,7 +56,7 @@ class Scheduler:
     def _evaluate(self, tasks):
         count = 0
         children = {}
-        done_queue = queue.LifoQueue()
+        done_queue = queue.Queue()
         results = []
 
         for task in tasks:
@@ -91,9 +91,9 @@ class Scheduler:
             count -= 1
             task.done = True
             if task.exc is not None:
-                # clear the ready queue
-                with self.__ready_queue.mutex:
-                    self.__ready_queue.queue.clear()
+                # Clear our queue of tasks.
+                for task in tasks:
+                    task.done = True
 
                 raise task.exc
             results.append(task)
