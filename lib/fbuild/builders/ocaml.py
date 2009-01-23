@@ -62,13 +62,19 @@ class Ocamldep(fbuild.db.PersistentObject):
         modules = self.modules(src, **kwargs)
         for module in modules:
             if not f(module, None):
-                for include in chain(includes):
+                for include in includes:
                     f(module, include)
 
         if src.endswith('.ml'):
-            mli = Path(src).replaceext('.mli')
-            if mli.exists():
-                deps.append(mli)
+            # The .mli file might not live right next to the .ml file, so
+            # search the include path for it.
+            mli = Path(src).name.replaceext('.mli')
+            for include in includes:
+                path = mli
+                if include is not None: path = include / path
+                if path.exists():
+                    deps.append(path)
+                    break
 
         return deps
 
