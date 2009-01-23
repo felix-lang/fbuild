@@ -86,7 +86,15 @@ class Scheduler:
                     # no tasks done, so loop
                     continue
             else:
-                task = done_queue.get()
+                # Unfortunately, We need a busy loop to give KeyboardInterrupt
+                # a chance to get raised.
+                while True:
+                    try:
+                        task = done_queue.get(block=False, timeout=1.0)
+                    except queue.Empty:
+                        pass
+                    else:
+                        break
 
             count -= 1
             task.done = True
