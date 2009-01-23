@@ -149,12 +149,11 @@ class WorkerThread(threading.Thread):
 
     def run_one(self, *args, **kwargs):
         queue_task = self.__ready_queue.get(*args, **kwargs)
-        if queue_task is None:
-            return True
 
         try:
-            if self.__finished:
-                self.__ready_queue.task_done()
+            # This should be tested in the try block so that we update the done
+            # counter in the ready queue, even if we errored out.
+            if queue_task is None:
                 return True
 
             done_queue, task = queue_task
