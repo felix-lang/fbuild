@@ -1,7 +1,7 @@
+import operator
+import queue
 import sys
 import threading
-import queue
-import operator
 
 # ------------------------------------------------------------------------------
 
