@@ -185,7 +185,13 @@ def main(argv=None):
         fbuild.scheduler.shutdown()
     finally:
         if not options.do_not_save_database:
-            fbuild.db.database.save(options.state_file)
+            # Remove the signal handler so that we can't interrupt saving the
+            # db.
+            prev_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+            try:
+                fbuild.db.database.save(options.state_file)
+            finally:
+                signal.signal(signal.SIGINT, prev_handler)
 
     return 0
 
