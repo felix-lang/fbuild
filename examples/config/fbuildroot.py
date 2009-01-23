@@ -65,7 +65,6 @@ def test_module(builder, module):
         total += t
     return passed, total
 
-
 def build():
     c_static = fbuild.builders.c.guess_static()
     c_shared = fbuild.builders.c.guess_shared()
