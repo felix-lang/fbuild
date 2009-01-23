@@ -167,28 +167,23 @@ def main(argv=None):
 
             return 0
 
-        # ----------------------------------------------------------------------
-        # Register a new SIGINT handler since threads can make shutting down a
-        # little slow.
-
-        prev_handler = signal.getsignal(signal.SIGINT)
-        def new_int_handler(*args, **kwargs):
-            fbuild.logger.write('Shutting down due to keyboard interrupt...\n',
-                buffer=False,
-                color='red')
-            prev_handler(*args, **kwargs)
-        signal.signal(signal.SIGINT, new_int_handler)
-
         # ---------------------------------------------------------------------
         # finally, do the build
         fbuildroot.build()
     except fbuild.Error as e:
         fbuild.logger.log(e, color='red')
         return 1
-    finally:
-        # Make sure the threads shutdown cleanly.
+    except KeyboardInterrupt:
+        # It appears that we can't reliably shutdown the scheduler's threads
+        # when SIGINT is emitted, because python may raise KeyboardInterrupt
+        # between the finally and the mutex.release call.  So, we can find
+        # ourselves exiting functions with the lock still held.  This could
+        # then cause deadlocks if that lock was ever acquired again.  Oiy.
+        raise
+    else:
+        # No exception occurred, so let us be good and shut down the scheduler.
         fbuild.scheduler.shutdown()
-
+    finally:
         if not options.do_not_save_database:
             fbuild.db.database.save(options.state_file)
 
