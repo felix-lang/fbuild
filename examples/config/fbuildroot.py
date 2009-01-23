@@ -4,29 +4,24 @@ import fbuild
 import fbuild.builders.c
 import fbuild.builders.cxx
 import fbuild.config as config
-import fbuild.config.c.c90 as c90
-import fbuild.config.c.c99 as c99
-import fbuild.config.c.posix04 as posix04
-import fbuild.config.c.math_h as math_h
-import fbuild.config.c.ieeefp_h as ieeefp_h
-import fbuild.config.cxx.cxx03 as cxx03
-import fbuild.config.cxx.cmath as cmath
+from fbuild.functools import import_module
 
 # ------------------------------------------------------------------------------
 
-def test_field(header, field):
-    if getattr(header, field.__name__):
+def test_field(test, field):
+    if getattr(test, field.__name__):
         return True
     else:
-        fbuild.logger.check('failed test:',
+        fbuild.logger.check('%r failed test' % str(test.builder),
             '%s.%s.%s' % (
-                header.__class__.__module__,
-                header.__class__.__name__,
+                test.__class__.__module__,
+                test.__class__.__name__,
                 field.__name__),
             color='yellow')
 
         try:
-            src = field.method.format_test(header.header)
+            src = field.method.test or field.method.format_test(
+                getattr(test, 'header', None))
         except AttributeError as e:
             pass
         else:
@@ -34,15 +29,13 @@ def test_field(header, field):
 
         return False
 
-def test_header(builder, header_class):
-    header = header_class(builder)
-
+def test_test(test):
     passed = 0
     total = 0
 
     for result in fbuild.scheduler.map(
-            functools.partial(test_field, header),
-            (f for n, f in header.fields())):
+            functools.partial(test_field, test),
+            (f for n, f in test.fields())):
         total += 1
         if result:
             passed += 1
@@ -50,17 +43,15 @@ def test_header(builder, header_class):
     return passed, total
 
 def test_module(builder, module):
-    headers = []
+    tests = []
     for name in dir(module):
-        header = getattr(module, name)
-        if isinstance(header, type) and issubclass(header, config.Test):
-            headers.append(header)
+        test = getattr(module, name)
+        if isinstance(test, type) and issubclass(test, config.Test):
+            tests.append(test(builder))
 
     passed = 0
     total = 0
-    for p, t in fbuild.scheduler.map(
-            functools.partial(test_header, builder),
-            headers):
+    for p, t in fbuild.scheduler.map(test_test, tests):
         passed += p
         total += t
     return passed, total
@@ -76,14 +67,29 @@ def build():
 
     # c tests
     for builder in c_static, c_shared, cxx_static, cxx_shared:
-        for module in c90, c99, posix04, math_h, ieeefp_h:
+        for module in (
+                import_module('fbuild.config.c.bsd'),
+                import_module('fbuild.config.c.c90'),
+                import_module('fbuild.config.c.c99'),
+                import_module('fbuild.config.c.darwin'),
+                import_module('fbuild.config.c.ieeefp_h'),
+                import_module('fbuild.config.c.linux'),
+                import_module('fbuild.config.c.malloc'),
+                import_module('fbuild.config.c.math_h'),
+                import_module('fbuild.config.c.posix01'),
+                import_module('fbuild.config.c.posix04'),
+                import_module('fbuild.config.c.win32'),):
             p, t = test_module(builder, module)
             passed += p
             total += t
 
     # c++ tests
     for builder in cxx_static, cxx_shared:
-        for module in cxx03, cmath:
+        for module in (
+                import_module('fbuild.config.cxx.cxx03'),
+                import_module('fbuild.config.cxx.cmath'),
+                import_module('fbuild.config.cxx.iterator'),
+                import_module('fbuild.config.cxx.gnu')):
             p, t = test_module(builder, module)
             passed += p
             total += t
