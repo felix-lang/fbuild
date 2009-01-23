@@ -6,4 +6,4 @@ import fbuild.config.c.linux as linux
 # ------------------------------------------------------------------------------
 
 class sys_mman_h(linux.sys_mman_h, bsd.sys_mman_h):
-    pass
+    header = 'sys/mman.h'
