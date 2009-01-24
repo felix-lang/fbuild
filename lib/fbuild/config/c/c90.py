@@ -802,7 +802,7 @@ class stdlib_h(c.Header):
         int main() {
             int a[] = {0, 1, 2, 3, 4};
             int b = 3;
-            int* c = bsearch(&b, a, 5, sizeof(a[0]), &f);
+            int* c = (int*)bsearch(&b, a, 5, sizeof(a[0]), &f);
             return c && c == &a[3] && *c == 3 ? 0 : 1;
         }
         ''')
