@@ -159,38 +159,9 @@ class fenv_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class float_h(c.Header):
-    FLT_ROUNDS = c.macro_test()
-    FLT_EVAL_METHOD = c.macro_test()
-    FLT_RADIX = c.macro_test()
-    FLT_MANT_DIG = c.macro_test()
-    DBL_MANT_DIG = c.macro_test()
-    LDBL_MANT_DIG = c.macro_test()
+class float_h(c90.float_h):
     DECIMAL_DIG = c.macro_test()
-    FLT_DIG = c.macro_test()
-    DBL_DIG = c.macro_test()
-    LDBL_DIG = c.macro_test()
-    FLT_MIN_EXP = c.macro_test()
-    DBL_MIN_EXP = c.macro_test()
-    LDBL_MIN_EXP = c.macro_test()
-    FLT_MIN_10_EXP = c.macro_test()
-    DBL_MIN_10_EXP = c.macro_test()
-    LDBL_MIN_10_EXP = c.macro_test()
-    FLT_MAX_EXP = c.macro_test()
-    DBL_MAX_EXP = c.macro_test()
-    LDBL_MAX_EXP = c.macro_test()
-    FLT_MAX_10_EXP = c.macro_test()
-    DBL_MAX_10_EXP = c.macro_test()
-    LDBL_MAX_10_EXP = c.macro_test()
-    FLT_MAX = c.macro_test()
-    DBL_MAX = c.macro_test()
-    LDBL_MAX = c.macro_test()
-    FLT_EPSILON = c.macro_test()
-    DBL_EPSILON = c.macro_test()
-    LDBL_EPSILON = c.macro_test()
-    FLT_MIN = c.macro_test()
-    DBL_MIN = c.macro_test()
-    LDBL_MIN = c.macro_test()
+    FLT_EVAL_METHOD = c.macro_test()
 
 # ------------------------------------------------------------------------------
 
@@ -374,25 +345,9 @@ class iso646_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class limits_h(c.Header):
-    CHAR_BIT = c.macro_test()
-    SCHAR_MIN = c.macro_test()
-    SCHAR_MAX = c.macro_test()
-    UCHAR_MAX = c.macro_test()
-    CHAR_MIN = c.macro_test()
-    CHAR_MAX = c.macro_test()
-    MB_LEN_MAX = c.macro_test()
-    SHRT_MIN = c.macro_test()
-    SHRT_MAX = c.macro_test()
-    USHRT_MAX = c.macro_test()
-    INT_MIN = c.macro_test()
-    INT_MAX = c.macro_test()
-    UINT_MAX = c.macro_test()
-    LONG_MIN = c.macro_test()
-    LONG_MAX = c.macro_test()
-    ULONG_MAX = c.macro_test()
-    LLONG_MIN = c.macro_test()
+class limits_h(c90.limits_h):
     LLONG_MAX = c.macro_test()
+    LLONG_MIN = c.macro_test()
     ULLONG_MAX = c.macro_test()
 
 # ------------------------------------------------------------------------------
