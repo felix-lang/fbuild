@@ -268,7 +268,7 @@ class math_h(c.Header):
     tanh = c.function_test('double', 'double')
     exp = c.function_test('double', 'double')
     frexp = c.function_test('double', 'double', 'int*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             int d0;
             double d1 = frexp(0., &d0);
@@ -279,7 +279,7 @@ class math_h(c.Header):
     log = c.function_test('double', 'double')
     log10 = c.function_test('double', 'double')
     modf = c.function_test('double', 'double', 'double*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             double d0;
             double d1 = modf(0., &d0);
