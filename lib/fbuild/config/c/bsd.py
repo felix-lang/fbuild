@@ -82,7 +82,3 @@ class sys_ndir_h(c.Header):
 
 class sys_param_h(c.Header):
     header = 'sys/param.h'
-
-class unistd_h(posix04.unistd_h):
-    brk = c.function_test('int', 'void*')
-    sbrk = c.function_test('void*', 'intptr_t')

@@ -19,6 +19,7 @@ class strings_h(c.Header):
     bzero = c.function_test('void', 'void*', 'size_t')
 
 class unistd_h(c.Header):
+    brk = c.function_test('void*', 'void*')
     getwd = c.function_test('char*', 'char*', test='''
         #include <unistd.h>
         #include <sys/param.h>
@@ -28,4 +29,5 @@ class unistd_h(c.Header):
             return 0;
         }
         ''')
+    sbrk = c.function_test('void*', 'intptr_t')
     ttyslot = c.function_test('int', 'void')
