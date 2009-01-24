@@ -4,13 +4,13 @@ import fbuild.config.c.c90 as c90
 # ------------------------------------------------------------------------------
 
 class types(c90.types):
+    _Bool = c.int_type_test()
     float__Complex = c.type_test(name='float _Complex')
     double__Complex = c.type_test(name='double _Complex')
     long_double__Complex = c.type_test(name='long double _Complex')
     float__Imaginary = c.type_test(name='float _Imaginary')
     double__Imaginary = c.type_test(name='double _Imaginary')
     long_double__Imaginary = c.type_test(name='long double _Imaginary')
-    _Bool = c.int_type_test()
 
 # ------------------------------------------------------------------------------
 
