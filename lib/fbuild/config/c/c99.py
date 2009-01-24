@@ -801,7 +801,7 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             long double d = strtold(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 15.0ld) {
+            if (s1 != endp && *endp == '\0' && d == 15.0l) {
                 d = strtold(s2, &endp);
                 return s1 == endp || *endp != '\0' ? 0 : 1;
             }
