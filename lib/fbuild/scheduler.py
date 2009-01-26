@@ -100,8 +100,8 @@ class Scheduler:
             task.done = True
             if task.exc is not None:
                 # Clear our queue of tasks.
-                for task in tasks:
-                    task.done = True
+                for t in tasks:
+                    t.done = True
 
                 raise task.exc
             results.append(task)
