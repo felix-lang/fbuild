@@ -68,12 +68,15 @@ class Ocamldep(fbuild.db.PersistentObject):
         if src.endswith('.ml'):
             # The .mli file might not live right next to the .ml file, so
             # search the include path for it.
-            mli = Path(src).name.replaceext('.mli')
-            for include in includes:
-                path = mli
-                if include is not None: path = include / path
-                if path.exists():
-                    deps.append(path)
+            mli = Path(src).replaceext('.mli')
+            if mli.exists():
+                deps.append(mli)
+            else:
+                for include in includes:
+                    path = mli.name
+                    if include is not None: path = include / path
+                    if path.exists():
+                        deps.append(path)
                     break
 
         return deps
