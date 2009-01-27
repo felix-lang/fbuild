@@ -348,6 +348,10 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             if parent:
                 includes.add(parent)
                 includes.add(parent.addroot(fbuild.buildroot))
+            else:
+                # We're at the toplevel directory, so just add the buildroot to
+                # the includes.
+                includes.add(fbuild.buildroot)
 
         # Add additional source dependencies to the call.
         deps = set()
