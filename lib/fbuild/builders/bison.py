@@ -11,13 +11,13 @@ class Bison(fbuild.db.PersistentObject):
         self.flags = flags
         self.suffix = suffix
 
-    def __call__(self, src, dst=None, *,
+    def __call__(self, src:fbuild.db.SRC, dst=None, *,
             suffix=None,
             verbose=False,
             name_prefix=None,
             defines=False,
             flags=[],
-            buildroot=None):
+            buildroot=None) -> fbuild.db.DST:
         buildroot = buildroot or fbuild.buildroot
         suffix = suffix or self.suffix
         dst = Path.addroot(dst or src, buildroot).replaceext(suffix)
