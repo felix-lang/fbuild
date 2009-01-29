@@ -9,7 +9,7 @@ class windows_h(c.Header):
     @c.cacheproperty
     def LoadLibrary(self):
         # try to get a shared compiler
-        shared = fbuild.builders.c.guess_static()
+        shared = fbuild.builders.c.guess_shared()
 
         lib_code = '''
             #ifdef __cplusplus
