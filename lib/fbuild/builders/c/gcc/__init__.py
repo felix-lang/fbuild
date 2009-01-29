@@ -31,7 +31,8 @@ class Gcc:
         self.debug_flags = debug_flags
         self.optimize_flags = optimize_flags
 
-    def __call__(self, srcs, dst=None, flags=[], *,
+    def __call__(self, srcs, dst=None, *,
+            flags=[],
             pre_flags=[],
             includes=[],
             macros=[],
