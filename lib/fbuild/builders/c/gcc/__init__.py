@@ -144,7 +144,7 @@ def make_gcc(exe=None, default_exes=['gcc', 'cc'],
         **kwargs)
 
     if not gcc.check_flags([]):
-        raise ConfigFailed('gcc failed to compile an exe')
+        raise ConfigFailed('%s failed to compile an exe' % gcc)
 
     if not gcc.check_flags(debug_flags):
         debug_flags = []
