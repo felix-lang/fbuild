@@ -44,6 +44,8 @@ def find_program(names, paths=None):
                     fbuild.logger.passed('ok %s' % filename)
                     return filename
 
+        fbuild.logger.failed()
+
     raise MissingProgram(names)
 
 # ------------------------------------------------------------------------------
