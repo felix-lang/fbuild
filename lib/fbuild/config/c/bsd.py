@@ -18,6 +18,7 @@ class execinfo_h(c.Header):
     backtrace_symbols_fd = c.function_test('void', 'void* const*', 'int', 'int')
 
 class stdlib_h(posix04.stdlib_h):
+    mkdtemp = c.function_test('char*', 'char*')
     strtof = c.function_test('double', 'const char*', 'char**', test='''
         #include <stdlib.h>
         int main() {
@@ -82,3 +83,7 @@ class sys_ndir_h(c.Header):
 
 class sys_param_h(c.Header):
     header = 'sys/param.h'
+
+class unistd_h(posix04.unistd_h):
+    mkstemps = c.function_test('int', 'char*', 'int')
+    mkdtemp = c.function_test('char*', 'char*')

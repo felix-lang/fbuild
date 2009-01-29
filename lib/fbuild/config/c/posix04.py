@@ -642,11 +642,12 @@ class stdio_h(c99.stdio_h):
     pass
 
 class stdlib_h(c99.stdlib_h):
-    srand = c.function_test('void', 'unsigned int')
-    srand48 = c.function_test('void', 'long')
     drand48 = c.function_test('double', 'void')
     lrand48 = c.function_test('long', 'void')
+    mkstemp = c.function_test('int', 'char*')
     realpath = c.function_test('char*', 'const char*', 'char*')
+    srand = c.function_test('void', 'unsigned int')
+    srand48 = c.function_test('void', 'long')
 
 class string_h(c99.string_h):
     strdup = c.function_test('char*', 'const char*')
@@ -882,9 +883,6 @@ class unistd_h(c.Header):
     getcwd = c.function_test('char*', 'char*', 'size_t')
     getpagesize = c.function_test('int', 'void')
     isatty = c.function_test('int', 'int')
-    mkdtemp = c.function_test('char*', 'char*')
-    mkstemp = c.function_test('int', 'char*')
-    mkstemps = c.function_test('int', 'char*', 'int')
     sysconf = c.function_test('long', 'int', default_args=('0',))
     ttyname = c.function_test('char*', 'int')
 
