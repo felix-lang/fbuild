@@ -1,3 +1,4 @@
+import fbuild.builders.c
 import fbuild.config.c as c
 import fbuild.config.c.c99 as c99
 import fbuild.config.c.posix01 as posix01
@@ -161,10 +162,70 @@ class dlfcn_h(c.Header):
     RTLD_NOW = c.macro_test()
     RTLD_GLOBAL = c.macro_test()
     RTLD_LOCAL = c.macro_test()
-    dlclose = c.function_test('int', 'void*')
-    dlerror = c.function_test('char*', 'void')
-    dlopen = c.function_test('void*', 'const char*', 'int')
-    dlsym = c.function_test('void*', 'void*', 'const char*')
+
+    @c.cacheproperty
+    def dlclose(self):
+        if not self.header:
+            return
+
+        # try to get a shared compiler
+        shared = fbuild.builders.c.guess_shared()
+
+        lib_code = '''
+            #ifdef __cplusplus
+            extern "C" {
+            #endif
+            int fred(int argc, char** argv) { return 0; }
+            #ifdef __cplusplus
+            }
+            #endif
+        '''
+
+        exe_code = '''
+            #include <dlfcn.h>
+            #include <stdlib.h>
+
+            int main(int argc, char** argv) {
+                void* lib = dlopen("%s", RTLD_NOW);
+                void* fred = 0;
+                if(!lib) return 1;
+                fred = dlsym(lib,"fred");
+                if(!fred) return 1;
+                return dlclose(lib) == 0 ? 0 : 1;
+            }
+        '''
+
+        fbuild.logger.check("checking dlclose in 'dlfcn.h'")
+
+        with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
+            try:
+                obj = shared.compile(lib_src, quieter=1)
+                lib = shared.link_lib(lib_src.parent / 'temp', [obj],
+                    quieter=1)
+            except fbuild.ExecutionError:
+                pass
+            else:
+                if self.builder.try_run(exe_code % lib, quieter=1):
+                    fbuild.logger.passed()
+                    return c.Function('int', 'void*')
+
+            fbuild.logger.failed()
+            return None
+
+    @property
+    def dlerror(self):
+        if self.dlclose:
+            return c.Function('char*', 'void')
+
+    @property
+    def dlopen(self):
+        if self.dlclose:
+            return c.Function('void*', 'const char*', 'int')
+
+    @property
+    def dlsym(self):
+        if self.dlclose:
+            return c.Function('void*', 'void*', 'const char*')
 
 # ------------------------------------------------------------------------------
 
