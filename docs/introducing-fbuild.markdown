@@ -111,9 +111,9 @@ together in a library.  Finally, since the arguments changed for
 `ocaml.ocamlc.build_exe`, `build/exe` was recompiled.
 
 Now that you've got a taste for `Fbuild`, lets go through some of the reasoning
-behind it's design.  As I mentioned previously, every build system I've found
-is based off of a multi-phase declarative tree evaluation.  Here's the list of
-the system I looked at:
+behind its design.  As I mentioned previously, every build system I've found is
+based off of a multi-phase declarative tree evaluation.  Here's the list of the
+system I looked at:
 
  * [Ant](http://ant.apache.org/)
  * [Automake](http://www.gnu.org/software/automake/)
@@ -131,8 +131,8 @@ By "declarative tree evaluation", I mean that the order of evaluation is
 explicitly encoded in a dependency tree.  Each node has a function that takes
 one or more inputs and returns one or more outputs. By "multi-phased", I
 consider building the tree as one phase, walking the dependencies as another,
-and evaluating the nodes as yet another.  This contrasts with `Fbuild`, which
-I consider to be a single-phase procedural build system.  As python evaluates
+and evaluating the nodes as yet another.  This contrasts with `Fbuild`, which I
+consider to be a single-phase procedural build system.  As python evaluates
 each cached function, the dependency implicitly gets evaluated.  This means
 that it's possible to dynamically modify the build on demand:
 
@@ -195,7 +195,7 @@ env.A('foo.out', 'foo.in')
 }}}
 
 First, you define a simple function that converts a source file into a target
-file.  Next, you create environment where you update the builders with our
+file.  Next, you create an environment where you update the builders with your
 custom builder.  Finally, you use the environment to perform your action.  It's
 not actually that bad.  Here's the equivalent in `Fbuild`:
 
@@ -222,11 +222,11 @@ the function is cached using the `fbuild.db.caches` decorator.  There's also
 need to tell `Fbuild` if the arguments are source or destination files.  We do
 this using python 3.0's annotation support. This tells the database to check to
 see if source files were modified or if the destination file was removed.  If
-either of these occurred, the function is reran.
+either of these occurred, the function is rerun.
 
 As the builders get nontrivial and more complex, `Fbuild` becomes a much
-simpler. For instance, consider `SCons`'s [Yacc
-builder](http://scons.tigris.org/source/browse/*checkout*/scons/trunk/src/engine/SCons/Tool/yacc.py?content-type=text%2Fplain).
+simpler. For instance, consider `SCons`'s [Yacc builder]
+(http://scons.tigris.org/source/browse/*checkout*/scons/trunk/src/engine/SCons/Tool/yacc.py?content-type=text%2Fplain).
 There are three main things it needs to do.  First, `SCons` has to set up the
 environment variables for `yacc`. Next, they register `yacc` with the C
 builder.  Finally, they have a function that uses the values from the
@@ -286,8 +286,8 @@ callable object, we don't have to be aware of anything else happening in the
 tree.  We also don't need to pollute the environment with extra values, when
 they're only needed in this builder.
 
-It's easy to extend this paradigm to configuration.  Say you want to check if
-a header exists.  It's simple to write this:
+It's easy to extend this paradigm to configuration.  Say you want to check if a
+header exists.  It's simple to write this:
 
 {{{
 :::python
@@ -329,7 +329,7 @@ def build():
         ...
 }}}
 
-There's already hundreds of tests defined in `fbuild.config`.  It's a new
+There are already hundreds of tests defined in `fbuild.config`.  It's a new
 system, but it's already proven to be pretty useful.
 
 So, that's `Fbuild`.  Hopefully you'll find it interesting.  It's still a very
@@ -351,5 +351,5 @@ cd examples/c
 Where `fbuild-light` is just a simple wrapper around the `fbuild` executable.
 It's used so that you can run `fbuild` without it being installed.
 
-If you have any questions, feel free to ask on the [felix mailing list](...), or
-reply to the comments.
+If you have any questions, feel free to ask on the [felix mailing list](...),
+or reply to the comments.
