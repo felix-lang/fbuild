@@ -35,7 +35,8 @@ class Ar(fbuild.db.PersistentObject):
 
     @fbuild.db.cachemethod
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
-            libs=[],
+            libs:fbuild.db.SRCS=[],
+            external_libs=[],
             flags=[],
             ranlib_flags=[],
             prefix=None,
@@ -64,6 +65,7 @@ class Ar(fbuild.db.PersistentObject):
         cmd.append(dst)
         cmd.extend(srcs)
         #cmd.extend(libs)
+        #cmd.extend(external_libs)
 
         execute(cmd,
             msg1=self.ar,

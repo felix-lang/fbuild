@@ -16,6 +16,9 @@ class Gcc:
             includes=[],
             macros=[],
             warnings=[],
+            libpaths=[],
+            libs=[],
+            external_libs=[],
             debug=None,
             optimize=None,
             debug_flags=[],
@@ -30,6 +33,9 @@ class Gcc:
         self.optimize = optimize
         self.debug_flags = debug_flags
         self.optimize_flags = optimize_flags
+        self.libpaths = libpaths
+        self.libs = libs
+        self.external_libs = external_libs
 
     def __call__(self, srcs, dst=None, *,
             flags=[],
@@ -39,6 +45,7 @@ class Gcc:
             warnings=[],
             libpaths=[],
             libs=[],
+            external_libs=[],
             debug=None,
             optimize=None,
             **kwargs):
@@ -55,6 +62,9 @@ class Gcc:
         warnings = set(warnings)
         warnings.update(self.warnings)
 
+        libpaths = set(libpaths)
+        libpaths.update(self.libpaths)
+
         if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
 
@@ -65,8 +75,7 @@ class Gcc:
         cmd.extend('-I' + Path(i) for i in sorted(includes) if i)
         cmd.extend('-D' + d for d in sorted(macros))
         cmd.extend('-W' + w for w in sorted(warnings))
-        cmd.extend('-L' + p for p in sorted(libpaths) if p)
-        cmd.extend('-l' + l for l in sorted(libs))
+        cmd.extend('-L' + Path(p) for p in sorted(libpaths) if p)
 
         if dst is not None:
             cmd.extend(('-o', dst))
@@ -77,6 +86,15 @@ class Gcc:
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(srcs)
+
+        # Libraries must come last on linux in order to find symbols.
+        cmd.extend('-l' + l for l in chain(self.external_libs, external_libs))
+
+        for lib in chain(self.libs, libs):
+            if Path(lib).exists():
+                cmd.append(lib)
+            elif lib not in new_libs:
+                cmd.append('-l' + lib)
 
         return execute(cmd, str(self), msg2, **kwargs)
 
@@ -119,7 +137,10 @@ class Gcc:
             self.debug == other.debug and \
             self.optimize == other.optimize and \
             self.debug_flags == other.debug_flags and \
-            self.optimize_flags == other.optimize_flags
+            self.optimize_flags == other.optimize_flags and \
+            self.libpaths == other.libpaths and \
+            self.libs == other.libs and \
+            self.external_libs == other.external_libs
 
     def __hash__(self):
         return hash((
@@ -132,6 +153,9 @@ class Gcc:
             self.optimize,
             self.debug_flags,
             self.optimize_flags,
+            self.libpaths,
+            self.libs,
+            self.external_libs,
         ))
 
 def make_gcc(exe=None, default_exes=['gcc', 'cc'],
@@ -237,28 +261,19 @@ def make_compiler(gcc, flags=[], **kwargs):
 # ------------------------------------------------------------------------------
 
 class Linker:
-    def __init__(self, gcc, flags=[], *, prefix, suffix,
-            libpaths=[],
-            libs=[]):
+    def __init__(self, gcc, flags=[], *, prefix, suffix):
         self.gcc = gcc
         self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
-        self.libpaths = libpaths
-        self.libs = libs
         self.flags = flags
 
     def __call__(self, dst, srcs, *,
             prefix=None,
             suffix=None,
-            libpaths=[],
-            libs=[],
-            flags=[],
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
-
-        assert srcs or libs, 'no sources passed into gcc'
 
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
@@ -266,30 +281,7 @@ class Linker:
         dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
 
-        libpaths = set(libpaths)
-        libpaths.update(self.libpaths)
-
-        cmd_flags = []
-
-        libs = set(libs)
-        libs.update(self.libs)
-
-        extra_srcs = []
-        new_libs = []
-        for lib in sorted(libs):
-            if Path(lib).exists():
-                extra_srcs.append(lib)
-            else:
-                new_libs.append(lib)
-
-        cmd_flags.extend(flags)
-
-        self.gcc(srcs + extra_srcs, dst, cmd_flags,
-            pre_flags=self.flags,
-            libpaths=libpaths,
-            libs=new_libs,
-            color='cyan',
-            **kwargs)
+        self.gcc(srcs, dst, pre_flags=self.flags, color='cyan', **kwargs)
 
         return dst
 
@@ -307,8 +299,6 @@ class Linker:
                 self.flags == other.flags and \
                 self.prefix == other.prefix and \
                 self.suffix == other.suffix and \
-                self.libpaths == other.libpaths and \
-                self.libs == other.libs and \
                 self.flags == other.flags
 
     def __hash__(self):
@@ -317,8 +307,6 @@ class Linker:
             self.flags,
             self.prefix,
             self.suffix,
-            self.libpaths,
-            self.libs,
             self.flags,
         ))
 
@@ -408,7 +396,7 @@ def static(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    gcc = make_gcc(exe, **kwargs)
+    gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
     return Builder(
         scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
@@ -421,8 +409,6 @@ def static(exe=None, *args,
             prefix=fbuild.builders.platform.static_lib_prefix(platform),
             suffix=fbuild.builders.platform.static_lib_suffix(platform)),
         exe_linker=make_linker(gcc,
-            libs=libs,
-            libpaths=libpaths,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),
@@ -445,7 +431,7 @@ def shared(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    gcc = make_gcc(exe, **kwargs)
+    gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
     return Builder(
         scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
@@ -453,14 +439,10 @@ def shared(exe=None, *args,
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.shared_obj_suffix(platform)),
         lib_linker=make_linker(gcc,
-            libs=libs,
-            libpaths=libpaths,
             flags=list(chain(flags, link_flags, lib_link_flags)),
             prefix=fbuild.builders.platform.shared_lib_prefix(platform),
             suffix=fbuild.builders.platform.shared_lib_suffix(platform)),
         exe_linker=make_linker(gcc,
-            libs=libs,
-            libpaths=libpaths,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),

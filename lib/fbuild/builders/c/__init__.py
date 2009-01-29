@@ -128,25 +128,15 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # --------------------------------------------------------------------------
 
-    def build_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            external_libs=(),
-            **kwargs) -> fbuild.db.DST:
+    def build_lib(self, dst, srcs, *args, **kwargs):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into a library."""
-        return self._build_link(self.link_lib, dst, srcs, *args,
-            libs=tuple(chain(external_libs, libs)),
-            **kwargs)
+        return self._build_link(self.link_lib, dst, srcs, *args, **kwargs)
 
-    def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            external_libs=(),
-            **kwargs) -> fbuild.db.DST:
+    def build_exe(self, dst, srcs, *args, **kwargs):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into an executable."""
-        return self._build_link(self.link_exe, dst, srcs, *args,
-            libs=tuple(chain(external_libs, libs)),
-            **kwargs)
+        return self._build_link(self.link_exe, dst, srcs, *args, **kwargs)
 
     def _build_link(self, function, dst, srcs, *,
             includes=(),
@@ -155,6 +145,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             cflags=(),
             ckwargs={},
             libs=(),
+            external_libs=(),
             lflags=(),
             lkwargs={}):
         """Actually compile and link the sources."""
@@ -165,7 +156,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             flags=cflags,
             **ckwargs)
 
-        return function(dst, objs, libs=libs, flags=lflags, **lkwargs)
+        return function(dst, objs,
+            libs=libs,
+            external_libs=external_libs,
+            flags=lflags,
+            **lkwargs)
 
     # -------------------------------------------------------------------------
 
