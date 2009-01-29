@@ -55,10 +55,10 @@ class Gcc:
         warnings = set(warnings)
         warnings.update(self.warnings)
 
-        if debug is None and self.debug or debug:
+        if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
 
-        if optimize is None and self.optimize or optimize:
+        if (optimize is None and self.optimize) or optimize:
             cmd.extend(self.optimize_flags)
 
         # make sure that the path is converted into the native path format
@@ -195,7 +195,6 @@ class Compiler:
 
     def __call__(self, src, dst=None, *,
             suffix=None,
-            debug=None,
             optimize=None,
             buildroot=None,
             **kwargs):
