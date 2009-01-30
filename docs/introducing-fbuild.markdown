@@ -28,47 +28,40 @@ Here's a quick example, in a file called `fbuildroot.py`:
 
 {{{
 :::python
-import fbuild.builders.ocaml
+import fbuild.builders.c
 
 def build():
-    ocaml = fbuild.builders.ocaml.Ocaml()
-    ocaml.ocamlc.build_exe('exe',
-        ['a.ml', 'a.mli', 'b.ml', 'b.mli', 'c.ml', 'c.mli'])
+    static = fbuild.builders.c.guess_static()
+    static.build_exe('exe', ['a.c', 'b.c', 'c.c'])
 }}}
 
 When run with as `fbuild`, assuming all those files exist, produces:
 
 {{{
-looking for program ocamldep.opt : ok /opt/local/bin/ocamldep.opt
-looking for program ocamlc.opt   : ok /opt/local/bin/ocamlc.opt
-determining platform             : {'bsd', 'darwin', 'macosx', 'posix'}
-checking if /opt/local/bin/ocamlc.opt can make objects: ok
-checking if /opt/local/bin/ocamlc.opt can make libraries: ok
-checking if /opt/local/bin/ocamlc.opt can make exes: ok
-checking if /opt/local/bin/ocamlc.opt can link lib to exe: ok
-looking for program ocamlopt.opt        : ok /opt/local/bin/ocamlopt.opt
-checking if /opt/local/bin/ocamlopt.opt can make objects: ok
-checking if /opt/local/bin/ocamlopt.opt can make libraries: ok
-checking if /opt/local/bin/ocamlopt.opt can make exes: ok
-checking if /opt/local/bin/ocamlopt.opt can link lib to exe: ok
- * /opt/local/bin/ocamldep.opt          : a.ml
- * /opt/local/bin/ocamldep.opt          : a.mli
- * /opt/local/bin/ocamldep.opt          : b.ml
- * /opt/local/bin/ocamldep.opt          : b.mli
- * /opt/local/bin/ocamldep.opt          : c.ml
- * /opt/local/bin/ocamldep.opt          : c.mli
- * /opt/local/bin/ocamlc.opt            : a.mli -> build/a.cmi
- * /opt/local/bin/ocamlc.opt            : b.mli -> build/b.cmi
- * /opt/local/bin/ocamlc.opt            : a.ml -> build/a.cmo
- * /opt/local/bin/ocamlc.opt            : c.mli -> build/c.cmi
- * /opt/local/bin/ocamlc.opt            : c.ml -> build/c.cmo
- * /opt/local/bin/ocamlc.opt            : b.ml -> build/b.cmo
- * /opt/local/bin/ocamlc.opt            : build/a.cmo build/c.cmo build/b.cmo -> build/exe
+determining platform     : {'bsd', 'darwin', 'macosx', 'posix'}
+looking for program gcc  : ok /usr/bin/gcc
+checking /usr/bin/gcc    : ok
+checking /usr/bin/gcc with -g : ok
+checking /usr/bin/gcc with -O2 : ok
+checking /usr/bin/gcc with -c  : ok
+looking for program ar         : ok /usr/bin/ar
+looking for program ranlib     : ok /usr/bin/ranlib
+checking if /usr/bin/gcc -c can make objects: ok
+checking if /usr/bin/gcc -c can make libraries: ok
+checking if /usr/bin/gcc -c can make exes: ok
+checking if /usr/bin/gcc -c can link lib to exe: ok
+ * /usr/bin/gcc -MM                     : c.c
+ * /usr/bin/gcc -MM                     : b.c
+ * /usr/bin/gcc -MM                     : a.c
+ * /usr/bin/gcc                         : c.c -> build/c.o
+ * /usr/bin/gcc                         : b.c -> build/b.o
+ * /usr/bin/gcc                         : a.c -> build/a.o
+ * /usr/bin/gcc                         : build/a.o build/b.o build/c.o -> build/exe
 }}}
 
 You may notice a couple interesting things about the output:
 
- 1. `Fbuild` configures the ocaml builder for you and tests that it works.
+ 1. `Fbuild` configures the c static builder for you and tests that it works.
  2. Much of the output is hidden. `Fbuild` does this because the output can get
     overwhelming for large projects.  It can be very easy to miss warnings and
     messages.  `Fbuild` hides this in a log file, normally called
@@ -77,7 +70,7 @@ You may notice a couple interesting things about the output:
     user-customizable directory that can be used to support different build
     targets, such as a `debug` and a `release` build.
  4. `Fbuild` automatically discovers and tracks and sorts the dependencies
-    between each ocaml file.
+    between each c file.
 
 To develop the last idea further, `Fbuild` was designed to work with globbed
 paths if you don't want to bother writing out each filename.  I'll show this by
@@ -88,27 +81,28 @@ Lets combine that with showing off what happens if we tweak what we want built:
 
 {{{
 :::python
-import fbuild.builders.ocaml
+import fbuild.builders.c
 import fbuild.path
 
 def build():
-    ocaml = fbuild.builders.ocaml.Ocaml()
-    lib = ocaml.ocamlc.build_lib('lib', Path.glob('*.ml{,i}'))
-    ocaml.ocamlc.build_exe('exe', [], libs=[lib])
+    static = fbuild.builders.c.guess_static()
+    lib = static.build_lib('lib', fbuild.path.Path.glob('*.c'))
+    static.build_exe('exe', [], libs=[lib])
 }}}
 
 This will produce:
 
 {{{
- * /opt/local/bin/ocamlc.opt : build/c.cmo build/b.cmo build/a.cmo -> build/lib.cma
- * /opt/local/bin/ocamlc.opt : build/lib.cma -> build/exe
+ * /usr/bin/ar           : build/a.o build/b.o build/c.o -> build/liblib.a
+ * /usr/bin/ranlib       : build/liblib.a
+ * /usr/bin/gcc          :  -> build/exe
 }}}
 
 As you can see, most of the work was skipped.  `Fbuild` detected that none of
 the source files changed, so it didn't need to recompile them.  Since the glob
-passed all the source files to `ocaml.ocamlc.build_lib` they were all linked
-together in a library.  Finally, since the arguments changed for
-`ocaml.ocamlc.build_exe`, `build/exe` was recompiled.
+passed all the source files to `static.build_lib` they were all linked together
+in a library.  Finally, since the arguments changed for `static.build_exe`,
+`build/exe` was recompiled.
 
 Now that you've got a taste for `Fbuild`, lets go through some of the reasoning
 behind its design.  As I mentioned previously, every build system I've found is
