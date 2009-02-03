@@ -494,7 +494,12 @@ class pthread_h(c.Header):
     pthread_spinlock_t = c.type_test()
     pthread_t = c.type_test()
     pthread_atfork = c.function_test('int', 'void (*)(void)', 'void (*)(void)', 'void (*)(void)')
-    pthread_attr_destroy = c.function_test('int', 'pthread_attr_t*')
+
+    @property
+    def pthread_attr_destroy(self):
+        if self.pthread_create:
+            return c.function_test('int', 'pthread_attr_t*')
+
     pthread_attr_getdetachstate = c.function_test('int', 'const pthread_attr_t*', 'int*')
     pthread_attr_getguardsize = c.function_test('int', 'const pthread_attr_t*', 'size_t*')
     pthread_attr_getinheritsched = c.function_test('int', 'const pthread_attr_t*', 'int*')
@@ -504,8 +509,17 @@ class pthread_h(c.Header):
     pthread_attr_getstack = c.function_test('int', 'const pthread_attr_t*', 'void**', 'size_t*')
     pthread_attr_getstackaddr = c.function_test('int', 'const pthread_attr_t*', 'void**')
     pthread_attr_getstacksize = c.function_test('int', 'const pthread_attr_t*', 'size_t*')
-    pthread_attr_init = c.function_test('int', 'pthread_attr_t*')
-    pthread_attr_setdetachstate = c.function_test('int', 'pthread_attr_t*', 'int')
+
+    @property
+    def pthread_attr_init(self):
+        if self.pthread_create:
+            return c.function_test('int', 'pthread_attr_t*')
+
+    @property
+    def pthread_attr_setdetachstate(self):
+        if self.pthread_create:
+            return c.function_test('int', 'pthread_attr_t*', 'int')
+
     pthread_attr_setguardsize = c.function_test('int', 'pthread_attr_t*', 'size_t')
     pthread_attr_setinheritsched = c.function_test('int', 'pthread_attr_t*', 'int')
     pthread_attr_setschedparam = c.function_test('int', 'pthread_attr_t*', 'const struct sched_param*')
@@ -536,7 +550,21 @@ class pthread_h(c.Header):
     pthread_condattr_init = c.function_test('int', 'pthread_condattr_t*')
     pthread_condattr_setclock = c.function_test('int', 'pthread_condattr_t*', 'clockid_t')
     pthread_condattr_setpshared = c.function_test('int', 'pthread_condattr_t*', 'int')
-    pthread_create = c.function_test('int', 'pthread_t*', 'const pthread_attr_t*', 'void* (*)(void*)', 'void*')
+    pthread_create = c.function_test('int', 'pthread_t*', 'const pthread_attr_t*', 'void* (*)(void*)', 'void*', test='''
+        #include <pthread.h>
+
+        void* start(void* data) { return NULL; }
+
+        int main(int argc, char** argv) {
+            pthread_t thr;
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+            int res = pthread_create(&thr, &attr, start, NULL);
+            pthread_attr_destroy(&attr);
+            return res;
+        }
+        ''')
     pthread_detach = c.function_test('int', 'pthread_t')
     pthread_equal = c.function_test('int', 'pthread_t', 'pthread_t')
     pthread_exit = c.function_test('void', 'void*')
