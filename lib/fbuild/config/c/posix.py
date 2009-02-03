@@ -85,6 +85,12 @@ class sys_mman_h(sys_mman_h):
     mincore = c.function_test('int', 'const void*', 'size_t', 'char*')
     minherit = c.function_test('void*', 'size_t', 'int')
 
+class sys_types_h(sys_types_h):
+    header = 'sys/types.h'
+
+    u_int32_t = c.type_test()
+    u_int64_t = c.type_test()
+
 class unistd_h(unistd_h):
     mkstemps = c.function_test('int', 'char*', 'int')
     mkdtemp = c.function_test('char*', 'char*')
