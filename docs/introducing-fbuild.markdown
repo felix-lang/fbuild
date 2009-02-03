@@ -306,6 +306,7 @@ the functionality in `autoconf` to provide a convenient lazy configuration
 system:
 
 {{{
+:::python
 import fbuild.builders.c
 import fbuild.config.c.c90
 
@@ -345,5 +346,5 @@ cd examples/c
 Where `fbuild-light` is just a simple wrapper around the `fbuild` executable.
 It's used so that you can run `fbuild` without it being installed.
 
-If you have any questions, feel free to ask on the [felix mailing list](...),
-or reply to the comments.
+If you have any questions, feel free to ask on the [felix mailing
+list](http://groups.google.com/group/felix-language), or reply to the comments.
