@@ -78,7 +78,8 @@ def build():
                 import_module('fbuild.config.c.math_h'),
                 import_module('fbuild.config.c.posix01'),
                 import_module('fbuild.config.c.posix04'),
-                import_module('fbuild.config.c.win32'),):
+                import_module('fbuild.config.c.stdlib'),
+                import_module('fbuild.config.c.win32')):
             p, t = test_module(builder, module)
             passed += p
             total += t

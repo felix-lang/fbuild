@@ -1,10 +1,17 @@
+"""fbuild.config.c.stdlib extends fbuild.config.c.{c90,c99} to expose many
+common extensions to the C standard library."""
+
 import fbuild
 import fbuild.config.c as c
-import fbuild.config.c.c99 as c99
+from fbuild.config.c.c99 import *
 
 # ------------------------------------------------------------------------------
 
-class signal_h(c99.signal_h):
+class errno_h(errno_h):
+    # error_t is supported on some posix libraries.
+    error_t = c.type_test()
+
+class signal_h(signal_h):
     @c.cacheproperty
     def signal(self):
         if not self.header:
