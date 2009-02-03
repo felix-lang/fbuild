@@ -227,6 +227,41 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
+class Library(str):
+    def __new__(cls, *args,
+            flags=[],
+            libpaths=[],
+            libs=[],
+            external_libs=[],
+            **kwargs):
+        self = super().__new__(cls, *args, **kwargs)
+
+        self.flags = flags
+        self.libpaths = libpaths
+        self.libs = libs
+        self.external_libs = external_libs
+
+        return self
+
+    def __repr__(self):
+        return 'Library(%s%s%s%s)' % (
+            super().__repr__(),
+            ', libpaths=%r' % self.libpaths if self.libpaths else '',
+            ', libs=%r' % self.libs if self.libs else '',
+            ', external_libs=%r' % self.libs if self.libs else '')
+
+    def __hash__(self):
+        return super().__hash__()
+
+    def __eq__(self, other):
+        return type(self) == type(other) and \
+            super().__eq__(other) and \
+            self.libpaths == other.libpaths and \
+            self.libs == other.libs and \
+            self.external_libs == other.external_libs
+
+# ------------------------------------------------------------------------------
+
 def _guess_builder(name, functions, *args, platform=None, **kwargs):
     platform = fbuild.builders.platform.platform(platform)
 

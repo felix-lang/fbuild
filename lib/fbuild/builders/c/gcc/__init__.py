@@ -49,12 +49,17 @@ class Gcc:
             debug=None,
             optimize=None,
             **kwargs):
-        cmd = [self.exe]
-        cmd.extend(pre_flags)
+        new_includes = []
+        for include in chain(self.includes, includes, (s.parent for s in srcs)):
+            if include not in new_includes:
+                new_includes.append(include)
+        includes = new_includes
 
-        includes = set(includes)
-        includes.update(self.includes)
-        includes.update(src.parent for src in srcs)
+        new_flags = []
+        for flag in chain(self.flags, flags):
+            if flag not in new_flags:
+                new_flags.append(flag)
+        flags = new_flags
 
         macros = set(macros)
         macros.update(self.macros)
@@ -62,8 +67,58 @@ class Gcc:
         warnings = set(warnings)
         warnings.update(self.warnings)
 
-        libpaths = set(libpaths)
-        libpaths.update(self.libpaths)
+        new_libpaths = []
+        for libpath in chain(self.libpaths, libpaths):
+            if libpath not in new_libpaths:
+                new_libpaths.append(libpath)
+        libpaths = new_libpaths
+
+        new_external_libs = []
+        for lib in chain(self.external_libs, external_libs):
+            if lib not in new_external_libs:
+                new_external_libs.append(lib)
+        external_libs = new_external_libs
+
+        # Since the libs could be derived from fbuild.builders.c.Library, we need
+        # to extract the extra libs and flags that they need.  Linux needs the
+        # libraries listed in a particular order.  Libraries must appear left
+        # of their dependencies in order to optimize linking.
+        new_libs = []
+        def f(lib):
+            if lib in new_libs:
+                return
+
+            if isinstance(lib, fbuild.builders.c.Library):
+                for flag in lib.flags:
+                    if flag not in flags:
+                        flags.append(flag)
+
+                for libpath in lib.libpaths:
+                    if libpath not in libpaths:
+                        libpaths.append(libpath)
+
+                for l in lib.external_libs:
+                    if l not in external_libs:
+                        external_libs.append(l)
+
+                # In order to make linux happy, we'll recursively walk the
+                # dependencies first, then add the library.
+                for l in lib.libs:
+                    f(l)
+
+            new_libs.append(lib)
+
+        for lib in chain(self.libs, libs):
+            f(lib)
+
+        # Finally, we need to reverse the list so it's in the proper order.
+        new_libs.reverse()
+        libs = new_libs
+
+        # ----------------------------------------------------------------------
+
+        cmd = [self.exe]
+        cmd.extend(pre_flags)
 
         if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
@@ -79,22 +134,16 @@ class Gcc:
 
         if dst is not None:
             cmd.extend(('-o', dst))
-            msg2 = '%s -> %s' % (' '.join(srcs), dst)
+            msg2 = '%s -> %s' % (' '.join(chain(srcs, libs)), dst)
         else:
             msg2 = ' '.join(srcs)
 
-        cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(srcs)
 
         # Libraries must come last on linux in order to find symbols.
-        cmd.extend('-l' + l for l in chain(self.external_libs, external_libs))
-
-        for lib in chain(self.libs, libs):
-            if Path(lib).exists():
-                cmd.append(lib)
-            elif lib not in new_libs:
-                cmd.append('-l' + lib)
+        cmd.extend('-l' + l for l in external_libs)
+        cmd.extend(libs)
 
         return execute(cmd, str(self), msg2, **kwargs)
 
@@ -351,7 +400,12 @@ class Builder(fbuild.builders.c.Builder):
     def uncached_link_lib(self, *args, **kwargs):
         """Link compiled c files into a library without caching the results.
         This is needed when linking temporary files."""
-        return self.lib_linker(*args, **kwargs)
+        lib = self.lib_linker(*args, **kwargs)
+        return fbuild.builders.c.Library(lib,
+            flags=kwargs.get('flags', []),
+            libpaths=kwargs.get('libpaths', []),
+            libs=kwargs.get('libs', []),
+            external_libs=kwargs.get('external_libs', []))
 
     def uncached_link_exe(self, *args, **kwargs):
         """Link compiled c files into am executable without caching the
