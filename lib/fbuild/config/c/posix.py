@@ -25,6 +25,23 @@ class pthread_h(pthread_h):
         elif 'solaris' in self.platform:
             self.external_libs.append('rt')
 
+class stdlib_h(stdlib_h):
+    mkdtemp = c.function_test('char*', 'char*')
+    strtof = c.function_test('double', 'const char*', 'char**', test='''
+        #include <stdlib.h>
+        int main() {
+            char* s1 = "15";
+            char* s2 = "abc";
+            char* endp;
+            quad_t d = strtoq(s1, &endp);
+            if (s1 != endp && *endp == '\0' && d == 15.0) {
+                d = strtoq(s2, &endp);
+                return s1 == endp || *endp != '\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
+
 class sys_mman_h(sys_mman_h):
     header = 'sys/mman.h'
 
@@ -67,3 +84,7 @@ class sys_mman_h(sys_mman_h):
     madvise = c.function_test('void*', 'size_t', 'int')
     mincore = c.function_test('int', 'const void*', 'size_t', 'char*')
     minherit = c.function_test('void*', 'size_t', 'int')
+
+class unistd_h(unistd_h):
+    mkstemps = c.function_test('int', 'char*', 'int')
+    mkdtemp = c.function_test('char*', 'char*')
