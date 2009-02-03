@@ -11,6 +11,17 @@ class errno_h(errno_h):
     # error_t is supported on some posix libraries.
     error_t = c.type_test()
 
+class math_h(math_h):
+    finite = c.function_test('int', 'double')
+    finitef = c.function_test('int', 'float')
+    finitel = c.function_test('int', 'long double')
+    isinf = c.function_test('int', 'double')
+    isinff = c.function_test('int', 'float')
+    isinfl = c.function_test('int', 'long double')
+    isnan = c.function_test('int', 'double')
+    isnanf = c.function_test('int', 'float')
+    isnanl = c.function_test('int', 'long double')
+
 class signal_h(signal_h):
     @c.cacheproperty
     def signal(self):
