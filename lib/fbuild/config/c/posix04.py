@@ -593,8 +593,6 @@ class pthread_h(c.Header):
     pthread_spin_unlock = c.function_test('int', 'pthread_spinlock_t*')
     pthread_testcancel = c.function_test('void', 'void')
 
-
-
 class pwd_h(c.Header):
     pass
 
