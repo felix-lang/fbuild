@@ -1,5 +1,6 @@
 import textwrap
 
+import fbuild.builders.platform
 import fbuild.config
 import fbuild.db
 
@@ -183,7 +184,12 @@ class AbstractFieldDescriptor:
         try:
             stdout, stderr = instance.builder.tempfile_run(formatted_test,
                 input=self.stdin,
-                timeout=self.timeout)
+                timeout=self.timeout,
+                lkwargs={
+                    'flags': instance.flags,
+                    'libpaths': instance.libpaths,
+                    'libs': instance.libs,
+                    'external_libs': instance.external_libs})
         except fbuild.ExecutionError:
             fbuild.logger.failed()
         else:
@@ -479,8 +485,21 @@ class variable_test(AbstractFieldDescriptor):
 # ------------------------------------------------------------------------------
 
 class Test(fbuild.config.Test):
-    def __init__(self, builder):
+    def __init__(self, builder, *,
+            platform=None,
+            flags=[],
+            libpaths=[],
+            libs=[],
+            external_libs=[]):
+        if platform is None:
+            platform = fbuild.builders.platform.platform()
+
         self.builder = builder
+        self.platform = platform
+        self.flags = list(flags)
+        self.libpaths = list(libpaths)
+        self.libs = list(libs)
+        self.external_libs = list(external_libs)
 
     def functions(self):
         for name, field in self.fields():
