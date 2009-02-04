@@ -117,12 +117,6 @@ class Database:
         values if any of the optionally specified "srcs" are also modified.
         Finally, if any of the filenames in "dsts" do not exist, re-run the
         function no matter what."""
-        return self.call_with_dependencies(function, args, kwargs)
-
-    def call_with_dependencies(self, function, args, kwargs, *,
-            srcs=(),
-            dsts=(),
-            return_type=None):
         if not fbuild.inspect.ismethod(function):
             function_name = function.__module__ + '.' + function.__name__
         else:
@@ -141,8 +135,8 @@ class Database:
 
         # Check if any of the files changed.
         return_type = None
-        srcs = list(srcs)
-        dsts = list(dsts)
+        srcs = []
+        dsts = []
         for akey, avalue in function.__annotations__.items():
             if akey == 'return':
                 return_type = avalue
@@ -580,9 +574,6 @@ class caches:
     def __call__(self, *args, **kwargs):
         return database.call(self.function, *args, **kwargs)
 
-    def call_with_dependencies(self, *args, **kwargs):
-        return database.call_with_dependencies(self.function, *args, **kwargs)
-
 class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results.
 
@@ -612,9 +603,6 @@ class cachemethod_wrapper:
 
     def __call__(self, *args, **kwargs):
         return database.call(self.method, *args, **kwargs)
-
-    def call_with_dependencies(self, *args, **kwargs):
-        return database.call_with_dependencies(self.method, *args, **kwargs)
 
 class cacheproperty:
     """L{cacheproperty} acts like a normal I{property} but will memoize the
