@@ -110,13 +110,13 @@ class Database:
                     self._external_dsts = pickle.load(f)
 
     def call(self, function, *args, **kwargs):
-        """Call the function and return the result. If the function has been
-        previously called with the same arguments, return the cached results.
-        If we detect that the function changed, throw away all the cached
-        values for that function. Similarly, throw away all of the cached
-        values if any of the optionally specified "srcs" are also modified.
-        Finally, if any of the filenames in "dsts" do not exist, re-run the
-        function no matter what."""
+        """Call the function and return the result, src dependencies, and dst
+        dependencies. If the function has been previously called with the same
+        arguments, return the cached results.  If we detect that the function
+        changed, throw away all the cached values for that function. Similarly,
+        throw away all of the cached values if any of the optionally specified
+        "srcs" are also modified.  Finally, if any of the filenames in "dsts"
+        do not exist, re-run the function no matter what."""
         if not fbuild.inspect.ismethod(function):
             function_name = function.__module__ + '.' + function.__name__
         else:
@@ -135,20 +135,18 @@ class Database:
 
         # Check if any of the files changed.
         return_type = None
-        srcs = []
-        dsts = []
+        srcs = set()
+        dsts = set()
         for akey, avalue in function.__annotations__.items():
             if akey == 'return':
                 return_type = avalue
             elif issubclass(avalue, SRC):
-                srcs.extend(avalue.convert(bound[akey]))
+                srcs.update(avalue.convert(bound[akey]))
             elif issubclass(avalue, DST):
-                dsts.extend(avalue.convert(bound[akey]))
+                dsts.update(avalue.convert(bound[akey]))
 
         return self._cache(function_name, function, args, kwargs, bound,
-            srcs=srcs,
-            dsts=dsts,
-            return_type=return_type)
+            srcs, dsts, return_type)
 
     def clear_function(self, function):
         """Remove the function name from the database."""
@@ -164,10 +162,8 @@ class Database:
 
     # --------------------------------------------------------------------------
 
-    def _cache(self, function_name, function, args, kwargs, bound, *,
-            srcs=(),
-            dsts=(),
-            return_type=None):
+    def _cache(self, function_name, function, args, kwargs, bound, srcs, dsts,
+            return_type):
         # Make sure none of the arguments are a generator.
         for arg in itertools.chain(args, kwargs.values()):
             assert not fbuild.inspect.isgenerator(arg), \
@@ -206,7 +202,10 @@ class Database:
                     break
             else:
                 # The call was not dirty, so return the cached value.
-                return old_result
+                all_srcs = srcs.union(external_srcs)
+                all_dsts = dsts.union(external_dsts)
+                all_dsts.update(return_dsts)
+                return old_result, all_srcs, all_dsts
 
         # The call was dirty, so recompute it.
         result = function(*args, **kwargs)
@@ -231,7 +230,15 @@ class Database:
                 external_dsts,
                 external_digests)
 
-        return result
+        if return_type is not None and issubclass(return_type, DST):
+            return_dsts = return_type.convert(result)
+        else:
+            return_dsts = ()
+
+        all_srcs = srcs.union(external_srcs)
+        all_dsts = dsts.union(external_dsts)
+        all_dsts.update(return_dsts)
+        return result, all_srcs, all_dsts
 
     # Create an in-process cache of the function digests, since they shouldn't
     # change while we're running.
@@ -545,7 +552,8 @@ class PersistentMeta(abc.ABCMeta):
         return super().__call__(*args, **kwargs)
 
     def __call__(cls, *args, **kwargs):
-        return database.call(cls.__call_super__, *args, **kwargs)
+        result, srcs, objs = database.call(cls.__call_super__, *args, **kwargs)
+        return result
 
 class PersistentObject(metaclass=PersistentMeta):
     """An abstract baseclass that will cache instances in the database."""
@@ -572,6 +580,10 @@ class caches:
         self.function = function
 
     def __call__(self, *args, **kwargs):
+        result, srcs, dsts = self.call(*args, **kwargs)
+        return result
+
+    def call(self, *args, **kwargs):
         return database.call(self.function, *args, **kwargs)
 
 class cachemethod:
@@ -602,6 +614,10 @@ class cachemethod_wrapper:
         self.method = method
 
     def __call__(self, *args, **kwargs):
+        result, srcs, dsts = self.call(*args, **kwargs)
+        return result
+
+    def call(self, *args, **kwargs):
         return database.call(self.method, *args, **kwargs)
 
 class cacheproperty:
@@ -627,6 +643,10 @@ class cacheproperty:
     def __get__(self, instance, owner):
         if instance is None:
             return self
+        result, srcs, dsts = self.call(instance)
+        return result
+
+    def call(self, instance):
         return database.call(types.MethodType(self.method, instance))
 
 # ------------------------------------------------------------------------------
