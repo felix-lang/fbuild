@@ -85,11 +85,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         pass
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
+    def compile(self, src:fbuild.db.SRC, dst=None, **kwargs) -> fbuild.db.DST:
         """Compile a c file and cache the results."""
         fbuild.db.add_external_dependencies_to_call(
             srcs=self.scan(src, **kwargs))
-        return self.uncached_compile(src, *args, **kwargs)
+        return self.uncached_compile(src, dst, **kwargs)
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
