@@ -22,7 +22,7 @@ def tempdir(*args, **kwargs):
 # ------------------------------------------------------------------------------
 
 @contextlib.contextmanager
-def tempfile(src, suffix='', name='temp'):
+def tempfile(src='', suffix='', name='temp'):
     '''
     Create a temporary file in a unique directory and yield the name of the
     file. When we regain context, remove the directory.
