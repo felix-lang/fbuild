@@ -39,8 +39,8 @@ class windows_h(c.Header):
 
         with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
-                obj = shared.compile(lib_src, quieter=1)
-                lib = shared.link_lib(lib_src.parent / 'temp', [obj],
+                obj = shared.uncached_compile(lib_src, quieter=1)
+                lib = shared.uncached_link_lib(lib_src.parent / 'temp', [obj],
                     quieter=1)
             except fbuild.ExecutionError:
                 pass

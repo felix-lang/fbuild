@@ -757,8 +757,8 @@ class stdlib_h(c.Header):
                 ''') as src:
             dst = src.parent / 'temp'
             try:
-                obj = self.builder.compile(src, quieter=1)
-                exe = self.builder.link_exe(dst, [obj], quieter=1)
+                obj = self.builder.uncached_compile(src, quieter=1)
+                exe = self.builder.uncached_link_exe(dst, [obj], quieter=1)
             except fbuild.ExecutionError:
                 pass
             else:
