@@ -100,16 +100,21 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # know about these new files and so it can't tell when a function
         # really needs to be rerun.  So, we'll just not cache this function.
         # We need to add extra dependencies to our call.
-        deps = []
+        objs = []
+        src_deps = []
+        dst_deps = []
+        for o, s, d in fbuild.scheduler.map(
+                partial(self.compile.call, **kwargs),
+                srcs):
+            objs.append(o)
+            src_deps.extend(s)
+            dst_deps.extend(d)
 
-        for d in fbuild.scheduler.map(partial(self.scan, **kwargs), srcs):
-            deps.extend(d)
+        fbuild.db.add_external_dependencies_to_call(
+            srcs=src_deps,
+            dsts=dst_deps)
 
-        fbuild.db.add_external_dependencies_to_call(srcs=deps)
-
-        return fbuild.scheduler.map(
-            partial(self.compile, **kwargs),
-            srcs)
+        return objs
 
     @fbuild.db.cachemethod
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
