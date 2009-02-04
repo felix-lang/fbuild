@@ -392,6 +392,27 @@ class Builder(fbuild.builders.c.Builder):
         """Scan a c file for dependencies and cache the results."""
         return self.scanner(src, *args, **kwargs)
 
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.SRC, dst=None, *,
+            flags=[],
+            **kwargs) -> fbuild.db.DST:
+        """Compile a c file and cache the results."""
+        # We can skip scanning the file and generate the dependencies while we
+        # compile the file.
+        with tempfile() as dep:
+            obj = self.uncached_compile(src, dst,
+                flags=list(chain(('-MMD', '-MF', dep), flags)),
+                **kwargs)
+
+            with open(dep, 'rb') as f:
+                # Parse the output and return the module dependencies.
+                stdout = f.read().decode().replace('\\\n', '')
+
+        deps = [Path(p) for p in stdout.split(':')[1].split()]
+        fbuild.db.add_external_dependencies_to_call(srcs=deps)
+
+        return obj
+
     def uncached_compile(self, *args, **kwargs):
         """Compile a c file without caching the results.  This is needed when
         compiling temporary files."""
