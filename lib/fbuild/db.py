@@ -657,27 +657,27 @@ def add_external_dependencies_to_call(*, srcs=(), dsts=()):
     error out if it is called from an uncached function."""
     # Hack in additional dependencies
     i = 2
-    while True:
-        frame = fbuild.inspect.currentframe(i)
-        try:
-            if frame.f_code == database._cache.__code__:
-                function_name = frame.f_locals['function_name']
-                call_id = frame.f_locals['call_id']
-                external_digests = frame.f_locals['external_digests']
-                external_srcs = frame.f_locals['external_srcs']
-                external_dsts = frame.f_locals['external_dsts']
+    try:
+        while True:
+            frame = fbuild.inspect.currentframe(i)
+            try:
+                if frame.f_code == database._cache.__code__:
+                    function_name = frame.f_locals['function_name']
+                    call_id = frame.f_locals['call_id']
+                    external_digests = frame.f_locals['external_digests']
+                    external_srcs = frame.f_locals['external_srcs']
+                    external_dsts = frame.f_locals['external_dsts']
 
-                for src in srcs:
-                    external_srcs.add(src)
-                    dirty, digest = database._check_call_file(
-                        src, function_name, call_id)
-                    if dirty:
-                        external_digests.append((src, digest))
+                    for src in srcs:
+                        external_srcs.add(src)
+                        dirty, digest = database._check_call_file(
+                            src, function_name, call_id)
+                        if dirty:
+                            external_digests.append((src, digest))
 
-                external_dsts.update(dsts)
-
-                return
-            else:
+                    external_dsts.update(dsts)
                 i += 1
-        finally:
-            del frame
+            finally:
+                del frame
+    except ValueError:
+        pass
