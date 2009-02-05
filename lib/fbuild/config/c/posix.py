@@ -42,6 +42,39 @@ class stdlib_h(stdlib_h):
         }
         ''')
 
+class string_h(string_h):
+    @c.cacheproperty
+    def strerror_r(self):
+        if not self.header:
+            return None
+
+        # Some implementations return a char* of the message.
+        fbuild.logger.check("checking strerror_r in 'string.h'")
+
+        if self.builder.try_run('''
+                #include <string.h>
+                int main() {
+                    char b[50];
+                    int r = strerror_r(0, b, 50);
+                    return r == 0 ? 0 : 1;
+                }
+                '''):
+            fbuild.logger.passed()
+            return c.Function('int', 'int', 'char*', 'size_t')
+
+        if self.builder.try_run('''
+                #include <string.h>
+                int main() {
+                    char b[50];
+                    char* r = strerror_r(0, b, 50);
+                    return 0;
+                }
+                '''):
+            fbuild.logger.passed()
+            return c.Function('char*', 'int', 'char*', 'size_t')
+
+        fbuild.logger.failed()
+
 class sys_mman_h(sys_mman_h):
     header = 'sys/mman.h'
 

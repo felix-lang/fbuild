@@ -683,8 +683,14 @@ class stdlib_h(c99.stdlib_h):
 
 class string_h(c99.string_h):
     strdup = c.function_test('char*', 'const char*')
-    strerror_r = c.function_test('int', 'int', 'char*', 'size_t',
-        default_args=(0, 0, 0))
+    strerror_r = c.function_test('int', 'int', 'char*', 'size_t', test='''
+        #include <string.h>
+        int main() {
+            char b[50];
+            int r = strerror_r(0, b, 50);
+            return r == 0 ? 0 : 1;
+        }
+        ''')
 
 class strings_h(c.Header):
     pass
