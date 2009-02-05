@@ -128,8 +128,8 @@ def build():
     stdint_h = c99.stdint_h(target.c.static)
 
     stdint_types = {'char': types.structural_alias(types.char)}
-    for field in stdint_h.__meta__.fields:
-        t = getattr(stdint_h, field.__name__)
+    for name, field in stdint_h.fields():
+        t = getattr(stdint_h, name)
         if isinstance(t, c.IntType):
             stdint_types[field.method.name] = types.structural_alias(t)
 
