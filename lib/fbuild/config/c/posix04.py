@@ -897,8 +897,20 @@ class sys_statvfs_h(c.Header):
 class sys_time_h(c.Header):
     header = 'sys/time.h'
 
-    gettimeofday = c.function_test('int', 'struct timeval*', 'void*')
-    settimeofday = c.function_test('int', 'struct timeval*', 'void*')
+    gettimeofday = c.function_test('int', 'struct timeval*', 'void*', test='''
+        #include <sys/time.h>
+        int main() {
+            struct timeval tp;
+            return gettimeofday(&tp, 0) == 0 ? 0 : 1;
+        }
+        ''')
+    settimeofday = c.function_test('int', 'struct timeval*', 'void*', test='''
+        #include <sys/time.h>
+        /* Don't actually call settimeofday because it modifies the global
+         * time. */
+        void foo() { settimeofday(0, 0); }
+        int main() { return 0; }
+        ''')
 
 class sys_timeb_h(c.Header):
     header = 'sys/timeb.h'
