@@ -75,6 +75,7 @@ def build():
                 import_module('fbuild.config.c.ieeefp_h'),
                 import_module('fbuild.config.c.linux'),
                 import_module('fbuild.config.c.malloc'),
+                import_module('fbuild.config.c.posix'),
                 import_module('fbuild.config.c.posix01'),
                 import_module('fbuild.config.c.posix04'),
                 import_module('fbuild.config.c.stdlib'),

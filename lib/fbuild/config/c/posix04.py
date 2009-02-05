@@ -205,7 +205,13 @@ class dlfcn_h(c.Header):
             except fbuild.ExecutionError:
                 pass
             else:
-                if self.builder.try_run(exe_code % lib, quieter=1):
+                if self.builder.try_run(exe_code % lib,
+                        lkwargs={
+                            'flags': self.flags,
+                            'libpaths': self.libpaths,
+                            'libs': self.libs,
+                            'external_libs': self.external_libs},
+                        quieter=1):
                     fbuild.logger.passed()
                     return c.Function('int', 'void*')
 
