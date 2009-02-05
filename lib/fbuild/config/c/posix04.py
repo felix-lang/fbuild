@@ -163,8 +163,18 @@ class dlfcn_h(c.Header):
     RTLD_GLOBAL = c.macro_test()
     RTLD_LOCAL = c.macro_test()
 
-    @c.cacheproperty
+    @property
     def dlclose(self):
+        if self.dlopen:
+            return c.Function('int', 'void*')
+
+    @property
+    def dlerror(self):
+        if self.dlclose:
+            return c.Function('char*', 'void')
+
+    @c.cacheproperty
+    def dlopen(self):
         if not self.header:
             return
 
@@ -195,7 +205,7 @@ class dlfcn_h(c.Header):
             }
         '''
 
-        fbuild.logger.check("checking dlclose in 'dlfcn.h'")
+        fbuild.logger.check("checking dlopen in 'dlfcn.h'")
 
         with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
@@ -213,20 +223,10 @@ class dlfcn_h(c.Header):
                             'external_libs': self.external_libs},
                         quieter=1):
                     fbuild.logger.passed()
-                    return c.Function('int', 'void*')
+                    return c.Function('void*', 'const char*', 'int')
 
             fbuild.logger.failed()
             return None
-
-    @property
-    def dlerror(self):
-        if self.dlclose:
-            return c.Function('char*', 'void')
-
-    @property
-    def dlopen(self):
-        if self.dlclose:
-            return c.Function('void*', 'const char*', 'int')
 
     @property
     def dlsym(self):
