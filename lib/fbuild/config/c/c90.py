@@ -394,7 +394,7 @@ class stdio_h(c.Header):
     stdin = c.variable_test()
     stdout = c.variable_test()
     TMP_MAX = c.macro_test()
-    remove = c.function_test('int', 'const char*')
+    remove = c.function_test('int', 'const char*', default_args=('""',))
     rename = c.function_test('int', 'const char*', 'const char*')
     tmpfile = c.function_test('FILE*', 'void')
     tmpnam = c.function_test('char*', 'char*', default_args=('NULL',))
@@ -404,7 +404,12 @@ class stdio_h(c.Header):
         if self.fopen:
             return c.Function('int', 'FILE*')
 
-    fflush = c.function_test('int', 'FILE*')
+    fflush = c.function_test('int', 'FILE*', test='''
+        #include <stdio.h>
+        int main() {
+            return fflush(stdout) == 0 ? 0 : 1;
+        }
+        ''')
 
     @c.cacheproperty
     def fopen(self):
@@ -427,6 +432,8 @@ class stdio_h(c.Header):
                     errno = 0;
                     rewind(f);
                     if (errno) return 1;
+                    if (ferror(f) != 0) return 1;
+                    if (feof(f) != 0) return 1;
                     if (fclose(f) != 0) return 1;
                     return 0;
                 }
@@ -440,7 +447,13 @@ class stdio_h(c.Header):
         if self.fopen:
             return c.Function('FILE*', 'const char*', 'const char*', 'FILE*')
 
-    setbuf = c.function_test('void', 'FILE*', 'char*')
+    setbuf = c.function_test('void', 'FILE*', 'char*', test='''
+        #include <stdio.h>
+        int main() {
+            setbuf(stdout, "");
+            return 0;
+        }
+        ''')
     setvbuf = c.function_test('int', 'FILE*', 'char*', 'int', 'size_t')
     fprintf = c.function_test('int', 'FILE*', 'const char*', test='''
         #include <stdio.h>
@@ -643,8 +656,17 @@ class stdio_h(c.Header):
             return 0;
         }
         ''')
-    feof = c.function_test('int', 'FILE*')
-    ferror = c.function_test('int', 'FILE*')
+
+    @property
+    def feof(self):
+        if self.fopen:
+            return c.function_test('int', 'FILE*')
+
+    @property
+    def ferror(self):
+        if self.fopen:
+            return c.Function('int', 'FILE*')
+
     perror = c.function_test('void', 'const char*')
 
 # -----------------------------------------------------------------------------
