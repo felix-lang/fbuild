@@ -575,14 +575,44 @@ class pthread_h(c.Header):
     pthread_join = c.function_test('int', 'pthread_t', 'void**')
     pthread_key_create = c.function_test('int', 'pthread_key_t*', 'void (*)(void*)')
     pthread_key_delete = c.function_test('int', 'pthread_key_t')
-    pthread_mutex_destroy = c.function_test('int', 'pthread_mutex_t*')
+
+    @property
+    def pthread_mutex_destroy(self):
+        if self.pthread_mutex_lock:
+            return c.function_test('int', 'pthread_mutex_t*')
+
     pthread_mutex_getprioceiling = c.function_test('int', 'const pthread_mutex_t*', 'int*')
-    pthread_mutex_init = c.function_test('int', 'pthread_mutex_t*', 'const pthread_mutexattr_t*')
-    pthread_mutex_lock = c.function_test('int', 'pthread_mutex_t*')
+
+    @property
+    def pthread_mutex_init(self):
+        if self.pthread_mutex_lock:
+            return c.function_test('int', 'pthread_mutex_t*', 'const pthread_mutexattr_t*')
+
+    pthread_mutex_lock = c.function_test('int', 'pthread_mutex_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+            if (pthread_mutex_init(&mutex, 0) != 0) return 1;
+            if (pthread_mutex_lock(&mutex) != 0) return 1;
+            if (pthread_mutex_unlock(&mutex) != 0) return 1;
+            if (pthread_mutex_trylock(&mutex) != 0) return 1;
+            if (pthread_mutex_unlock(&mutex) != 0) return 1;
+            if (pthread_mutex_destroy(&mutex) != 0) return 1;
+            return 0;
+        }
+        ''')
+
     pthread_mutex_setprioceiling = c.function_test('int', 'pthread_mutex_t*', 'int', 'int*')
     pthread_mutex_timedlock = c.function_test('int', 'pthread_mutex_t*', 'const struct timespec*')
-    pthread_mutex_trylock = c.function_test('int', 'pthread_mutex_t*')
-    pthread_mutex_unlock = c.function_test('int', 'pthread_mutex_t*')
+
+    def pthread_mutex_trylock(self):
+        if self.pthread_mutex_lock:
+            return c.function_test('int', 'pthread_mutex_t*')
+
+    def pthread_mutex_unlock(self):
+        if self.pthread_mutex_lock:
+            c.function_test('int', 'pthread_mutex_t*')
+
     pthread_mutexattr_destroy = c.function_test('int', 'pthread_mutexattr_t*')
     pthread_mutexattr_getprioceiling = c.function_test('int', 'const pthread_mutexattr_t*', 'int*')
     pthread_mutexattr_getprotocol = c.function_test('int', 'const pthread_mutexattr_t*', 'int*')
