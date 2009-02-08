@@ -9,18 +9,19 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 class Ar(fbuild.db.PersistentObject):
-    def __init__(self, ar=None, *,
+    def __init__(self, exe='ar', *,
             platform=None,
             prefix=None,
             suffix=None,
             flags=['-rc'],
             libpaths=[],
             libs=[],
-            ranlib=None,
+            external_libs=[],
+            ranlib='ranlib',
             ranlib_flags=[]):
-        self.ar = fbuild.builders.find_program([ar or 'ar'])
+        self.exe = fbuild.builders.find_program([exe])
         try:
-            self.ranlib = fbuild.builders.find_program([ranlib or 'ranlib'])
+            self.ranlib = fbuild.builders.find_program([ranlib])
         except fbuild.ConfigFailed:
             self.ranlib = None
 
@@ -28,10 +29,11 @@ class Ar(fbuild.db.PersistentObject):
             fbuild.builders.platform.static_lib_prefix(platform)
         self.suffix = suffix or \
             fbuild.builders.platform.static_lib_suffix(platform)
-        self.libpaths = tuple(libpaths)
-        self.libs = tuple(libs)
-        self.flags = tuple(flags)
-        self.ranlib_flags = tuple(ranlib_flags)
+        self.libpaths = libpaths
+        self.libs = libs
+        self.external_libs = external_libs
+        self.flags = flags
+        self.ranlib_flags = ranlib_flags
 
     @fbuild.db.cachemethod
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
@@ -59,16 +61,17 @@ class Ar(fbuild.db.PersistentObject):
 
         srcs = list(Path.globall(srcs))
 
-        cmd = [self.ar]
+        cmd = [self.exe]
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.append(dst)
         cmd.extend(srcs)
         #cmd.extend(libs)
+        #cmd.extend(self.external_libs)
         #cmd.extend(external_libs)
 
         execute(cmd,
-            msg1=self.ar,
+            msg1=self.exe,
             msg2='%s -> %s' % (' '.join(srcs), dst),
             color='cyan',
             **kwargs)
@@ -88,13 +91,4 @@ class Ar(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(chain((self.ar,), self.flags))
-
-    def __repr__(self):
-        return '%s(%r, ranlib=%r, flags=%r, prefix=%r, suffix=%r)' % (
-            self.__class__.__name__,
-            self.ar,
-            self.ranlib,
-            self.flags,
-            self.prefix,
-            self.suffix)
+        return ' '.join(chain((self.exe,), self.flags))
