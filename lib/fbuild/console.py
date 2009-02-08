@@ -7,28 +7,80 @@ import fbuild
 
 # ------------------------------------------------------------------------------
 
-colorcodes = {
-    'black'  : 30,
-    'red'    : 31,
-    'green'  : 32,
-    'yellow' : 33,
-    'blue'   : 34,
-    'magenta': 35,
-    'cyan'   : 36,
-    'white'  : 37,
-}
+if sys.platform == 'win32':
+    # Constants from the Windows API
+    _STD_OUTPUT_HANDLE = -11
+    _colorcodes = {
+        'black'        : 0x0,
+        'blue'         : 0x1,
+        'green'        : 0x2,
+        'cyan'         : 0x3,
+        'red'          : 0x4,
+        'magenta'      : 0x5,
+        'yellow'       : 0x6,
+        'white'        : 0x7,
+        'gray'         : 0x8,
+        'light blue'   : 0x9,
+        'light green'  : 0xA,
+        'light aqua'   : 0xB,
+        'light red'    : 0xC,
+        'light purple' : 0xD,
+        'light yellow' : 0xE,
+        'bright white' : 0xF,
+    }
 
-def color_str(s, color):
-    if color is not None and sys.platform != 'win32':
-        try:
-            color = colorcodes[color]
-        except KeyError:
-            # we couldn't find the color so just ignore
-            pass
+    def get_csbi_attributes(handle):
+        # Based on IPython's winconsole.py, written by Alexander Belchenko
+        import ctypes
+        import struct
+        csbi = ctypes.create_string_buffer(22)
+        res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(handle, csbi)
+        assert res
+
+        (bufx, bufy, curx, cury, wattr, left, top, right, bottom, maxxy,
+            maxy) = struct.unpack('hhhhHhhhhhh', csbi.raw)
+        return wattr
+
+    def _write_colored_str(s, color):
+        if color is None:
+            sys.stdout.write(s)
         else:
-            return '\x1b[01;%.2dm%s\x1b[0m' % (color, s)
+            try:
+                color = _colorcodes[color]
+            except KeyError:
+                # we couldn't find the color so just ignore
+                sys.stdout.write(s)
+            else:
+                import ctypes
+                handle = ctypes.windll.kernel32.GetStdHandle(_STD_OUTPUT_HANDLE)
+                reset = get_csbi_attributes(handle)
+                ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
+                sys.stdout.write(s)
+                sys.stdout.flush()
+                ctypes.windll.kernel32.SetConsoleTextAttribute(handle, reset)
+else:
+    _colorcodes = {
+        'black'  : 30,
+        'red'    : 31,
+        'green'  : 32,
+        'yellow' : 33,
+        'blue'   : 34,
+        'magenta': 35,
+        'cyan'   : 36,
+        'white'  : 37,
+    }
 
-    return s
+    def _write_colored_str(s, color):
+        if color is not None:
+            try:
+                color = _colorcodes[color]
+            except KeyError:
+                # we couldn't find the color so just ignore
+                pass
+            else:
+                s = '\x1b[01;%.2dm%s\x1b[0m' % (color, s)
+
+        sys.stdout.write(s)
 
 # ------------------------------------------------------------------------------
 
@@ -80,9 +132,9 @@ class Log:
             self.file.write(msg)
 
         if verbose <= self.verbose:
-            if not self.nocolor:
-                msg = color_str(msg, color)
-            sys.stdout.write(msg)
+            if self.nocolor:
+                color = None
+            _write_colored_str(msg, color)
         self.flush()
 
     def flush(self):
