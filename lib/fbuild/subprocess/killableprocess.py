@@ -116,7 +116,7 @@ class Popen(subprocess.Popen):
                            p2cread, p2cwrite,
                            c2pread, c2pwrite,
                            errread, errwrite):
-            if not isinstance(args, types.StringTypes):
+            if not isinstance(args, str):
                 args = subprocess.list2cmdline(args)
 
             if startupinfo is None:
