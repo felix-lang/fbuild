@@ -23,7 +23,7 @@ class MissingProgram(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def find_program(names, paths=None):
+def find_program(names, paths=None, *, quieter=0):
     """L{find_program} is a test that searches the paths for one of the
     programs in I{name}.  If one is found, it is returned.  If not, the next
     name in the list is searched for."""
@@ -42,20 +42,20 @@ def find_program(names, paths=None):
         names = new_names
 
     for name in names:
-        fbuild.logger.check('looking for program ' + name)
+        fbuild.logger.check('looking for program ' + name, verbose=quieter)
 
         filename = fbuild.path.Path(name)
         if filename.exists():
-            fbuild.logger.passed('ok %s' % filename)
+            fbuild.logger.passed('ok %s' % filename, verbose=quieter)
             return filename
         else:
             for path in paths:
                 filename = fbuild.path.Path(path, name)
                 if filename.exists():
-                    fbuild.logger.passed('ok %s' % filename)
+                    fbuild.logger.passed('ok %s' % filename, verbose=quieter)
                     return filename
 
-        fbuild.logger.failed()
+        fbuild.logger.failed(verbose=quieter)
 
     raise MissingProgram(names)
 

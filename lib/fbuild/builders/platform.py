@@ -53,7 +53,7 @@ def platform(arch=None):
     if arch is None:
         # First lets see if uname exists
         try:
-            uname = fbuild.builders.find_program(['uname'])
+            uname = fbuild.builders.find_program(['uname'], quieter=1)
         except fbuild.builders.MissingProgram:
             # Maybe we're on windows. Let's just use what python thinks is the
             # platform.
