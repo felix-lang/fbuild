@@ -1,6 +1,7 @@
 import os
 
 import fbuild
+import fbuild.builders
 import fbuild.db
 
 # ------------------------------------------------------------------------------
@@ -50,12 +51,22 @@ def platform(arch=None):
     be determined, return I{None}."""
     fbuild.logger.check('determining platform')
     if arch is None:
+        # First lets see if uname exists
         try:
-            stdout, stderr = fbuild.execute(('uname', '-s'), quieter=1)
-        except fbuild.ExecutionError:
+            uname = fbuild.builders.find_program(['uname'])
+        except fbuild.builders.MissingProgram:
+            # Maybe we're on windows. Let's just use what python thinks is the
+            # platform.
             arch = os.name
         else:
-            arch = stdout.decode('utf-8').strip().lower()
+            # We've got uname, so let's see what platform it thinks we're on.
+            try:
+                stdout, stderr = fbuild.execute((uname, '-s'), quieter=1)
+            except fbuild.ExecutionError:
+                # Ack, that failed too. Just fall back to python.
+                arch = os.name
+            else:
+                arch = stdout.decode('utf-8').strip().lower()
 
     try:
         architecture = archmap[arch]
