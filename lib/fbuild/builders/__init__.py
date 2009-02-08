@@ -1,5 +1,6 @@
 import abc
 import os
+import sys
 
 import fbuild
 import fbuild.db
@@ -29,6 +30,16 @@ def find_program(names, paths=None):
 
     if paths is None:
         paths = os.environ['PATH'].split(os.pathsep)
+
+    # If we're running on windows, we need to append '.exe' to the filenames
+    # that we're searching for.
+    if sys.platform == 'win32':
+        new_names = []
+        for name in names:
+            new_names.append(name)
+            if not name.endswith('.exe'):
+                new_names.append(name + '.exe')
+        names = new_names
 
     for name in names:
         fbuild.logger.check('looking for program ' + name)
