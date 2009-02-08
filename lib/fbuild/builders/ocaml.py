@@ -37,7 +37,7 @@ class Ocamldep(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        fbuild.logger.check(' * ' + self.exe, src, color='yellow')
+        fbuild.logger.check(' * ' + self.exe.name, src, color='yellow')
         stdout, stderr = execute(cmd, stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
@@ -124,25 +124,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
 
-        logger.check('checking if %s can make objects' % self.exe)
+        logger.check('checking if %s can make objects' % self.exe.name)
         if self.try_compile():
             logger.passed()
         else:
-            raise ConfigFailed('%s compiler failed' % self.exe)
+            raise ConfigFailed('%s compiler failed' % self.exe.name)
 
-        logger.check('checking if %s can make libraries' % self.exe)
+        logger.check('checking if %s can make libraries' % self.exe.name)
         if self.try_link_lib():
             logger.passed()
         else:
-            raise ConfigFailed('%s lib linker failed' % self.exe)
+            raise ConfigFailed('%s lib linker failed' % self.exe.name)
 
-        logger.check('checking if %s can make exes' % self.exe)
+        logger.check('checking if %s can make exes' % self.exe.name)
         if self.try_link_exe():
             logger.passed()
         else:
-            raise ConfigFailed('%s exe linker failed' % self.exe)
+            raise ConfigFailed('%s exe linker failed' % self.exe.name)
 
-        logger.check('checking if %s can link lib to exe' % self.exe)
+        logger.check('checking if %s can link lib to exe' % self.exe.name)
         with fbuild.temp.tempdir() as parent:
             src_lib = parent / 'lib.ml'
             with open(src_lib, 'w') as f:
@@ -162,10 +162,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             try:
                 stdout, stderr = execute([exe], quieter=1)
             except ExecutionError:
-                raise ConfigFailed('failed to link %s lib to exe' % self.exe)
+                raise ConfigFailed('failed to link %s lib to exe' %
+                    self.exe.name)
             else:
                 if stdout != b'5':
-                   raise ConfigFailed('failed to link %s lib to exe' % self.exe)
+                   raise ConfigFailed('failed to link %s lib to exe' %
+                        self.exe.name)
                 logger.passed()
 
     # --------------------------------------------------------------------------
@@ -235,7 +237,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         cmd.extend(extra_srcs)
         cmd.extend(srcs)
 
-        execute(cmd, self.exe,
+        execute(cmd, self.exe.name,
             '%s -> %s' % (' '.join(extra_srcs + srcs), dst),
             **kwargs)
 
@@ -699,7 +701,7 @@ class Ocamllex(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, self.exe,
+        execute(cmd, self.exe.name,
             '%s -> %s' % (src, dst),
             color='yellow')
 
@@ -746,7 +748,7 @@ class Ocamlyacc(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, self.exe, '%s -> %s' % (src, ' '.join(dsts)),
+        execute(cmd, self.exe.name, '%s -> %s' % (src, ' '.join(dsts)),
             color='yellow')
 
         return dsts
