@@ -45,13 +45,13 @@ def find_program(names, paths=None, *, quieter=0):
         fbuild.logger.check('looking for program ' + name, verbose=quieter)
 
         filename = fbuild.path.Path(name)
-        if filename.exists():
+        if filename.exists() and filename.isfile():
             fbuild.logger.passed('ok %s' % filename, verbose=quieter)
             return filename
         else:
             for path in paths:
                 filename = fbuild.path.Path(path, name)
-                if filename.exists():
+                if filename.exists() and filename.isfile():
                     fbuild.logger.passed('ok %s' % filename, verbose=quieter)
                     return filename
 
