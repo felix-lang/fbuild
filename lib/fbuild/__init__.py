@@ -79,11 +79,11 @@ def execute(cmd,
         if msg2:
             logger.check(' * ' + str(msg1), str(msg2),
                 color=color,
-                verbose=stdout_quieter)
+                verbose=quieter)
         else:
             logger.check(' * ' + str(msg1),
                 color=color,
-                verbose=stdout_quieter)
+                verbose=quieter)
 
     # Define a function that gets called if execution times out. We will
     # raise an exception if the timeout occurs.
