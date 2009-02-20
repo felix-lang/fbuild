@@ -249,11 +249,13 @@ class Library(str):
         return self
 
     def __repr__(self):
-        return 'Library(%s%s%s%s)' % (
+        return 'Library({0}{1}{2}{3}{4})'.format(
             super().__repr__(),
-            ', libpaths=%r' % self.libpaths if self.libpaths else '',
-            ', libs=%r' % self.libs if self.libs else '',
-            ', external_libs=%r' % self.libs if self.libs else '')
+            ', flags={0}'.format(self.flags) if self.flags else '',
+            ', libpaths={0}'.format(self.libpaths) if self.libpaths else '',
+            ', libs={0}'.format(self.libs) if self.libs else '',
+            ', external_libs={0}'.format(self.external_libs)
+                if self.external_libs else '')
 
     def __hash__(self):
         return super().__hash__()
