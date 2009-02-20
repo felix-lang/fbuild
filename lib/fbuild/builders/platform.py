@@ -82,7 +82,7 @@ def platform(arch=None):
 def static_obj_suffix(arch=None):
     arch = platform(arch)
     if 'windows' in arch:
-        return '.obj'
+        return '_static.obj'
     else:
         return '.o'
 
@@ -105,7 +105,7 @@ def static_lib_suffix(arch=None):
 def shared_obj_suffix(arch=None):
     arch = platform(arch)
     if 'windows' in arch:
-        return '.obj'
+        return '_shared.obj'
     else:
         return '.os'
 
