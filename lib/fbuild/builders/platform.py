@@ -119,7 +119,7 @@ def shared_lib_prefix(arch=None):
 def shared_lib_suffix(arch=None):
     arch = platform(arch)
     if 'windows' in arch:
-        return '.lib'
+        return '.dll'
     elif 'darwin' in arch:
         return '.dylib'
     else:
