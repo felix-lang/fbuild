@@ -230,7 +230,6 @@ class Compiler:
 
     def __call__(self, src, dst=None, *,
             suffix=None,
-            optimize=None,
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
@@ -250,11 +249,11 @@ class Compiler:
     def __eq__(self, other):
         return isinstance(other, Compiler) and \
             self.gcc == other.gcc and \
-            self.suffix == other.suffix and \
-            self.flags == other.flags
+            self.flags == other.flags and \
+            self.suffix == other.suffix
 
     def __hash__(self):
-        return hash((self.gcc, self.flags, self.suffix, self.flags))
+        return hash((self.gcc, self.flags, self.suffix))
 
 def make_compiler(gcc, flags=[], **kwargs):
     if flags and not gcc.check_flags(flags):
@@ -270,17 +269,15 @@ class Linker:
         self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
-        self.flags = flags
 
     def __call__(self, dst, srcs, *,
             prefix=None,
             suffix=None,
             buildroot=None,
             **kwargs):
-        buildroot = buildroot or fbuild.buildroot
-
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
+        buildroot = buildroot or fbuild.buildroot
         dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
@@ -289,14 +286,15 @@ class Linker:
 
         return dst
 
+    def __str__(self):
+        return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
     def __eq__(self, other):
         return isinstance(other, Linker) and \
                 self.gcc == other.gcc and \
                 self.flags == other.flags and \
                 self.prefix == other.prefix and \
-                self.suffix == other.suffix and \
-                self.flags == other.flags
+                self.suffix == other.suffix
 
     def __hash__(self):
         return hash((
@@ -304,7 +302,6 @@ class Linker:
             self.flags,
             self.prefix,
             self.suffix,
-            self.flags,
         ))
 
 def make_linker(gcc, flags=[], **kwargs):
