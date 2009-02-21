@@ -11,8 +11,10 @@ from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
-class Gcc:
-    def __init__(self, exe, flags=[], *,
+class Gcc(fbuild.db.PersistentObject):
+    def __init__(self, exe, *,
+            pre_flags=[],
+            flags=[],
             includes=[],
             macros=[],
             warnings=[],
@@ -21,9 +23,10 @@ class Gcc:
             external_libs=[],
             debug=None,
             optimize=None,
-            debug_flags=[],
-            optimize_flags=[]):
+            debug_flags=['-g'],
+            optimize_flags=['-O2']):
         self.exe = exe
+        self.pre_flags = pre_flags
         self.flags = flags
         self.includes = includes
         self.macros = macros
@@ -36,9 +39,18 @@ class Gcc:
         self.libs = libs
         self.external_libs = external_libs
 
+        if not self.check_flags(flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        if debug_flags and not self.check_flags(debug_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        if optimize_flags and not self.check_flags(optimize_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
     def __call__(self, srcs, dst=None, *,
-            flags=[],
             pre_flags=[],
+            flags=[],
             includes=[],
             macros=[],
             warnings=[],
@@ -198,26 +210,10 @@ class Gcc:
             self.external_libs,
         ))
 
-def make_gcc(exe=None, default_exes=['gcc', 'cc'],
-        debug_flags=['-g'],
-        optimize_flags=['-O2'],
-        **kwargs):
-    gcc = Gcc(
+def make_gcc(exe=None, default_exes=['gcc', 'cc'], **kwargs):
+    return Gcc(
         fbuild.builders.find_program([exe] if exe else default_exes),
-        debug_flags=debug_flags,
-        optimize_flags=optimize_flags,
         **kwargs)
-
-    if not gcc.check_flags([]):
-        raise ConfigFailed('%s failed to compile an exe' % gcc)
-
-    if not gcc.check_flags(debug_flags):
-        debug_flags = []
-
-    if not gcc.check_flags(optimize_flags):
-        optimize_flags = []
-
-    return gcc
 
 # ------------------------------------------------------------------------------
 
