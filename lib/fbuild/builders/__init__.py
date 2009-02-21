@@ -122,11 +122,11 @@ class AbstractLibLinker(AbstractCompiler):
     # --------------------------------------------------------------------------
 
     @contextlib.contextmanager
-    def tempfile_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+    def tempfile_link_lib(self, code='', *, quieter=1, ckwargs={}, **kwargs):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
-            yield self.uncached_link_lib(dst, [obj], quieter=quieter, **lkwargs)
+            yield self.uncached_link_lib(dst, [obj], quieter=quieter, **kwargs)
 
     def try_link_lib(self, *args, **kwargs):
         try:
@@ -186,11 +186,11 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
     # --------------------------------------------------------------------------
 
     @contextlib.contextmanager
-    def tempfile_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+    def tempfile_link_exe(self, code='', *, quieter=1, ckwargs={}, **kwargs):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
-            yield self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
+            yield self.uncached_link_exe(dst, [obj], quieter=quieter, **kwargs)
 
     def try_link_exe(self, *args, **kwargs):
         try:
@@ -212,8 +212,11 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
         with self.tempfile_link_exe(*args,
                 quieter=quieter,
                 ckwargs=ckwargs,
-                lkwargs=lkwargs) as exe:
-            return fbuild.execute([exe], quieter=quieter, cwd=exe.parent, **kwargs)
+                **lkwargs) as exe:
+            return fbuild.execute([exe],
+                quieter=quieter,
+                cwd=exe.parent,
+                **kwargs)
 
 # ------------------------------------------------------------------------------
 
