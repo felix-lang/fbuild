@@ -78,9 +78,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     }''', file=f)
 
             obj = self.uncached_compile(src_lib, quieter=1)
-            lib = self.uncached_link_lib(dirname / 'temp', [obj], quieter=1)
+            lib = self.uncached_link_lib(dirname / 'temp', [obj],
+                    exports=['foo'],
+                    quieter=1)
             obj = self.uncached_compile(src_exe, quieter=1)
-            exe = self.uncached_link_exe(dirname / 'temp', [obj], libs=[lib],
+            exe = self.uncached_link_exe(dirname / 'temp', [obj],
+                    libs=[lib],
                     quieter=1)
 
             try:
@@ -152,6 +155,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             ckwargs={},
             libs=[],
             external_libs=[],
+            exports=[],
             lflags=[],
             lkwargs={}):
         """Actually compile and link the sources."""
@@ -165,6 +169,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return function(dst, objs,
             libs=libs,
             external_libs=external_libs,
+            exports=exports,
             flags=lflags,
             **lkwargs)
 
