@@ -168,14 +168,6 @@ class Gcc:
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.exe,), self.flags))
 
-    def __repr__(self):
-        return '%s(%r%s, debug_flags=%r, optimize_flags=%r)' % (
-            self.__class__.__name__,
-            self.exe,
-            ', flags=%r' % self.flags if self.flags else '',
-            self.debug_flags,
-            self.optimize_flags)
-
     def __eq__(self, other):
         return isinstance(other, Gcc) and \
             self.exe == other.exe and \
@@ -255,13 +247,6 @@ class Compiler:
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
-    def __repr__(self):
-        return '%s(%r, %r, suffix=%r)' % (
-            self.__class__.__name__,
-            self.gcc,
-            self.flags,
-            self.suffix)
-
     def __eq__(self, other):
         return isinstance(other, Compiler) and \
             self.gcc == other.gcc and \
@@ -304,13 +289,6 @@ class Linker:
 
         return dst
 
-    def __repr__(self):
-        return '%s(%r, %r, prefix=%r, suffix=%r)' % (
-            self.__class__.__name__,
-            self.gcc,
-            self.flags,
-            self.prefix,
-            self.suffix)
 
     def __eq__(self, other):
         return isinstance(other, Linker) and \
