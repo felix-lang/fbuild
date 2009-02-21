@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import os
 import sys
 
@@ -82,14 +83,17 @@ class AbstractCompiler(fbuild.db.PersistentObject):
     def tempfile(self, code):
         return fbuild.temp.tempfile(code, self.src_suffix)
 
-    def try_compile(self, code='', *, quieter=1, **kwargs):
+    @contextlib.contextmanager
+    def tempfile_compile(self, code='', *, quieter=1, **kwargs):
         with self.tempfile(code) as src:
-            try:
-                self.uncached_compile(src, quieter=quieter, **kwargs)
-            except fbuild.ExecutionError:
-                return False
-            else:
+            yield self.uncached_compile(src, quieter=quieter, **kwargs)
+
+    def try_compile(self, *args, **kwargs):
+        try:
+            with self.tempfile_compile(*args, **kwargs):
                 return True
+        except fbuild.ExecutionError:
+            return False
 
     def check_compile(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
@@ -117,16 +121,19 @@ class AbstractLibLinker(AbstractCompiler):
 
     # --------------------------------------------------------------------------
 
-    def try_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+    @contextlib.contextmanager
+    def tempfile_link_lib(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
-            try:
-                obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
-                self.uncached_link_lib(dst, [obj], quieter=quieter, **lkwargs)
-            except fbuild.ExecutionError:
-                return False
-            else:
+            obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
+            yield self.uncached_link_lib(dst, [obj], quieter=quieter, **lkwargs)
+
+    def try_link_lib(self, *args, **kwargs):
+        try:
+            with self.tempfile_link_lib(*args, **kwargs):
                 return True
+        except fbuild.ExecutionError:
+            return False
 
     def check_link_lib(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
@@ -178,16 +185,19 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
 
     # --------------------------------------------------------------------------
 
-    def try_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
+    @contextlib.contextmanager
+    def tempfile_link_exe(self, code='', *, quieter=1, ckwargs={}, lkwargs={}):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
-            try:
-                obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
-                self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
-            except fbuild.ExecutionError:
-                return False
-            else:
+            obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
+            yield self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
+
+    def try_link_exe(self, *args, **kwargs):
+        try:
+            with self.tempfile_link_exe(*args, **kwargs):
                 return True
+        except fbuild.ExecutionError:
+            return False
 
     def check_link_exe(self, code, msg, *args, **kwargs):
         fbuild.logger.check(msg)
@@ -198,13 +208,12 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
             fbuild.logger.failed()
             return False
 
-    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, lkwargs={},
-            **kwargs):
-        with self.tempfile(code) as src:
-            dst = src.parent / 'temp'
-            obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
-            exe = self.uncached_link_exe(dst, [obj], quieter=quieter, **lkwargs)
-            return fbuild.execute([exe], quieter=quieter, **kwargs)
+    def tempfile_run(self, *args, quieter=1, ckwargs={}, lkwargs={}, **kwargs):
+        with self.tempfile_link_exe(*args,
+                quieter=quieter,
+                ckwargs=ckwargs,
+                lkwargs=lkwargs) as exe:
+            return fbuild.execute([exe], quieter=quieter, cwd=exe.parent, **kwargs)
 
 # ------------------------------------------------------------------------------
 
