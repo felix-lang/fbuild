@@ -31,23 +31,27 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
 
-        logger.check('checking if %s can make objects' % self)
-        if self.try_compile('int main(int argc, char** argv) { return 0; }'):
-            logger.passed()
-        else:
-            raise ConfigFailed('compiler failed')
+        fbuild.logger.check('checking if %s can make objects' % self)
+        try:
+            with self.tempfile_compile('int main() { return 0; }'):
+                fbuild.logger.passed()
+        except fbuild.ExecutionError as e:
+            raise fbuild.ConfigFailed('compiler failed: %s' % e)
 
-        logger.check('checking if %s can make libraries' % self)
-        if self.try_link_lib('int foo() { return 5; }'):
-            logger.passed()
-        else:
-            raise ConfigFailed('lib linker failed')
+        fbuild.logger.check('checking if %s can make libraries' % self)
+        try:
+            with self.tempfile_link_lib('int foo() { return 5; }'):
+                fbuild.logger.passed()
+        except fbuild.ExecutionError as e:
+            raise fbuild.ConfigFailed('lib linker failed: %s' % e)
 
-        logger.check('checking if %s can make exes' % self)
-        if self.try_run('int main(int argc, char** argv) { return 0; }'):
-            logger.passed()
+        fbuild.logger.check('checking if %s can make exes' % self)
+        try:
+            self.tempfile_run('int main() { return 0; }')
+        except fbuild.ExecutionError as e:
+            raise fbuild.ConfigFailed('exe linker failed: %s' % e)
         else:
-            raise ConfigFailed('exe linker failed')
+            fbuild.logger.passed()
 
         logger.check('checking if %s can link lib to exe' % self)
         with fbuild.temp.tempdir() as dirname:
