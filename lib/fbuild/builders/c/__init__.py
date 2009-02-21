@@ -8,6 +8,7 @@ import fbuild.temp
 import fbuild.builders
 import fbuild.builders.platform
 import fbuild.functools
+from fbuild.path import Path
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 
 # ------------------------------------------------------------------------------
@@ -236,7 +237,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
 # ------------------------------------------------------------------------------
 
-class Library(str):
+class Library(Path):
     def __new__(cls, *args,
             flags=[],
             libpaths=[],
