@@ -9,11 +9,10 @@ import fbuild.builders
 import fbuild.builders.platform
 import fbuild.functools
 from fbuild.path import Path
-from fbuild import ConfigFailed, ExecutionError, execute, logger
 
 # ------------------------------------------------------------------------------
 
-class MissingHeader(ConfigFailed):
+class MissingHeader(fbuild.ConfigFailed):
     def __init__(self, filename=None):
         self.filename = filename
 
@@ -54,7 +53,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         else:
             fbuild.logger.passed()
 
-        logger.check('checking if %s can link lib to exe' % self)
+        fbuild.logger.check('checking if %s can link lib to exe' % self)
         with fbuild.temp.tempdir() as dirname:
             src_lib = dirname / 'templib' + self.src_suffix
             with open(src_lib, 'w') as f:
@@ -76,13 +75,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     quieter=1)
 
             try:
-                stdout, stderr = execute([exe], quieter=1)
+                stdout, stderr = fbuild.execute([exe], quieter=1)
             except ExecutionError:
-                raise ConfigFailed('failed to link lib to exe')
+                raise fbuild.ConfigFailed('failed to link lib to exe')
             else:
                 if stdout != b'5\n':
-                    raise ConfigFailed('failed to link lib to exe')
-                logger.passed()
+                    raise fbuild.ConfigFailed('failed to link lib to exe')
+                fbuild.logger.passed()
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
@@ -172,12 +171,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             }
         ''' % ('\n'.join('#include <%s>' % h for h in headers), statement)
 
-        logger.check(msg or 'checking %r' % name)
+        fbuild.logger.check(msg or 'checking %r' % name)
         if self.try_compile(code, **kwargs):
-            logger.passed()
+            fbuild.logger.passed()
             return True
         else:
-            logger.failed()
+            fbuild.logger.failed()
             return False
 
     def check_statements(self, *items, msg='checking %r', **kwargs):
@@ -322,14 +321,14 @@ def config_little_endian(builder):
         }
     '''
 
-    logger.check('checking if little endian')
+    fbuild.logger.check('checking if little endian')
     try:
         stdout = 1 == int(builder.tempfile_run(code)[0])
-    except ExecutionError:
-        logger.failed()
-        raise ConfigFailed('failed to detect endianness')
+    except fbuild.ExecutionError:
+        fbuild.logger.failed()
+        raise fbuild.ConfigFailed('failed to detect endianness')
 
     little_endian = int(stdout) == 1
-    logger.passed(little_endian)
+    fbuild.logger.passed(little_endian)
 
     return little_endian
