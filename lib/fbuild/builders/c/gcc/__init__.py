@@ -230,36 +230,6 @@ def make_gcc(exe=None, default_exes=['gcc', 'cc'],
 
 # ------------------------------------------------------------------------------
 
-class Scanner:
-    def __init__(self, gcc, flags):
-        self.gcc = gcc
-        self.flags = flags
-
-    def __call__(self, src, *, buildroot=None, quieter=0, **kwargs):
-        # Ignore the buildroot argument
-        src = Path(src)
-
-        fbuild.logger.check(' * %s %s' % (self.gcc, ' '.join(self.flags)), src,
-            verbose=quieter,
-            color='yellow')
-
-        stdout, stderr = self.gcc([src],
-            pre_flags=self.flags,
-            quieter=quieter,
-            stdout_quieter=1 if quieter == 0 else quieter,
-            **kwargs)
-
-        stdout = stdout.decode().replace('\\\n', '')
-
-        if not stdout:
-            return []
-
-        # Parse the output and return the module dependencies.
-        return [Path(p)
-            for p in stdout.split(':')[1].split()]
-
-# ------------------------------------------------------------------------------
-
 class Compiler:
     def __init__(self, gcc, flags, *, suffix):
         self.gcc = gcc
@@ -369,12 +339,10 @@ def make_linker(gcc, flags=[], **kwargs):
 
 class Builder(fbuild.builders.c.Builder):
     def __init__(self, *args,
-            scanner,
             compiler,
             lib_linker,
             exe_linker,
             **kwargs):
-        self.scanner = scanner
         self.compiler = compiler
         self.lib_linker = lib_linker
         self.exe_linker = exe_linker
@@ -388,17 +356,11 @@ class Builder(fbuild.builders.c.Builder):
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def scan(self, src:fbuild.db.SRC, *args, **kwargs):
-        """Scan a c file for dependencies and cache the results."""
-        return self.scanner(src, *args, **kwargs)
-
-    @fbuild.db.cachemethod
     def compile(self, src:fbuild.db.SRC, dst=None, *,
             flags=[],
             **kwargs) -> fbuild.db.DST:
         """Compile a c file and cache the results."""
-        # We can skip scanning the file and generate the dependencies while we
-        # compile the file.
+        # Generate the dependencies while we compile the file.
         with tempfile() as dep:
             obj = self.uncached_compile(src, dst,
                 flags=list(chain(('-MMD', '-MF', dep), flags)),
@@ -463,7 +425,6 @@ def static(exe=None, *args,
         make_linker=make_linker,
         platform=None,
         flags=[],
-        scan_flags=['-MM'],
         compile_flags=['-c'],
         libpaths=[],
         libs=[],
@@ -474,7 +435,6 @@ def static(exe=None, *args,
     gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
     return Builder(
-        scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
         compiler=make_compiler(gcc,
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.static_obj_suffix(platform)),
@@ -497,7 +457,6 @@ def shared(exe=None, *args,
         make_linker=make_linker,
         platform=None,
         flags=[],
-        scan_flags=['-MM'],
         compile_flags=['-c', '-fPIC'],
         libpaths=[],
         libs=[],
@@ -509,7 +468,6 @@ def shared(exe=None, *args,
     gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
     return Builder(
-        scanner=Scanner(gcc, flags=list(chain(flags, scan_flags))),
         compiler=make_compiler(gcc,
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.shared_obj_suffix(platform)),
