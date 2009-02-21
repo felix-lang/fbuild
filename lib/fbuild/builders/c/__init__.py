@@ -64,7 +64,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 print('#include <stdio.h>', file=f)
                 print('extern int foo();', file=f)
                 print('int main(int argc, char** argv) {', file=f)
-                print('  printf("%d\\n", foo());', file=f)
+                print('  printf("%d", foo());', file=f)
                 print('  return 0;', file=f)
                 print('}', file=f)
 
@@ -79,7 +79,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             except ExecutionError:
                 raise fbuild.ConfigFailed('failed to link lib to exe')
             else:
-                if stdout != b'5\n':
+                if stdout != b'5':
                     raise fbuild.ConfigFailed('failed to link lib to exe')
                 fbuild.logger.passed()
 
