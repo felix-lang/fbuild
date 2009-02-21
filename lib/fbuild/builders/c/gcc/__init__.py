@@ -23,9 +23,8 @@ class Gcc:
             optimize=None,
             debug_flags=[],
             optimize_flags=[]):
-        # we split exe in case extra arguments were specified in the name
-        self.exe, *self.flags = str.split(exe)
-        self.flags = list(chain(self.flags, flags))
+        self.exe = exe
+        self.flags = flags
         self.includes = includes
         self.macros = macros
         self.warnings = warnings
