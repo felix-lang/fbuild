@@ -136,14 +136,14 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return self._build_link(self.link_exe, dst, srcs, *args, **kwargs)
 
     def _build_link(self, function, dst, srcs, *,
-            includes=(),
-            macros=(),
-            warnings=(),
-            cflags=(),
+            includes=[],
+            macros=[],
+            warnings=[],
+            cflags=[],
             ckwargs={},
-            libs=(),
-            external_libs=(),
-            lflags=(),
+            libs=[],
+            external_libs=[],
+            lflags=[],
             lkwargs={}):
         """Actually compile and link the sources."""
         objs = self.build_objects(srcs,
