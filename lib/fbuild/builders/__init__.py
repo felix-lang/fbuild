@@ -37,9 +37,9 @@ def find_program(names, paths=None, *, quieter=0):
     if sys.platform == 'win32':
         new_names = []
         for name in names:
-            new_names.append(name)
             if not name.endswith('.exe'):
                 new_names.append(name + '.exe')
+            new_names.append(name)
         names = new_names
 
     for name in names:
