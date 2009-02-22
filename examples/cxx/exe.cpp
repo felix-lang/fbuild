@@ -1,5 +1,7 @@
+#include <iostream>
 #include "lib.h"
 
 int main(int argc, char** argv) {
-	return Fred(5).fred() != 5;
+    std::cout << Fred(5).fred() << std::endl;
+    return 0;
 }
