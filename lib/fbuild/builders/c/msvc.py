@@ -388,14 +388,26 @@ class Builder(fbuild.builders.c.Builder):
     @fbuild.db.cachemethod
     def compile(self, src:fbuild.db.SRC, dst=None, *,
             flags=[],
+            quieter=0,
             **kwargs) -> fbuild.db.DST:
         """Compile a c file and cache the results."""
         # Generate the dependencies while we compile the file.
         with tempfile() as dep:
-            obj, stdout, stderr = self.compiler(src, dst,
-                flags=list(chain(('/showIncludes',), flags)),
-                stdout_quieter=1,
-                **kwargs)
+            try:
+                obj, stdout, stderr = self.compiler(src, dst,
+                    flags=list(chain(('/showIncludes',), flags)),
+                    quieter=quieter,
+                    stdout_quieter=1,
+                    **kwargs)
+            except fbuild.ExecutionError as e:
+                if quieter == 0:
+                    # We errored out, but we've hidden the stdout output.
+                    # Display the output while filtering out the dependeny
+                    # info.
+                    for line in io.StringIO(e.stdout.decode()):
+                        if not self._dep_regex.match(line):
+                            fbuild.logger.write(line)
+                raise e
 
         # Parse the output and return the module dependencies.
         deps = []
@@ -411,6 +423,8 @@ class Builder(fbuild.builders.c.Builder):
                     # outside our project.  Lets just ignore that dependency
                     # for now.
                     pass
+            else:
+                fbuild.logger.write(line)
 
         fbuild.db.add_external_dependencies_to_call(srcs=deps)
 
