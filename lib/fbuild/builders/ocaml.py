@@ -485,7 +485,7 @@ class Ocamlopt(Builder):
         # We need the bytecode compiler to compile .mli files.
         self.ocamlc = ocamlc or Ocamlc()
         self.native_obj_suffix = \
-            fbuild.builders.platform.static_obj_suffix(platform)
+            fbuild.builders.platform.obj_suffix(platform)
         self.native_lib_suffix = \
             fbuild.builders.platform.static_lib_suffix(platform)
 

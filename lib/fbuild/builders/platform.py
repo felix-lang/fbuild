@@ -79,6 +79,15 @@ def platform(arch=None):
 
 # ------------------------------------------------------------------------------
 
+def obj_suffix(arch=None):
+    arch = platform(arch)
+    if 'windows' in arch:
+        return '.obj'
+    else:
+        return '.o'
+
+# ------------------------------------------------------------------------------
+
 def static_obj_suffix(arch=None):
     arch = platform(arch)
     if 'windows' in arch:
