@@ -57,16 +57,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         with fbuild.temp.tempdir() as dirname:
             src_lib = dirname / 'templib' + self.src_suffix
             with open(src_lib, 'w') as f:
-                print('int foo() { return 5; }', file=f)
+                print('''
+                    #ifdef __cplusplus
+                    extern "C"
+                    #endif
+                    int foo() { return 5; }
+                ''', file=f)
 
             src_exe = dirname / 'tempexe' + self.src_suffix
             with open(src_exe, 'w') as f:
-                print('#include <stdio.h>', file=f)
-                print('extern int foo();', file=f)
-                print('int main(int argc, char** argv) {', file=f)
-                print('  printf("%d", foo());', file=f)
-                print('  return 0;', file=f)
-                print('}', file=f)
+                print('''
+                    #include <stdio.h>
+                    #ifdef __cplusplus
+                    extern "C"
+                    #endif
+                    extern int foo();
+                    int main(int argc, char** argv) {
+                        printf("%d", foo());
+                        return 0;
+                    }''', file=f)
 
             obj = self.uncached_compile(src_lib, quieter=1)
             lib = self.uncached_link_lib(dirname / 'temp', [obj], quieter=1)
