@@ -182,14 +182,15 @@ class Database:
                 self._check_call_files(srcs, function_name, call_id)
 
             # Check extra external call files.
-            external_srcs, external_dsts, external_digests = \
+            external_dirty, external_srcs, external_dsts, external_digests = \
                 self._check_external_files(function_name, call_id)
 
         # Check if we have a result. If not, then we're dirty.
         if not (function_dirty or \
                 call_id is None or \
                 call_file_digests or \
-                external_digests):
+                external_digests or \
+                external_dirty):
             # If the result is a dst filename, make sure it exists. If not,
             # we're dirty.
             if return_type is not None and issubclass(return_type, DST):
@@ -407,6 +408,7 @@ class Database:
     def _check_external_files(self, function, call_id):
         """Returns all of the externally specified call files, and the dirty
         list."""
+        external_dirty = False
         digests = []
         try:
             srcs = self._external_srcs[function][call_id]
@@ -414,16 +416,20 @@ class Database:
             srcs = set()
         else:
             for src in srcs:
-                d, digest = self._check_call_file(src, function, call_id)
-                if d:
-                    digests.append((src, digest))
+                try:
+                    d, digest = self._check_call_file(src, function, call_id)
+                except OSError:
+                    external_dirty = True
+                else:
+                    if d:
+                        digests.append((src, digest))
 
         try:
             dsts = self._external_dsts[function][call_id]
         except KeyError:
             dsts = set()
 
-        return srcs, dsts, digests
+        return external_dirty, srcs, dsts, digests
 
     def _update_external_files(self, function, call_id, srcs, dsts, digests):
         """Insert or update the externall specified call files."""
