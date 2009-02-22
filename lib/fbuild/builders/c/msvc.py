@@ -297,7 +297,6 @@ class Link(fbuild.db.PersistentObject):
 
                 for l in lib.external_libs:
                     if l not in external_libs:
-                        asdasd
                         external_libs.append(l)
 
                 # In order to make linux happy, we'll recursively walk the
