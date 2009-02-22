@@ -220,14 +220,15 @@ class Lib(fbuild.db.PersistentObject):
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(srcs)
-        cmd.extend(self.external_libs)
-        cmd.extend(external_libs)
 
-        for lib in chain(self.libs, libs):
-            if lib.endswith('.dll'):
-                cmd.append(lib[:-4] + '.lib')
-            else:
-                cmd.append(lib)
+        # We'll ignore linking libraries to libraries for now.
+        #cmd.extend('/DEFAULTLIB:' + l for l in self.external_libs)
+        #cmd.extend('/DEFAULTLIB:' + l for l in external_libs)
+        #for lib in chain(self.libs, libs):
+        #    if lib.endswith('.dll'):
+        #        cmd.append(lib[:-4] + '.lib')
+        #    else:
+        #        cmd.append(lib)
 
         fbuild.execute(cmd, self.exe,
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
@@ -324,7 +325,7 @@ class Link(fbuild.db.PersistentObject):
         cmd.extend('/EXPORT:' + export for export in exports)
         cmd.extend('/LIBRARYPATH:' + p for p in sorted(libpaths) if p)
 
-        for lib in chain(self.libs, libs):
+        for lib in chain(self.external_libs, external_libs, self.libs, libs):
             if lib.endswith('.dll'):
                 cmd.append('/DEFAULTLIB:' + lib[:-4] + '.lib')
             else:
