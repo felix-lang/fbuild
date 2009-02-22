@@ -312,13 +312,13 @@ class Path(str):
         symbolic links encountered in the path."""
         return Path(os.path.realpath(self))
 
-    def relpath(self, start=None):
+    def relpath(self, *args, **kwargs):
         """Return a relative version of a path.
 
         >>> Path.relpath('foo/bar/baz.ext', 'foo/baz')
         Path('../bar/baz.ext')
         """
-        return Path(os.path.relpath(self, start))
+        return Path(os.path.relpath(self, *args, **kwargs))
 
     def remove(self):
         return os.remove(self)
