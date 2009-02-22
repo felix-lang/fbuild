@@ -14,11 +14,15 @@ options, args = parser.parse_args()
 for d in 'c', 'config', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
     if options.clean:
         print('cleaning:', d)
-        subprocess.call('%s --clean' % os.path.join('..', '..', 'fbuild-light'), cwd=d, shell=True)
+        subprocess.call('%s %s --clean' %
+            (sys.executable, os.path.join('..', '..', 'fbuild-light')),
+            cwd=d, shell=True)
 
     print('running example:', d)
     print()
-    subprocess.call(os.path.join('..', '..', 'fbuild-light'), cwd=d, shell=True)
+    subprocess.call('%s %s' %
+        (sys.executable, os.path.join('..', '..', 'fbuild-light')),
+        cwd=d, shell=True)
     print()
     print('-' * 50)
     print()
