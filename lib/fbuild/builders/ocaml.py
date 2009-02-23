@@ -568,13 +568,14 @@ class Ocamlopt(Builder):
 class Ocaml(fbuild.builders.AbstractCompilerBuilder):
     Tuple = collections.namedtuple('Tuple', 'bytecode native')
 
-    def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None):
+    def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None, **kwargs):
         self.ocamldep = ocamldep or Ocamldep()
-        self.ocamlc = Ocamlc(ocamldep=ocamldep, exe=ocamlc)
+        self.ocamlc = Ocamlc(ocamldep=ocamldep, exe=ocamlc, **kwargs)
         self.ocamlopt = Ocamlopt(
             ocamldep=ocamldep,
             ocamlc=self.ocamlc,
-            exe=ocamlopt)
+            exe=ocamlopt,
+            **kwargs)
 
     # --------------------------------------------------------------------------
 
