@@ -275,11 +275,17 @@ class Library(Path):
 
 # ------------------------------------------------------------------------------
 
-def _guess_builder(name, functions, *args, platform=None, **kwargs):
+def _guess_builder(name, functions, *args,
+        platform=None,
+        platform_options=[],
+        **kwargs):
     platform = fbuild.builders.platform.platform(platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
+            for p, kw in platform_options:
+                if p <= platform:
+                    kwargs.update(kw)
             return fbuild.functools.call(function, *args, **kwargs)
 
     raise fbuild.ConfigFailed('cannot find a builder for %s' %
