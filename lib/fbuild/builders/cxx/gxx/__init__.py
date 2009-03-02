@@ -30,31 +30,3 @@ def shared(*args, make_gxx=make_gxx, src_suffix='.cc', **kwargs):
         make_gcc=make_gxx,
         src_suffix=src_suffix,
         **kwargs)
-
-# ------------------------------------------------------------------------------
-
-@fbuild.db.caches
-def config_ext_hash_map(builder):
-    if not builder.check_header_exists('ext/hash_map'):
-        raise fbuild.builders.c.MissingHeader('ext/hash_map')
-
-    hash_map = builder.check_compile('''
-        #include <ext/hash_map>
-        using namespace __gnu_cxx;
-
-        int main(int argc,char** argv) {
-            return 0;
-        }
-    ''', 'checking if gnu hash_map is supported')
-
-    return fbuild.record.Record(hash_map=hash_map)
-
-def config_ext_headers(builder):
-    return fbuild.record.Record(
-        hash_map=config_ext_hash_map(builder),
-    )
-
-def config_extensions(builder):
-    return fbuild.record.Record(
-        headers=config_ext_headers(builder),
-    )
