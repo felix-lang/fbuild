@@ -291,7 +291,6 @@ def _guess_builder(name, functions, *args,
     raise fbuild.ConfigFailed('cannot find a builder for %s' %
         (name, platform))
 
-@fbuild.db.caches
 def guess_static(*args, **kwargs):
     """L{static} tries to guess the static system c compiler according to the
     platform. It accepts a I{platform} keyword that overrides the system's
@@ -305,7 +304,6 @@ def guess_static(*args, **kwargs):
         ({'windows'}, 'fbuild.builders.c.msvc.static'),
     ), *args, **kwargs)
 
-@fbuild.db.caches
 def guess_shared(*args, **kwargs):
     """L{shared} tries to guess the shared system c compiler according to the
     platform. It accepts a I{platform} keyword that overrides the system's
