@@ -120,10 +120,18 @@ class Database:
         if not fbuild.inspect.ismethod(function):
             function_name = function.__module__ + '.' + function.__name__
         else:
-            function_name = '%s.%s.%s' % (
-                function.__module__,
-                function.__self__.__class__.__name__,
-                function.__name__)
+            # If we're caching a PersistentObject creation, use the class's
+            # name as our function name.
+            if function.__name__ == '__call_super__' and \
+                    isinstance(function.__self__, PersistentMeta):
+                function_name = '%s.%s' % (
+                    function.__self__.__module__,
+                    function.__self__.__name__)
+            else:
+                function_name = '%s.%s.%s' % (
+                    function.__module__,
+                    function.__self__.__class__.__name__,
+                    function.__name__)
             args = (function.__self__,) + args
             function = function.__func__
 
@@ -172,7 +180,7 @@ class Database:
         with self._lock:
             # Check if the function changed.
             function_dirty, function_digest = \
-                self._check_function(function, function_name)
+                self._check_function(function, function_name, args, kwargs)
 
             # Check if this is a new call and get the index.
             call_id, old_result = self._check_call(function_name, bound)
@@ -245,10 +253,18 @@ class Database:
     # change while we're running.
     _digest_function_lock = threading.Lock()
     _digest_function_cache = {}
-    def _digest_function(self, function):
+    def _digest_function(self, function, args, kwargs):
         """Compute the digest for a function or a function object. Cache this
         for this instance."""
         with self._digest_function_lock:
+            # If we're caching a PersistentObject creation, use the class's
+            # __init__ as our function.
+            if fbuild.inspect.isroutine(function) and \
+                    len(args) > 0 and \
+                    function.__name__ == '__call_super__' and \
+                    isinstance(args[0], PersistentMeta):
+                function = args[0].__init__
+
             try:
                 digest = self._digest_function_cache[function]
             except KeyError:
@@ -265,10 +281,10 @@ class Database:
 
         return digest
 
-    def _check_function(self, function, name):
+    def _check_function(self, function, name, args, kwargs):
         """Returns whether or not the function is dirty. Returns True or false
         as well as the function's digest."""
-        digest = self._digest_function(function)
+        digest = self._digest_function(function, args, kwargs)
         try:
             old_digest = self._functions[name]
         except KeyError:
