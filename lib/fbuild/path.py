@@ -296,8 +296,8 @@ class Path(str):
     def mknod(self):
         return os.mknod(self)
 
-    def move(self):
-        return shutil.move(self)
+    def move(self, dst):
+        return shutil.move(self, dst)
 
     def normcase(self):
         """Normalize case of pathname.  Has no effect under Posix."""
