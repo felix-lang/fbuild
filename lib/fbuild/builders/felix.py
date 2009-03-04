@@ -1,3 +1,4 @@
+import sys
 from functools import partial
 from itertools import chain
 
@@ -14,8 +15,8 @@ from fbuild.temp import tempfile
 class Flx:
     def __init__(self, exe, flags=[]):
         # we split exe in case extra arguments were specified in the name
-        self.exe, *self.flags = str.split(exe)
-        self.flags = list(chain(self.flags, flags))
+        self.exe = fbuild.builders.find_program([exe])
+        self.flags = flags
 
         if not self.check_flags([]):
             raise ConfigFailed('%s failed to compile an exe' % self)
@@ -27,6 +28,9 @@ class Flx:
             cwd=None,
             **kwargs):
         cmd = [self.exe]
+
+        if sys.platform == 'win32':
+            cmd.insert(0, 'c:\python26\python.exe')
 
         if static:
             cmd.append('--static')
@@ -66,15 +70,14 @@ class Flx:
 # ------------------------------------------------------------------------------
 
 class Felix(fbuild.builders.AbstractCompiler):
-    def __init__(self, exe=None, *,
+    def __init__(self, exe='flx.py', *,
             platform=None,
             static=False,
             includes=[],
             flags=[]):
         super().__init__(src_suffix='.flx')
 
-        self.flx = Flx(fbuild.builders.find_program([exe or 'flx']),
-            flags=flags)
+        self.flx = Flx(exe, flags=flags)
         self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
         self.lib_suffix = fbuild.builders.platform.shared_lib_suffix(platform)
         self.static = static
