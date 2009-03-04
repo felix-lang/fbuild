@@ -222,11 +222,14 @@ def make_gcc(exe=None, default_exes=['gcc', 'cc'], **kwargs):
 
 # ------------------------------------------------------------------------------
 
-class Compiler:
+class Compiler(fbuild.db.PersistentObject):
     def __init__(self, gcc, flags, *, suffix):
         self.gcc = gcc
         self.flags = flags
         self.suffix = suffix
+
+        if flags and not gcc.check_flags(flags):
+            raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
 
     def __call__(self, src, dst=None, *,
             suffix=None,
@@ -256,19 +259,20 @@ class Compiler:
         return hash((self.gcc, self.flags, self.suffix))
 
 def make_compiler(gcc, flags=[], **kwargs):
-    if flags and not gcc.check_flags(flags):
-        raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
-
     return Compiler(gcc, flags, **kwargs)
 
 # ------------------------------------------------------------------------------
 
-class Linker:
+class Linker(fbuild.db.PersistentObject):
     def __init__(self, gcc, flags=[], *, prefix, suffix):
         self.gcc = gcc
         self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
+
+        if flags and not gcc.check_flags(flags):
+            raise ConfigFailed('%s does not support %s' %
+                (gcc, ' '.join(flags)))
 
     def __call__(self, dst, srcs, *,
             prefix=None,
@@ -305,9 +309,6 @@ class Linker:
         ))
 
 def make_linker(gcc, flags=[], **kwargs):
-    if flags and not gcc.check_flags(flags):
-        raise ConfigFailed('%s does not support %s' % (gcc, ' '.join(flags)))
-
     return Linker(gcc, flags, **kwargs)
 
 # ------------------------------------------------------------------------------
