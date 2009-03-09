@@ -332,12 +332,12 @@ class Link(fbuild.db.PersistentObject):
 
         cmd.extend(srcs)
 
-        fbuild.execute(cmd, self.exe,
+        stdout, stderr = fbuild.execute(cmd, self.exe,
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
             color='cyan',
             **kwargs)
 
-        return dst
+        return dst, stdout, stderr
 
     def _make_dst(self, dst, suffix, buildroot):
         dst = Path(dst).addroot(buildroot or fbuild.buildroot)
@@ -351,17 +351,36 @@ class Link(fbuild.db.PersistentObject):
 
 class ExeLink(Link):
     def __call__(self, dst, *args, buildroot=None, **kwargs):
-        return self._run(
+        obj, stdout, stderr = self._run(
             self._make_dst(dst, '.exe', buildroot),
             *args, **kwargs)
 
+        return obj
+
 class DllLink(Link):
-    def __call__(self, dst, *args, buildroot=None, flags=[], **kwargs):
-        lib = self._make_dst(dst, '.lib', buildroot)
-        return self._run(
+    def __call__(self, dst, *args,
+            buildroot=None,
+            flags=[],
+            quieter=0,
+            stdout_quieter=0,
+            **kwargs):
+        obj, stdout, stderr = self._run(
             self._make_dst(dst, '.dll', buildroot),
             flags=list(chain(flags, ['/DLL'])),
+            quieter=quieter,
+            stdout_quieter=1 if stdout_quieter == 0 else stdout_quieter,
             *args, **kwargs)
+
+        lib = self._make_dst(dst, '.lib', buildroot)
+        exp = self._make_dst(dst, '.exp', buildroot)
+
+        # Filter out the message link.exe says when it's linking
+        msg = '   Creating library %s and object %s\r\n' % (lib, exp)
+        for line in io.StringIO(stdout.decode()):
+            if line != msg:
+                fbuild.logger.write(line)
+
+        return obj
 
 # ------------------------------------------------------------------------------
 
@@ -389,23 +408,27 @@ class Builder(fbuild.builders.c.Builder):
     def compile(self, src:fbuild.db.SRC, dst=None, *,
             flags=[],
             quieter=0,
+            stdout_quieter=0,
             **kwargs) -> fbuild.db.DST:
         """Compile a c file and cache the results."""
+        src = Path(src)
+
         # Generate the dependencies while we compile the file.
         with tempfile() as dep:
             try:
                 obj, stdout, stderr = self.compiler(src, dst,
                     flags=list(chain(('/showIncludes',), flags)),
                     quieter=quieter,
-                    stdout_quieter=1,
+                    stdout_quieter=1 if stdout_quieter == 0 else stdout_quieter,
                     **kwargs)
             except fbuild.ExecutionError as e:
-                if quieter == 0:
+                if quieter == 0 and stdout_quieter == 0:
                     # We errored out, but we've hidden the stdout output.
                     # Display the output while filtering out the dependeny
                     # info.
                     for line in io.StringIO(e.stdout.decode()):
-                        if not self._dep_regex.match(line):
+                        if not self._dep_regex.match(line) and \
+                                line != src.name.splitext()[0] + '\r\n':
                             fbuild.logger.write(line)
                 raise e
 
@@ -423,8 +446,9 @@ class Builder(fbuild.builders.c.Builder):
                     # outside our project.  Lets just ignore that dependency
                     # for now.
                     pass
-            else:
-                fbuild.logger.write(line)
+            elif quieter == 0 and stdout_quieter == 0:
+                if line != src.name + '\r\n':
+                    fbuild.logger.write(line)
 
         fbuild.db.add_external_dependencies_to_call(srcs=deps)
 
