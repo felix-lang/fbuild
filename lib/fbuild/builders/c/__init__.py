@@ -279,7 +279,8 @@ def _guess_builder(name, functions, *args,
         platform=None,
         platform_options=[],
         **kwargs):
-    platform = fbuild.builders.platform.platform(platform)
+    if platform is None:
+        platform = fbuild.builders.platform.platform(platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
@@ -299,6 +300,9 @@ def guess_static(*args, **kwargs):
     functions."""
 
     return _guess_builder('c static', (
+        ({'iphone', 'simulator'},
+            'fbuild.builders.c.gcc.iphone.static_simulator'),
+        ({'iphone'}, 'fbuild.builders.c.gcc.iphone.static'),
         ({'darwin'}, 'fbuild.builders.c.gcc.darwin.static'),
         ({'posix'}, 'fbuild.builders.c.gcc.static'),
         ({'windows'}, 'fbuild.builders.c.msvc.static'),
@@ -312,6 +316,9 @@ def guess_shared(*args, **kwargs):
     functions."""
 
     return _guess_builder('c shared', (
+        ({'iphone', 'simulator'},
+            'fbuild.builders.c.gcc.iphone.shared_simulator'),
+        ({'iphone'}, 'fbuild.builders.c.gcc.iphone.shared'),
         ({'darwin'}, 'fbuild.builders.c.gcc.darwin.shared'),
         ({'posix'}, 'fbuild.builders.c.gcc.shared'),
         ({'windows'}, 'fbuild.builders.c.msvc.shared'),

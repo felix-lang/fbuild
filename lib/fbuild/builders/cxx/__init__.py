@@ -10,6 +10,9 @@ def guess_static(*args, **kwargs):
     functions."""
 
     return fbuild.builders.c._guess_builder('c++ static', (
+        ({'iphone', 'simulator'},
+            'fbuild.builders.cxx.gxx.iphone.static_simulator'),
+        ({'iphone'}, 'fbuild.builders.cxx.gxx.iphone.static'),
         ({'darwin'}, 'fbuild.builders.cxx.gxx.darwin.static'),
         ({'posix'}, 'fbuild.builders.cxx.gxx.static'),
         ({'windows'}, 'fbuild.builders.cxx.msvc.static'),
@@ -23,6 +26,9 @@ def guess_shared(*args, **kwargs):
     functions."""
 
     return fbuild.builders.c._guess_builder('c++ shared', (
+        ({'iphone', 'simulator'},
+            'fbuild.builders.cxx.gxx.iphone.shared_simulator'),
+        ({'iphone'}, 'fbuild.builders.cxx.gxx.iphone.shared'),
         ({'darwin'}, 'fbuild.builders.cxx.gxx.darwin.shared'),
         ({'posix'}, 'fbuild.builders.cxx.gxx.shared'),
         ({'windows'}, 'fbuild.builders.cxx.msvc.shared'),

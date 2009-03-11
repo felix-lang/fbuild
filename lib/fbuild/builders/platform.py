@@ -39,6 +39,10 @@ archmap = {
     'openbsd':   {'posix', 'bsd', 'openbsd'},
     'darwin':    {'posix', 'bsd', 'darwin', 'macosx'},
     'osx':       {'posix', 'bsd', 'darwin', 'macosx'},
+
+    'iphone':           {'posix', 'bsd', 'darwin', 'iphone'},
+    'iphone-sim':       {'posix', 'bsd', 'darwin', 'iphone', 'simulator'},
+    'iphone-simulator': {'posix', 'bsd', 'darwin', 'iphone', 'simulator'},
 }
 
 # ------------------------------------------------------------------------------
