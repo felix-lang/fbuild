@@ -259,6 +259,15 @@ class Path(str):
     def lexists(self):
         return os.path.lexists(self)
 
+    def linecount(self):
+        """Count the number of lines in the file."""
+        count = 0
+        with open(self) as f:
+            for line in f:
+                count += 1
+
+        return count
+
     def listdir(self):
         """Returns all the files in the path."""
         return [Path(f) for f in os.listdir(f)]
