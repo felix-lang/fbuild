@@ -39,7 +39,6 @@ class Ar(fbuild.db.PersistentObject):
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
             libs:fbuild.db.SRCS=[],
             external_libs=[],
-            exports=[],
             flags=[],
             ranlib_flags=[],
             prefix=None,

@@ -59,9 +59,15 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             with open(src_lib, 'w') as f:
                 print('''
                     #ifdef __cplusplus
-                    extern "C"
+                    extern "C" {
+                    #endif
+                    #if defined _WIN32 || defined __CYGWIN__
+                    __declspec(dllexport)
                     #endif
                     int foo() { return 5; }
+                    #ifdef __cplusplus
+                    }
+                    #endif
                 ''', file=f)
 
             src_exe = dirname / 'tempexe' + self.src_suffix
@@ -69,9 +75,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 print('''
                     #include <stdio.h>
                     #ifdef __cplusplus
-                    extern "C"
+                    extern "C" {
                     #endif
                     extern int foo();
+                    #ifdef __cplusplus
+                    }
+                    #endif
                     int main(int argc, char** argv) {
                         printf("%d", foo());
                         return 0;
@@ -79,7 +88,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
             obj = self.uncached_compile(src_lib, quieter=1)
             lib = self.uncached_link_lib(dirname / 'temp', [obj],
-                    exports=['foo'],
                     quieter=1)
             obj = self.uncached_compile(src_exe, quieter=1)
             exe = self.uncached_link_exe(dirname / 'temp', [obj],
@@ -155,7 +163,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             ckwargs={},
             libs=[],
             external_libs=[],
-            exports=[],
             lflags=[],
             lkwargs={}):
         """Actually compile and link the sources."""
@@ -169,7 +176,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return function(dst, objs,
             libs=libs,
             external_libs=external_libs,
-            exports=exports,
             flags=lflags,
             **lkwargs)
 

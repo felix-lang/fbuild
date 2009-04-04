@@ -57,7 +57,6 @@ class Gcc(fbuild.db.PersistentObject):
             libpaths=[],
             libs=[],
             external_libs=[],
-            exports=[],
             debug=None,
             optimize=None,
             **kwargs):
@@ -144,9 +143,6 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend('-D' + d for d in sorted(macros))
         cmd.extend('-W' + w for w in sorted(warnings))
         cmd.extend('-L' + Path(p) for p in sorted(libpaths) if p)
-
-        # Note that we prepend an underscore at the start of the symbol.
-        cmd.extend('-Wl,-exported_symbol,_' + e for e in exports)
 
         if dst is not None:
             cmd.extend(('-o', dst))

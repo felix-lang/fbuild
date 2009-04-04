@@ -205,7 +205,6 @@ class Lib(fbuild.db.PersistentObject):
             libpaths=[],
             libs=[],
             external_libs=[],
-            exports=[],
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
@@ -262,7 +261,6 @@ class Link(fbuild.db.PersistentObject):
             libpaths=[],
             libs=[],
             external_libs=[],
-            exports=[],
             buildroot=None,
             **kwargs):
         new_libpaths = []
@@ -321,7 +319,6 @@ class Link(fbuild.db.PersistentObject):
         cmd.append('/OUT:' + dst)
         cmd.extend(self.flags)
         cmd.extend(flags)
-        cmd.extend('/EXPORT:' + export for export in exports)
         cmd.extend('/LIBRARYPATH:' + p for p in sorted(libpaths) if p)
 
         for lib in chain(self.external_libs, external_libs, self.libs, libs):

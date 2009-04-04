@@ -150,7 +150,7 @@ def build():
             Path.copy('bar.c', d)
 
             obj = builder.compile(d / 'bar.c')
-            lib = builder.link_lib(d / 'bar', [obj], exports=['bar'])
+            lib = builder.link_lib(d / 'bar', [obj])
 
             obj = builder.compile(d / 'foo.c')
             exe = builder.link_exe(d / 'foo', [obj], libs=[lib])
