@@ -106,6 +106,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             libs=[],
             pre_flags=[],
             flags=[],
+            debug=False,
             debug_flags=['-g'],
             ocamldep=None):
         super().__init__(src_suffix='.ml')
@@ -119,6 +120,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.libs = libs
         self.pre_flags = pre_flags
         self.flags = flags
+        self.debug = debug
         self.debug_flags = debug_flags
 
         # ----------------------------------------------------------------------
@@ -184,7 +186,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             external_libs=[],
             pre_flags=[],
             flags=[],
-            debug=False,
+            debug=None,
             custom=False,
             c_libs=[],
             buildroot=None,
@@ -209,6 +211,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         cmd = [self.exe]
         cmd.extend(self.pre_flags)
         cmd.extend(pre_flags)
+
+        if debug is None:
+            debug = self.debug
 
         if debug:
             cmd.extend(self.debug_flags)
