@@ -44,7 +44,9 @@ class Ocamldep(fbuild.db.PersistentObject):
         return stdout.decode().replace('\\\n', '').split(':')[1].split()
 
     @fbuild.db.cachemethod
-    def source_dependencies(self, src:fbuild.db.SRC, *, includes=[], **kwargs):
+    def source_dependencies(self, src:fbuild.db.SRC, *,
+            includes=[],
+            **kwargs) -> fbuild.db.DSTS:
         """Compute the source files this ocaml file depends on."""
         deps = []
 
@@ -459,7 +461,7 @@ class Ocamlc(Builder):
     @fbuild.db.cachemethod
     def scan(self, src:fbuild.db.SRC, *,
             includes=[],
-            **kwargs):
+            **kwargs) -> fbuild.db.DSTS:
         """Recursively compute all the source files this ocaml file depends
         on."""
         lookup = {}
@@ -507,7 +509,7 @@ class Ocamlopt(Builder):
     @fbuild.db.cachemethod
     def scan(self, src:fbuild.db.SRC, *,
             includes=[],
-            **kwargs):
+            **kwargs) -> fbuild.db.DSTS:
         """Recursively compute all the source files this ocaml file depends
         on."""
         deps = set()
