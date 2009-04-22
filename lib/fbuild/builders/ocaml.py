@@ -281,8 +281,15 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             *args, **kwargs)
 
     def _add_compile_dependencies(self, dst, src, includes):
+        # If the .mli file doesn't exist, ocaml creates one from the .ml file
+        if src.endswith('.ml') and not src.replaceext('.mli').exists():
+            dsts = [dst.replaceext('.cmi')]
+        else:
+            dsts = []
+
         fbuild.db.add_external_dependencies_to_call(
-            srcs=self.scan(src, includes=includes))
+            srcs=self.scan(src, includes=includes),
+            dsts=dsts)
 
     # --------------------------------------------------------------------------
 
