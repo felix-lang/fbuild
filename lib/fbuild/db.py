@@ -228,10 +228,8 @@ class Database:
             if function_dirty:
                 self._update_function(function_name, function_digest)
 
-            if call_id is None:
-                # Get the real call_id to use in the call files.
-                call_id = self._update_call(
-                    function_name, call_id, bound, result)
+            # Get the real call_id to use in the call files.
+            call_id = self._update_call(function_name, call_id, bound, result)
 
             self._update_call_files(call_file_digests, function_name, call_id)
             self._update_external_files(function_name, call_id,
