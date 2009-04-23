@@ -389,7 +389,8 @@ class Database:
         try:
             datas = self._function_calls[function]
         except KeyError:
-            assert call_id is None
+            # The function be new or may have been cleared. So ignore the
+            # call_id and just create a new list.
             self._function_calls[function] = [(bound, result)]
             return 0
         else:
