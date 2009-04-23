@@ -110,7 +110,10 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             flags=[],
             debug=False,
             debug_flags=['-g'],
-            ocamldep=None):
+            ocamldep=None,
+            requires_version=None,
+            requires_at_least_version=None,
+            requires_at_most_version=None):
         super().__init__(src_suffix='.ml')
 
         self.ocamldep = ocamldep or Ocamldep()
@@ -124,6 +127,36 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.flags = flags
         self.debug = debug
         self.debug_flags = debug_flags
+
+        # ----------------------------------------------------------------------
+        # Check the builder version.
+
+        if any(v is not None for v in (
+                requires_version,
+                requires_at_least_version,
+                requires_at_most_version)):
+            logger.check('checking %s version' % self.exe.name)
+
+            version_str = self.version()
+            version = tuple(int(i) for i in version_str.split('.'))
+
+            if requires_version is not None and requires_version != version:
+                raise ConfigFailed('version %s required; found %s' %
+                    ('.'.join(str(i) for i in requires_version), version_str))
+
+            if requires_at_least_version is not None and \
+                    requires_at_least_version > version:
+                raise ConfigFailed('at least version %s required; found %s' % (
+                    '.'.join(str(i) for i in requires_at_least_version),
+                    version_str))
+
+            if requires_at_most_version is not None and \
+                    requires_at_most_version < version:
+                raise ConfigFailed('at most version %s required; found %s' % (
+                    '.'.join(str(i) for i in requires_at_most_version),
+                    version_str))
+
+            logger.passed(version_str)
 
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
@@ -179,6 +212,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def where(self):
         stdout, stderr = execute([self.exe, '-where'], quieter=1)
         return Path(stdout.decode().strip())
+
+    def version(self):
+        """Return the version of the ocaml executable."""
+        stdout, stderr = execute([self.exe, '-version'], quieter=1)
+        return stdout.decode().strip()
 
     # --------------------------------------------------------------------------
 
