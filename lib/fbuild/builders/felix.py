@@ -53,8 +53,12 @@ class Flx:
         with tempfile('', suffix='.flx') as src:
             try:
                 self(src, flags=flags, quieter=1)
-            except ExecutionError:
+            except ExecutionError as e:
                 logger.failed()
+                if e.stdout:
+                    logger.log(e.stdout.decode())
+                if e.stderr:
+                    logger.log(e.stderr.decode())
                 return False
 
         logger.passed()
