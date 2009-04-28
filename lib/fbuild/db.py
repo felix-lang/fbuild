@@ -216,6 +216,11 @@ class Database:
                 all_dsts.update(return_dsts)
                 return old_result, all_srcs, all_dsts
 
+        # Clear external srcs and dsts since they'll be recomputed inside
+        # the function.
+        external_srcs = set()
+        external_dsts = set()
+
         # The call was dirty, so recompute it.
         result = function(*args, **kwargs)
 
