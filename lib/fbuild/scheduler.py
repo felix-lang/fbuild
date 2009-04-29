@@ -2,6 +2,7 @@ import operator
 import queue
 import sys
 import threading
+import time
 
 # ------------------------------------------------------------------------------
 
@@ -90,8 +91,9 @@ class Scheduler:
                 # a chance to get raised.
                 while True:
                     try:
-                        task = done_queue.get(block=False, timeout=1.0)
+                        task = done_queue.get(block=False)
                     except queue.Empty:
+                        time.sleep(0.1)
                         pass
                     else:
                         break
