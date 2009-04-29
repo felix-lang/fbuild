@@ -101,6 +101,7 @@ class Felix(fbuild.builders.AbstractCompiler):
             **kwargs):
         """Compile a felix file without caching the results.  This is needed
         when compiling temporary files."""
+        src = Path(src)
         buildroot = buildroot or fbuild.buildroot
         src_buildroot = src.addroot(buildroot)
 
