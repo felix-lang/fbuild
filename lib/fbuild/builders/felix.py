@@ -119,6 +119,7 @@ class Felix(fbuild.builders.AbstractCompiler):
 
         includes = set(includes)
         includes.update(self.includes)
+        includes.add(src.parent)
 
         cmd_flags = ['-c']
         cmd_flags.extend(self.flags)
