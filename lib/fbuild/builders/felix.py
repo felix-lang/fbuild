@@ -13,17 +13,20 @@ from fbuild.temp import tempfile
 # ------------------------------------------------------------------------------
 
 class Flx:
-    def __init__(self, exe, flags=[]):
+    def __init__(self, exe, *, includes=[], debug=False, flags=[]):
         # we split exe in case extra arguments were specified in the name
         self.exe = fbuild.builders.find_program([exe])
+        self.includes = includes
+        self.debug = debug
         self.flags = flags
 
         if not self.check_flags([]):
             raise ConfigFailed('%s failed to compile an exe' % self)
 
     def __call__(self, src, *args,
-            static=False,
             includes=[],
+            debug=None,
+            static=False,
             flags=[],
             cwd=None,
             **kwargs):
@@ -31,6 +34,12 @@ class Flx:
 
         if sys.platform == 'win32':
             cmd.insert(0, 'c:\python26\python.exe')
+
+        if debug is None:
+            debug = self.debug
+
+        if debug:
+            cmd.append('--debug')
 
         if static:
             cmd.append('--static')
@@ -76,12 +85,13 @@ class Flx:
 class Felix(fbuild.builders.AbstractCompiler):
     def __init__(self, exe='flx.py', *,
             platform=None,
-            static=False,
             includes=[],
+            static=False,
+            debug=False,
             flags=[]):
         super().__init__(src_suffix='.flx')
 
-        self.flx = Flx(exe, flags=flags)
+        self.flx = Flx(exe, debug=debug, flags=flags)
         self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
         self.lib_suffix = fbuild.builders.platform.shared_lib_suffix(platform)
         self.static = static
@@ -126,8 +136,8 @@ class Felix(fbuild.builders.AbstractCompiler):
         cmd_flags.extend(flags)
 
         self.flx(src, self.flx, '%s -> %s' % (src, dst),
-            static=static,
             includes=includes,
+            static=static,
             flags=cmd_flags,
             color='green',
             **kwargs)
