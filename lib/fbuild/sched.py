@@ -1,8 +1,25 @@
+import collections
+import io
 import operator
 import queue
 import sys
 import threading
 import time
+
+import fbuild
+
+# ------------------------------------------------------------------------------
+
+class DependencyLoop(fbuild.Error):
+    def __init__(self, srcs):
+        self.srcs = srcs
+
+    def __str__(self):
+        s = io.StringIO()
+        for src, dst in self.srcs:
+            print('%s and %s depend on each other' % (src, dst), file=s)
+
+        return s.getvalue().strip()
 
 # ------------------------------------------------------------------------------
 
@@ -38,7 +55,7 @@ class Scheduler:
         for src in srcs:
             nodes[src] = Node(function, src)
 
-        for dep_node in self._evaluate([Node(depends, src) for src in srcs]):
+        for dep_node in self._evaluate(Node(depends, src) for src in srcs):
             try:
                 node = nodes[dep_node.src]
             except KeyError:
@@ -55,14 +72,15 @@ class Scheduler:
         return [n.result for n in self._evaluate(nodes.values())]
 
     def _evaluate(self, tasks):
+        tasks = list(tasks)
         count = 0
-        children = {}
+        children = collections.defaultdict(list)
         done_queue = queue.Queue()
         results = []
 
         for task in tasks:
             for dep in task.dependencies:
-                children.setdefault(dep, []).append(task)
+                children[dep].append(task)
 
             if task.can_run():
                 count += 1
@@ -108,11 +126,27 @@ class Scheduler:
                 raise task.exc
             results.append(task)
 
-            for child in children.get(task, []):
+            for child in children[task]:
                 if child.can_run():
                     count += 1
                     child.running = True
                     self.__ready_queue.put((done_queue, child))
+
+        # Check if we ran all of the tasks
+        if len(results) != len(tasks):
+            # Uh oh, we must have a mutually dependent task. Figure out all the
+            # dependencies and error out.
+            recursive_srcs = set()
+
+            for task in tasks:
+                if task.done:
+                    continue
+
+                for dep in children[task]:
+                    if task in dep.dependencies and dep in task.dependencies:
+                        recursive_srcs.add(frozenset((task.src, dep.src)))
+
+            raise DependencyLoop(recursive_srcs)
 
         return results
 
