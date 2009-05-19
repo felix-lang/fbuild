@@ -8,7 +8,7 @@ from optparse import OptionParser, make_option
 import fbuild
 import fbuild.db
 import fbuild.path
-import fbuild.scheduler
+import fbuild.sched
 
 # ------------------------------------------------------------------------------
 
@@ -131,7 +131,7 @@ def main(argv=None):
     fbuild.logger.show_threads = options.show_threads
 
     # construct the global scheduler
-    fbuild.scheduler = fbuild.scheduler.Scheduler(options.threadcount)
+    fbuild.scheduler = fbuild.sched.Scheduler(options.threadcount)
 
     # store the options in fbuild
     fbuild.options = options
