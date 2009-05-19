@@ -558,12 +558,16 @@ class Ocamlopt(Builder):
         """Recursively compute all the source files this ocaml file depends
         on."""
         deps = set()
-        for dep in self.ocamldep.source_dependencies(src,
-                includes=includes,
-                **kwargs):
-            deps.add(dep)
-            d = self.scan(dep, includes=includes, **kwargs)
-            deps.update(d)
+        def f(src):
+            for dep in self.ocamldep.source_dependencies(src,
+                    includes=includes,
+                    **kwargs):
+                # Don't scan this dependency if we've already scanned it.
+                if dep not in deps:
+                    deps.add(dep)
+                    f(dep)
+
+        f(src)
 
         return deps
 
