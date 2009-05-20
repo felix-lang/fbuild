@@ -138,7 +138,17 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             logger.check('checking %s version' % self.exe.name)
 
             version_str = self.version()
-            version = tuple(int(i) for i in version_str.split('.'))
+
+            # Convert the version into a tuple
+            version = []
+            for i in version_str.split('.'):
+                try:
+                    version.append(int(i))
+                except ValueError:
+                    # The subversion isn't a number, so just convert it to a
+                    # string.
+                    version.append(i)
+            version = tuple(version)
 
             if requires_version is not None and requires_version != version:
                 raise ConfigFailed('version %s required; found %s' %
