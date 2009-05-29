@@ -16,8 +16,17 @@ class DependencyLoop(fbuild.Error):
 
     def __str__(self):
         s = io.StringIO()
-        for src, dst in self.srcs:
-            print('%s and %s depend on each other' % (src, dst), file=s)
+        for srcs in self.srcs:
+            srcs = sorted(srcs)
+            if len(srcs) == 0:
+                print('dependency loop', file=s)
+            elif len(srcs) == 1:
+                print('%s depends on itself' % srcs[0], file=s)
+            else:
+                print('%s and %s depend on each other' % (
+                    ', '.join(srcs[0:-1]),
+                    srcs[-1]
+                ), file=s)
 
         return s.getvalue().strip()
 
