@@ -133,8 +133,9 @@ def main(argv=None):
     # construct the global scheduler
     fbuild.scheduler = fbuild.sched.Scheduler(options.threadcount)
 
-    # store the options in fbuild
+    # store the options and args in fbuild
     fbuild.options = options
+    fbuild.args = args
 
     # -------------------------------------------------------------------------
     # get the configuration
