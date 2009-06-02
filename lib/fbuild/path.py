@@ -270,7 +270,7 @@ class Path(str):
 
     def listdir(self):
         """Returns all the files in the path."""
-        return [Path(f) for f in os.listdir(f)]
+        return [Path(f) for f in os.listdir(self)]
 
     def lstat(self):
         return os.lstat(self)
