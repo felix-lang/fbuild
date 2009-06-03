@@ -5,6 +5,7 @@ This builder is compatible with ocaml 3.10 and above.
 """
 
 import collections
+import re
 import os
 from functools import partial
 from itertools import chain
@@ -41,7 +42,15 @@ class Ocamldep(fbuild.db.PersistentObject):
         stdout, stderr = execute(cmd, stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
-        return stdout.decode().replace('\\\n', '').split(':')[1].split()
+        m = re.match(b'\S+:(?: (.*))?$', stdout)
+        if not m:
+            raise ExecutionError('unable to understand %r' % stdout)
+
+        s = m.group(1)
+        if s is None:
+            return []
+        else:
+            return s.decode().split()
 
     @fbuild.db.cachemethod
     def source_dependencies(self, src:fbuild.db.SRC, *,

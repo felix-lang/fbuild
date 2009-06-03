@@ -1,4 +1,5 @@
 from itertools import chain
+import re
 
 import fbuild
 import fbuild.builders.ar
@@ -340,10 +341,17 @@ class Builder(fbuild.builders.c.Builder):
 
             with open(dep, 'rb') as f:
                 # Parse the output and return the module dependencies.
-                stdout = f.read().decode().replace('\\\n', '')
+                stdout = f.read().replace(b'\\\n', b'')
 
-        deps = [Path(p) for p in stdout.split(':')[1].split()]
-        fbuild.db.add_external_dependencies_to_call(srcs=deps)
+        # Parse the output and return the module dependencies.
+        m = re.match(b'\S+:(?: (.*))?$', stdout)
+        if not m:
+            raise ExecutionError('unable to understand %r' % stdout)
+
+        s = m.group(1)
+        if s is not None:
+            deps = s.decode().split()
+            fbuild.db.add_external_dependencies_to_call(srcs=deps)
 
         return obj
 
