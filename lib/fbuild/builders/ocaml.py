@@ -474,7 +474,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             c_libs=[],
             lflags=[],
             lkwargs={},
-            buildroot=None):
+            buildroot=None,
+            **kwargs):
         # This must be called from a cached function to work properly.
         buildroot = buildroot or fbuild.buildroot
         includes = set(includes)
@@ -487,7 +488,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             includes=includes,
             flags=cflags,
             buildroot=buildroot,
-            **ckwargs)
+            **dict(kwargs, **ckwargs))
 
         return function(dst, objs,
             includes=includes,
@@ -497,7 +498,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             c_libs=c_libs,
             flags=lflags,
             buildroot=buildroot,
-            **lkwargs)
+            **dict(kwargs, **lkwargs))
 
     # --------------------------------------------------------------------------
 
