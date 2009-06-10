@@ -41,8 +41,10 @@ class Ocamldep(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        fbuild.logger.check(' * ' + self.exe.name, src, color='yellow')
-        stdout, stderr = execute(cmd, stdout_quieter=1)
+        # Now, run ocamldep
+        stdout, stderr = execute(cmd, str(self), src,
+            color='yellow',
+            stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
         m = re.match(b'\S+:(?: (.*))?$', stdout)
@@ -96,7 +98,7 @@ class Ocamldep(fbuild.db.PersistentObject):
         return deps
 
     def __str__(self):
-        return self.exe
+        return self.exe.name
 
     def __repr__(self):
         return '%s(%r, %r, %r)' % (
@@ -306,7 +308,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         cmd.extend(extra_srcs)
         cmd.extend(srcs)
 
-        execute(cmd, self.exe.name,
+        execute(cmd, str(self),
             '%s -> %s' % (' '.join(extra_srcs + srcs), dst),
             **kwargs)
 
@@ -500,7 +502,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     def __str__(self):
-        return self.exe
+        return self.exe.name
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.exe)
@@ -782,14 +784,14 @@ class Ocamllex(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, self.exe.name,
+        execute(cmd, str(self),
             '%s -> %s' % (src, dst),
             color='yellow')
 
         return dst
 
     def __str__(self):
-        return self.exe
+        return self.exe.name
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
@@ -829,13 +831,13 @@ class Ocamlyacc(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, self.exe.name, '%s -> %s' % (src, ' '.join(dsts)),
+        execute(cmd, str(self), '%s -> %s' % (src, ' '.join(dsts)),
             color='yellow')
 
         return dsts
 
     def __str__(self):
-        return self.exe
+        return self.exe.name
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
