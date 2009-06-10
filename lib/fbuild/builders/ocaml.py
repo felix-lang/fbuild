@@ -21,7 +21,7 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 class Ocamldep(fbuild.db.PersistentObject):
-    """Use ocamldoc to generate dependencies for ocaml files."""
+    """Use ocamldep to generate dependencies for ocaml files."""
 
     def __init__(self, exe=None, module_flags=[]):
         self.exe = fbuild.builders.find_program(
