@@ -23,18 +23,21 @@ from fbuild.path import Path
 class Ocamldep(fbuild.db.PersistentObject):
     """Use ocamldep to generate dependencies for ocaml files."""
 
-    def __init__(self, exe=None, module_flags=[]):
+    def __init__(self, exe=None, *, pre_flags=[], flags=[]):
         self.exe = fbuild.builders.find_program(
             [exe] if exe else ['ocamldep.opt', 'ocamldep'])
-        self.module_flags = module_flags
+        self.pre_flags = pre_flags
+        self.flags = flags
 
     @fbuild.db.cachemethod
     def modules(self, src:fbuild.db.SRC, *, flags=[]):
         """Calculate the modules this ocaml file depends on."""
         src = Path(src)
 
-        cmd = [self.exe, '-modules']
-        cmd.extend(self.module_flags)
+        cmd = [self.exe]
+        cmd.extend(self.pre_flags)
+        cmd.append('-modules')
+        cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.append(src)
 
@@ -96,15 +99,17 @@ class Ocamldep(fbuild.db.PersistentObject):
         return self.exe
 
     def __repr__(self):
-        return '%s(%r, %r)' % (
+        return '%s(%r, %r, %r)' % (
             self.__class__.__name__,
             self.exe,
-            self.module_flags)
+            self.pre_flags,
+            self.flags)
 
     def __eq__(self, other):
         return isinstance(other, Ocamldep) and \
             self.exe == other.exe and \
-            self.module_flags == other.module_flags
+            self.pre_flags == other.pre_flags and \
+            self.flags == other.flags
 
 # ------------------------------------------------------------------------------
 
