@@ -4,7 +4,7 @@ import time
 import random
 import unittest
 
-from fbuild.scheduler import Scheduler
+from fbuild.sched import Scheduler
 
 import threading
 
