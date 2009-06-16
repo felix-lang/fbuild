@@ -170,7 +170,7 @@ class dlfcn_h(c.Header):
 
     @property
     def dlerror(self):
-        if self.dlclose:
+        if self.dlopen:
             return c.Function('char*', 'void')
 
     @c.cacheproperty
