@@ -179,7 +179,7 @@ class dlfcn_h(c.Header):
             return
 
         # try to get a shared compiler
-        shared = fbuild.builders.c.guess_shared()
+        shared = fbuild.builders.cxx.guess_shared(flags=self.builder.flags)
 
         lib_code = '''
             #ifdef __cplusplus
