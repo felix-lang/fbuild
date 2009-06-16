@@ -517,7 +517,8 @@ def static(exe=None, *args,
             libpaths=libpaths),
         exe_linker=ExeLink(
             pre_flags=list(chain(link_flags, exe_link_flags))),
-        src_suffix=src_suffix)
+        src_suffix=src_suffix,
+        flags=flags)
 
 # ------------------------------------------------------------------------------
 
@@ -540,4 +541,5 @@ def shared(exe=None, *args,
             pre_flags=list(chain(link_flags, lib_link_flags))),
         exe_linker=ExeLink(
             pre_flags=list(chain(link_flags, exe_link_flags))),
-        src_suffix=src_suffix)
+        src_suffix=src_suffix,
+        flags=flags)

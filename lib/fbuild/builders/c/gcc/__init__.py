@@ -427,7 +427,8 @@ def static(exe=None, *args,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),
-        src_suffix=src_suffix)
+        src_suffix=src_suffix,
+        flags=flags)
 
 # ------------------------------------------------------------------------------
 
@@ -459,4 +460,5 @@ def shared(exe=None, *args,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),
-        src_suffix=src_suffix)
+        src_suffix=src_suffix,
+        flags=flags)

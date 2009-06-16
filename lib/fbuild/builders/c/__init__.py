@@ -25,8 +25,10 @@ class MissingHeader(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, flags=[], **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.flags = flags
 
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
