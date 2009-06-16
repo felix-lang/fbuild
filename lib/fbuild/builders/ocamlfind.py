@@ -1,5 +1,6 @@
 from itertools import chain
 
+from fbuild import execute
 import fbuild.builders
 import fbuild.builders.ocaml as ocaml
 import fbuild.db
@@ -13,9 +14,11 @@ class Ocamldep(ocaml.Ocamldep):
             pre_flags=[],
             packages=[],
             syntaxes=[],
+            ppopts=[],
             **kwargs):
         self.packages = packages
         self.syntaxes = syntaxes
+        self.ppopts = ppopts
 
         # We'll use ocamlfind as our executable and add ocamldep as the first
         # preflag.
@@ -28,6 +31,7 @@ class Ocamldep(ocaml.Ocamldep):
             flags=[],
             packages=[],
             syntaxes=[],
+            ppopts=[],
             **kwargs):
         """Calculate the module this ocaml file depends on."""
 
@@ -39,6 +43,9 @@ class Ocamldep(ocaml.Ocamldep):
 
         for syntax in chain(self.syntaxes, syntaxes):
             flags.extend(('-syntax', syntax))
+
+        for ppopt in chain(self.ppopts, ppopts):
+            flags.extend(('-ppopt', ppopt))
 
         return super().modules(*args, flags=flags, **kwargs)
 
@@ -56,10 +63,12 @@ class Ocamlc(ocaml.Ocamlc):
             packages=[],
             syntaxes=[],
             linkpkg=True,
+            ppopts=[],
             **kwargs):
         self.packages = packages
         self.syntaxes = syntaxes
         self.linkpkg = linkpkg
+        self.ppopts = ppopts
 
         # We'll use ocamlfind as our executable and add ocamlc as the first
         # preflag.
@@ -68,13 +77,24 @@ class Ocamlc(ocaml.Ocamlc):
             pre_flags=['ocamlc'] + pre_flags,
             ocamldep=ocamldep if ocamldep else Ocamldep(
                 packages=packages,
-                syntaxes=syntaxes),
+                syntaxes=syntaxes,
+                ppopts=ppopts),
             **kwargs)
+
+    def where(self):
+        stdout, stderr = execute([self.exe, 'ocamlc', '-where'], quieter=1)
+        return Path(stdout.decode().strip())
+
+    def version(self):
+        """Return the version of the ocaml executable."""
+        stdout, stderr = execute([self.exe, 'ocamlc', '-version'], quieter=1)
+        return stdout.decode().strip()
 
     def _run(self, *args,
             flags=[],
             packages=[],
             syntaxes=[],
+            ppopts=[],
             **kwargs):
         # Add the ocamlfind-specific flags to the flags
         flags = list(flags)
@@ -85,7 +105,36 @@ class Ocamlc(ocaml.Ocamlc):
         for syntax in chain(self.syntaxes, syntaxes):
             flags.extend(('-syntax', syntax))
 
+        for ppopt in chain(self.ppopts, ppopts):
+            flags.extend(('-ppopt', ppopt))
+
         return super()._run(*args, flags=flags, **kwargs)
+
+    def build_objects(self, *args,
+            packages=[],
+            syntaxes=[],
+            ppopts=[],
+            ocamldep_flags=[],
+            **kwargs):
+
+        # Add the ocamlfind-specific flags to the flags
+        ocamldep_flags = list(ocamldep_flags)
+
+        for package in chain(self.packages, packages):
+            ocamldep_flags.extend(('-package', package))
+
+        for syntax in chain(self.syntaxes, syntaxes):
+            ocamldep_flags.extend(('-syntax', syntax))
+
+        for ppopt in chain(self.ppopts, ppopts):
+            ocamldep_flags.extend(('-ppopt', ppopt))
+
+        return super().build_objects(*args,
+            ocamldep_flags=ocamldep_flags,
+            packages=packages,
+            syntaxes=syntaxes,
+            ppopts=ppopts,
+            **kwargs)
 
     def link_exe(self, *args, flags=[], linkpkg=None, **kwargs):
         """Compile all the L{srcs} and link into an executable."""
@@ -114,10 +163,12 @@ class Ocamlopt(ocaml.Ocamlopt):
             packages=[],
             syntaxes=[],
             linkpkg=True,
+            ppopts=[],
             **kwargs):
         self.packages = packages
         self.syntaxes = syntaxes
         self.linkpkg = linkpkg
+        self.ppopts = ppopts
 
         # We'll use ocamlfind as our executable and add ocamlopt as the first
         # preflag.
@@ -133,13 +184,24 @@ class Ocamlopt(ocaml.Ocamlopt):
                 ocamldep=ocamldep,
                 packages=packages,
                 syntaxes=syntaxes,
-                linkpkg=linkpkg),
+                linkpkg=linkpkg,
+                ppopts=ppopts),
             **kwargs)
+
+    def where(self):
+        stdout, stderr = execute([self.exe, 'ocamlopt', '-where'], quieter=1)
+        return Path(stdout.decode().strip())
+
+    def version(self):
+        """Return the version of the ocaml executable."""
+        stdout, stderr = execute([self.exe, 'ocamlopt', '-version'], quieter=1)
+        return stdout.decode().strip()
 
     def _run(self, *args,
             flags=[],
             packages=[],
             syntaxes=[],
+            ppopts=[],
             **kwargs):
         # Add the ocamlfind-specific flags to the flags
         flags = list(flags)
@@ -150,7 +212,36 @@ class Ocamlopt(ocaml.Ocamlopt):
         for syntax in chain(self.syntaxes, syntaxes):
             flags.extend(('-syntax', syntax))
 
+        for ppopt in chain(self.ppopts, ppopts):
+            flags.extend(('-ppopt', ppopt))
+
         return super()._run(*args, flags=flags, **kwargs)
+
+    def build_objects(self, *args,
+            packages=[],
+            syntaxes=[],
+            ppopts=[],
+            ocamldep_flags=[],
+            **kwargs):
+
+        # Add the ocamlfind-specific flags to the flags
+        ocamldep_flags = list(ocamldep_flags)
+
+        for package in chain(self.packages, packages):
+            ocamldep_flags.extend(('-package', package))
+
+        for syntax in chain(self.syntaxes, syntaxes):
+            ocamldep_flags.extend(('-syntax', syntax))
+
+        for ppopt in chain(self.ppopts, ppopts):
+            flags.extend(('-ppopt', ppopt))
+
+        return super().build_objects(*args,
+            ocamldep_flags=ocamldep_flags,
+            packages=packages,
+            syntaxes=syntaxes,
+            ppopts=ppopts,
+            **kwargs)
 
     def link_exe(self, *args, flags=[], linkpkg=None, **kwargs):
         """Compile all the L{srcs} and link into an executable."""
@@ -175,19 +266,22 @@ class Ocaml(ocaml.Ocaml):
     def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None,
             packages=[],
             syntaxes=[],
+            ppopts=[],
             **kwargs):
         # We purposefully do not use ocaml.Ocaml's constructor as we want to
         # use ocamlfind's builders.
 
         self.ocamldep = ocamldep or Ocamldep(
             packages=packages,
-            syntaxes=syntaxes)
+            syntaxes=syntaxes,
+            ppopts=ppopts)
 
         self.ocamlc = Ocamlc(
             ocamldep=ocamldep,
             exe=ocamlc,
             packages=packages,
             syntaxes=syntaxes,
+            ppopts=ppopts,
             **kwargs)
 
         self.ocamlopt = Ocamlopt(
@@ -196,4 +290,5 @@ class Ocaml(ocaml.Ocaml):
             exe=ocamlopt,
             packages=packages,
             syntaxes=syntaxes,
+            ppopts=ppopts,
             **kwargs)

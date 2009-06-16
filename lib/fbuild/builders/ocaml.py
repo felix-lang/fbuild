@@ -30,13 +30,19 @@ class Ocamldep(fbuild.db.PersistentObject):
         self.flags = flags
 
     @fbuild.db.cachemethod
-    def modules(self, src:fbuild.db.SRC, *, flags=[]):
+    def modules(self, src:fbuild.db.SRC, *,
+            preprocessor=None,
+            flags=[]):
         """Calculate the modules this ocaml file depends on."""
         src = Path(src)
 
         cmd = [self.exe]
         cmd.extend(self.pre_flags)
         cmd.append('-modules')
+
+        if preprocessor is not None:
+            cmd.extend(('-pp', preprocessor))
+
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.append(src)
@@ -67,12 +73,26 @@ class Ocamldep(fbuild.db.PersistentObject):
         def f(module, include):
             found = False
             for suffix in '.mli', '.ml':
-                path = Path(module[0].lower() + module[1:] + suffix)
-                if include is not None: path = include / path
+                path = module + suffix
 
-                if path.exists():
-                    deps.append(path)
+                if include is None:
+                    parent = Path('.')
+                else:
+                    parent = include
+
+                dirs = parent.listdir()
+                if path in dirs:
+                    deps.append(parent / path)
                     found = True
+                else:
+                    # We didn't find the uppercase form, so try the lowercase
+                    # one.
+                    path = module[0].lower() + module[1:] + suffix
+
+                    if path in dirs:
+                        deps.append(parent / path)
+                        found = True
+
             return found
 
         modules = self.modules(src, **kwargs)
@@ -255,6 +275,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             debug=None,
             custom=False,
             c_libs=[],
+            for_pack=None,
+            preprocessor=None,
             buildroot=None,
             **kwargs):
         buildroot = buildroot or fbuild.buildroot
@@ -302,6 +324,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             else:
                 cmd.extend(('-cclib', '-l' + lib))
 
+        if preprocessor is not None:
+            cmd.extend(('-pp', preprocessor))
+
+        if for_pack is not None:
+            cmd.extend(('-for-pack', for_pack))
+
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(('-o', dst))
@@ -319,13 +347,19 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     @fbuild.db.cachemethod
     def compile(self, src:fbuild.db.SRC, *args,
             includes=[],
+            ocamldep_flags=[],
+            preprocessor=None,
             **kwargs) -> fbuild.db.DST:
         """Compile an ocaml implementation or interface file and cache the
         results."""
         dst = self.uncached_compile(src, *args,
             includes=includes,
+            preprocessor=preprocessor,
             **kwargs)
-        self._add_compile_dependencies(dst, src, includes)
+        self._add_compile_dependencies(dst, src,
+            includes=includes,
+            preprocessor=preprocessor,
+            flags=ocamldep_flags)
         return dst
 
 
@@ -344,7 +378,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             color='green',
             *args, **kwargs)
 
-    def _add_compile_dependencies(self, dst, src, includes):
+    def _add_compile_dependencies(self, dst, src, **kwargs):
         # If the .mli file doesn't exist, ocaml creates one from the .ml file
         if src.endswith('.ml') and not src.replaceext('.mli').exists():
             dsts = [dst.replaceext('.cmi')]
@@ -352,7 +386,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             dsts = []
 
         fbuild.db.add_external_dependencies_to_call(
-            srcs=self.scan(src, includes=includes),
+            srcs=self.scan(src, **kwargs),
             dsts=dsts)
 
     # --------------------------------------------------------------------------
@@ -392,12 +426,14 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def uncached_link_lib(self, dst, *args,
             libs=[],
             external_libs=[],
+            pre_flags=[],
+            pack=None,
             **kwargs):
         """Link compiled ocaml files into a library without caching the
         results.  This is needed when linking temporary files."""
         # ignore passed in libraries
         return self._uncached_link(dst + self.lib_suffix,
-            pre_flags=['-a'], *args, **kwargs)
+            pre_flags=['-a'] + pre_flags, *args, **kwargs)
 
     def uncached_link_exe(self, dst, *args, **kwargs):
         """Link compiled ocaml files into an executable without caching the
@@ -418,6 +454,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def build_objects(self, srcs:fbuild.db.SRCS, *,
             includes=[],
             buildroot=None,
+            ocamldep_flags=[],
+            preprocessor=None,
             **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
         kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
@@ -436,14 +474,28 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # Add additional source dependencies to the call.
         deps = set()
         for src in srcs:
-            deps.update(self.scan(src, includes=includes))
+            d = self.scan(src,
+                includes=includes,
+                preprocessor=preprocessor,
+                flags=ocamldep_flags)
+            if src.endswith('extFormat.mli'):
+                print(src, d)
+            else:
+                print(src)
+            deps.update(d)
 
         if deps:
             fbuild.db.add_external_dependencies_to_call(srcs=deps)
 
         return fbuild.scheduler.map_with_dependencies(
-            partial(self.ocamldep.source_dependencies, includes=includes),
-            partial(self.compile, includes=includes),
+            partial(self.ocamldep.source_dependencies,
+                includes=includes,
+                preprocessor=preprocessor,
+                flags=ocamldep_flags),
+            partial(self.compile,
+                ocamldep_flags=ocamldep_flags,
+                preprocessor=preprocessor,
+                **kwargs),
             srcs)
 
     # --------------------------------------------------------------------------
@@ -620,8 +672,8 @@ class Ocamlopt(Builder):
 
     # --------------------------------------------------------------------------
 
-    def _add_compile_dependencies(self, dst, src, includes):
-        super()._add_compile_dependencies(dst, src, includes)
+    def _add_compile_dependencies(self, dst, src, **kwargs):
+        super()._add_compile_dependencies(dst, src, **kwargs)
 
         fbuild.db.add_external_dependencies_to_call(
             dsts=(dst.replaceext(self.native_obj_suffix),))
