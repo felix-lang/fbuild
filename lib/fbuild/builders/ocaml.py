@@ -71,25 +71,39 @@ class Ocamldep(fbuild.db.PersistentObject):
         deps = []
 
         def f(module, include):
+            # On case-insensitive but case-preserving filesystems, we need to
+            # be careful on how we deal with finding OCaml dependencies. Since
+            # OCaml can store a module named List in either list.ml or List.ml,
+            # we can't just test if the filename exists since fbuild needs to
+            # deal with the exact filenames.  To do that, we'll grab the list
+            # of filenames in the directory, then search for the right
+            # spelling in that list.
+            
+            # Grab the filenames in the directory.
+            if include is None:
+                parent = Path('.')
+            else:
+                if not include.exists():
+                    # We can't search for dependencies in a directory that doesn't
+                    # exist, so exit early.
+                    return False
+
+                parent = include
+            dirs = parent.listdir()
+
             found = False
             for suffix in '.mli', '.ml':
-                path = module + suffix
-
-                if include is None:
-                    parent = Path('.')
-                else:
-                    parent = include
-
-                dirs = parent.listdir()
+                # Look for the traditional lowercase form.
+                path = module[0].lower() + module[1:] + suffix
                 if path in dirs:
+                    # We found it! Add that file to the dependencies.
                     deps.append(parent / path)
                     found = True
                 else:
-                    # We didn't find the uppercase form, so try the lowercase
-                    # one.
-                    path = module[0].lower() + module[1:] + suffix
-
+                    # That didn't work, so lets try the uppercase form.
+                    path = module[0].upper() + module[1:] + suffix
                     if path in dirs:
+                        # That one worked, so add it to the dependencies.
                         deps.append(parent / path)
                         found = True
 
