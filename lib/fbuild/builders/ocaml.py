@@ -474,15 +474,10 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # Add additional source dependencies to the call.
         deps = set()
         for src in srcs:
-            d = self.scan(src,
+            deps.update(self.scan(src,
                 includes=includes,
                 preprocessor=preprocessor,
-                flags=ocamldep_flags)
-            if src.endswith('extFormat.mli'):
-                print(src, d)
-            else:
-                print(src)
-            deps.update(d)
+                flags=ocamldep_flags))
 
         if deps:
             fbuild.db.add_external_dependencies_to_call(srcs=deps)
