@@ -81,31 +81,32 @@ class Ocamldep(fbuild.db.PersistentObject):
             
             # Grab the filenames in the directory.
             if include is None:
-                parent = Path('.')
+                dirs = Path.getcwd().listdir()
             else:
                 if not include.exists():
                     # We can't search for dependencies in a directory that doesn't
                     # exist, so exit early.
                     return False
 
-                parent = include
-            dirs = parent.listdir()
+                dirs = include.listdir()
 
             found = False
             for suffix in '.mli', '.ml':
                 # Look for the traditional lowercase form.
                 path = module[0].lower() + module[1:] + suffix
-                if path in dirs:
-                    # We found it! Add that file to the dependencies.
-                    deps.append(parent / path)
-                    found = True
-                else:
+                if path not in dirs:
                     # That didn't work, so lets try the uppercase form.
                     path = module[0].upper() + module[1:] + suffix
-                    if path in dirs:
-                        # That one worked, so add it to the dependencies.
-                        deps.append(parent / path)
-                        found = True
+                    if path not in dirs:
+                        # Couldn't find it, so just skip this module.
+                        continue
+
+                # We found it! Add that file to the dependencies.
+                if include is None:
+                    deps.append(Path(path))
+                else:
+                    deps.append(include / path)
+                found = True
 
             return found
 
