@@ -11,7 +11,10 @@ parser.add_option('--clean',
 
 options, args = parser.parse_args()
 
-for d in 'c', 'config', 'cxx', 'db', 'ocaml', 'simple', 'substitute':
+for d in os.listdir(os.path.dirname(__file__)):
+    if not os.path.isdir(d):
+        continue
+
     if options.clean:
         print('cleaning:', d)
         subprocess.call('%s %s --clean' %
