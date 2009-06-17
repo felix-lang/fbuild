@@ -10,6 +10,12 @@ import fbuild.db
 import fbuild.path
 import fbuild.sched
 
+# If we can't import fbuildroot, set it to None so we can error out later.
+try:
+    import fbuildroot
+except ImportError:
+    fbuildroot = None
+
 # ------------------------------------------------------------------------------
 
 def parse_args(argv):
@@ -187,6 +193,12 @@ def build(options):
 
 def main(argv=None):
     options, args = parse_args(sys.argv if argv is None else argv)
+
+    # If the fbuildroot doesn't exist, error out. We do this now so that
+    # there's a chance to ask fbuild for help first.
+    if fbuildroot is None:
+        fbuild.logger.log('cannot find fbuildroot.py', color='red')
+        return 1
 
     # Exit early if we want to clean the buildroot.
     if options.clean_buildroot:
