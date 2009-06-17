@@ -3,9 +3,9 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-extern int bar();
+extern char* bar();
 
 int main(int argc, char** argv) {
-	printf("mike sucks %d\n", bar());
+	printf("hello %s\n", bar());
 	return 0;
 }

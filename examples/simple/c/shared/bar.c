@@ -1,6 +1,6 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-int bar() {
-	return 5;
+char* bar() {
+	return "world";
 }

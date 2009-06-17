@@ -140,14 +140,6 @@ def build():
             builder = target[lang][mode]
 
             d = Path(lang, mode)
-            try:
-                d.rmtree()
-            except OSError:
-                pass
-
-            d.makedirs()
-            Path.copy('foo.c', d)
-            Path.copy('bar.c', d)
 
             obj = builder.compile(d / 'bar.c')
             lib = builder.link_lib(d / 'bar', [obj])
