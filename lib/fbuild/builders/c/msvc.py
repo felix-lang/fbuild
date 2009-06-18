@@ -411,23 +411,22 @@ class Builder(fbuild.builders.c.Builder):
         src = Path(src)
 
         # Generate the dependencies while we compile the file.
-        with tempfile() as dep:
-            try:
-                obj, stdout, stderr = self.compiler(src, dst,
-                    flags=list(chain(('/showIncludes',), flags)),
-                    quieter=quieter,
-                    stdout_quieter=1 if stdout_quieter == 0 else stdout_quieter,
-                    **kwargs)
-            except fbuild.ExecutionError as e:
-                if quieter == 0 and stdout_quieter == 0:
-                    # We errored out, but we've hidden the stdout output.
-                    # Display the output while filtering out the dependeny
-                    # info.
-                    for line in io.StringIO(e.stdout.decode()):
-                        if not self._dep_regex.match(line) and \
-                                line != src.name.splitext()[0] + '\r\n':
-                            fbuild.logger.write(line)
-                raise e
+        try:
+            obj, stdout, stderr = self.compiler(src, dst,
+                flags=list(chain(('/showIncludes',), flags)),
+                quieter=quieter,
+                stdout_quieter=1 if stdout_quieter == 0 else stdout_quieter,
+                **kwargs)
+        except fbuild.ExecutionError as e:
+            if quieter == 0 and stdout_quieter == 0:
+                # We errored out, but we've hidden the stdout output.
+                # Display the output while filtering out the dependeny
+                # info.
+                for line in io.StringIO(e.stdout.decode()):
+                    if not self._dep_regex.match(line) and \
+                            line != src.name.splitext()[0] + '\r\n':
+                        fbuild.logger.write(line)
+            raise e
 
         # Parse the output and return the module dependencies.
         deps = []
