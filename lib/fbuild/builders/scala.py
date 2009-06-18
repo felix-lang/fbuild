@@ -1,10 +1,12 @@
+import io
+import re
 import sys
 from functools import partial
 from itertools import chain
 
 import fbuild
 import fbuild.builders
-import fbuild.builders.platform
+import fbuild.builders.java
 import fbuild.db
 from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
@@ -12,12 +14,53 @@ from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
+class Scala:
+    def __init__(self, exe='scala', *, flags=[]):
+        self.exe = fbuild.builders.find_program([exe])
+        self.flags = flags
+
+    def __call__(self, src, *args, flags=[], buildroot=None, **kwargs):
+        """Run a scala script."""
+
+        src = Path(src)
+        buildroot = buildroot or fbuild.buildroot
+        src_buildroot = src.addroot(buildroot)
+        dst = src.replaceext('.jar')
+
+        # We need to copy the src into the buildroot so we don't pollute our
+        # tree.
+        if src != src_buildroot:
+            src_buildroot.parent.makedirs()
+            src.copy(src_buildroot)
+            src = src_buildroot
+
+        # Always save the compilation results.
+        cmd = [self.exe, '-savecompiled']
+        cmd.extend(self.flags)
+        cmd.extend(flags)
+        cmd.append(src)
+
+        stdout, stderr = fbuild.execute(cmd, *args, **kwargs)
+        return dst, stdout, stderr
+
+    def __str__(self):
+        return self.exe.name
+
+    def __eq__(self, other):
+        return isinstance(other, Scala) and \
+            self.exe == other.exe and \
+            self.flags == other.flags
+
+# ------------------------------------------------------------------------------
+
 class Scalac:
-    def __init__(self, exe, *,
+    def __init__(self, exe='scalac', *,
             classpaths=[],
             sourcepaths=[],
             debug=False,
             optimize=False,
+            debug_flags=['-g'],
+            optimize_flags=['-optimise'],
             target=None,
             flags=[]):
         # we split exe in case extra arguments were specified in the name
@@ -26,13 +69,20 @@ class Scalac:
         self.sourcepaths = sourcepaths
         self.debug = debug
         self.optimize = optimize
+        self.optimize_flags = optimize_flags
         self.target = target
         self.flags = flags
 
         if not self.check_flags([]):
             raise ConfigFailed('%s failed to compile an exe' % self)
 
-    def __call__(self, dst, src, *args,
+        if debug_flags and not self.check_flags(debug_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        if optimize_flags and not self.check_flags(optimize_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+    def __call__(self, dst, srcs, *args,
             classpaths=[],
             sourcepaths=[],
             debug=None,
@@ -40,25 +90,27 @@ class Scalac:
             target=None,
             flags=[],
             **kwargs):
+        """Run scalac on the arguments."""
+
+        dst = Path(dst)
+        dst.makedirs()
         cmd = [self.exe]
 
-        debug = self.debug if debug is None else debug
-        if debug:
-            cmd.append('-g')
+        cmd.extend(('-d', dst))
 
-        optimize = self.optimize if optimize is None else optimize
-        if optimize:
-            cmd.append('-optimise')
+        if (debug is None and self.debug) or debug:
+            cmd.extend(self.debug_flags)
+
+        if (optimize is None and self.optimize) or optimize:
+            cmd.extend(self.optimize_flags)
 
         target = self.target if target is None else target
         if target is not None:
             cmd.append('-target:' + str(target))
 
-        cmd.extend(('-d', dst))
-
         classpaths = tuple(chain(self.classpaths, classpaths))
         for classpath in classpaths:
-            cmd.extend(('-classpath', classpath))
+            cmd.extend(('-cp', classpath))
 
         sourcepaths = tuple(chain(self.sourcepaths, sourcepaths))
         for sourcepath in sourcepaths:
@@ -66,11 +118,13 @@ class Scalac:
 
         cmd.extend(self.flags)
         cmd.extend(flags)
-        cmd.append(src)
+        cmd.extend(srcs)
 
         return execute(cmd, *args, **kwargs)
 
     def check_flags(self, flags=[]):
+        """Verify that scalac can run with these flags."""
+
         if flags:
             logger.check('checking %s with %s' %
                 (self, ' '.join(flags)))
@@ -79,7 +133,7 @@ class Scalac:
 
         with tempfile('', suffix='.scala') as src:
             try:
-                self(src.parent, src, flags=flags, quieter=1)
+                self(src.parent, [src], flags=flags, quieter=1)
             except ExecutionError as e:
                 logger.failed()
                 if e.stdout:
@@ -95,64 +149,134 @@ class Scalac:
         return ' '.join([self.exe] + self.flags)
 
     def __eq__(self, other):
-        return isinstance(other, Flx) and \
-            self.exe == other.exe
+        return isinstance(other, Scalac) and \
+            self.exe == other.exe and \
+            self.classpaths == other.classpaths and \
+            self.sourcepaths == other.sourcepaths and \
+            self.debug == other.debug and \
+            self.optimize == other.optimize and \
+            self.optimize_flags == other.optimize_flags and \
+            self.target == other.target and \
+            self.flags == other.flags
 
 # ------------------------------------------------------------------------------
 
-class Scala(fbuild.builders.AbstractCompiler):
-    def __init__(self, scala='scala', scalac='scalac', *,
-            platform=None,
-            classpaths=[],
-            sourcepaths=[],
-            debug=False,
-            optimize=False,
-            target=None,
-            flags=[]):
+class Builder(fbuild.builders.AbstractLibLinker, fbuild.builders.AbstractRunner):
+    def __init__(self, *,
+            scala='scala',
+            scalac='scalac',
+            jar='jar',
+            java='java',
+            **kwargs):
         super().__init__(src_suffix='.scala')
 
-        self.scala = fbuild.builders.find_program([scala])
-        self.scalac = Scalac(scalac,
-            classpaths=classpaths,
-            sourcepaths=sourcepaths,
-            debug=debug,
-            optimize=optimize,
-            target=None,
-            flags=flags)
+        self.scala = Scala(scala)
+        self.scalac = Scalac(scalac, **kwargs)
+        self.jar = fbuild.builders.java.Jar(jar)
+        self.java = fbuild.builders.java.Java(java)
+
+    # --------------------------------------------------------------------------
+
+    def where(self):
+        """Return the scala library directory."""
+        return self.scalac.exe.realpath().parent.parent / 'lib'
+
+    # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
-    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
+    def compile(self, src:fbuild.db.SRC, *args,
+            **kwargs) -> fbuild.db.DSTS:
         """Compile a felix file and cache the results."""
         return self.uncached_compile(src, *args, **kwargs)
 
-    def uncached_compile(self, src, *,
+    _dep_regex = re.compile(r'\[wrote (.*)\]\n')
+
+    def uncached_compile(self, src, dst=None, *,
+            flags=[],
+            quieter=0,
+            stderr_quieter=0,
             buildroot=None,
             **kwargs):
         """Compile a felix file without caching the results.  This is needed
         when compiling temporary files."""
         src = Path(src)
-        buildroot = buildroot or fbuild.buildroot
-        dst = src.addroot(buildroot).parent
-        dst.makedirs()
+        dst = Path(dst or src.parent).addroot(buildroot or fbuild.buildroot)
 
-        self.scalac(dst, src, self.scalac, '%s -> %s' % (src, dst),
-            color='green',
-            **kwargs)
+        # Extract the generated files when we compile the file.
+        try:
+            stdout, stderr = self.scalac(dst, [src],
+                flags=list(chain(('-verbose',), flags)),
+                quieter=quieter,
+                stderr_quieter=1 if stderr_quieter == 0 else stderr_quieter,
+                **kwargs)
+        except fbuild.ExecutionError as e:
+            if quieter == 0 and stderr_quieter == 0:
+                # We errored out, but we've hidden the stderr output.
+                for line in io.StringIO(e.stderr.decode()):
+                    if not line.startswith('['):
+                        fbuild.logger.write(line)
+            raise e
 
-        return dst
+        # Parse the output and find what files we generated.
+        dsts = []
+        for line in io.StringIO(stderr.decode()):
+            m = self._dep_regex.match(line)
+            if m:
+                dsts.append(Path(m.group(1)))
+            elif quieter == 0 and stderr_quieter == 0:
+                if not line.startswith('['):
+                    fbuild.logger.write(line)
 
-    def build_objects(self, srcs, **kwargs):
-        return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
+        # Log all the files we found
+        fbuild.logger.check(str(self.scalac),
+            '%s -> %s' % (src, ' '.join(dsts)),
+            color='green')
 
-    def run(self, src, obj, *args, **kwargs):
-        cmd = [self.scala]
-        cmd.extend(('-classpath', src))
-        cmd.append(obj)
-        return fbuild.execute(cmd, *args, **kwargs)
+        return dsts
 
     # --------------------------------------------------------------------------
 
-    def tempfile_run(self, code='', *, quieter=1, **kwargs):
+    def link_lib(self, *args, **kwargs):
+        """Link all the L{srcs} into a library and cache the result."""
+        return self.jar.create(*args, **kwargs)
+
+    def uncached_link_lib(self, *args, **kwargs):
+        """Link all the L{srcs} into a library."""
+        return self.jar.uncached_create(*args, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
+        """Compile all the L{srcs} in parallel."""
+        dsts = []
+        for d in fbuild.scheduler.map(partial(self.compile, **kwargs), srcs):
+            dsts.extend(d)
+
+        return dsts
+
+    def build_lib(self, dst, srcs, *args,
+            cwd=None,
+            ckwargs={},
+            lkwargs={},
+            **kwargs):
+        """Compile all the L{srcs} and link into a library."""
+        objs = self.build_objects(srcs, *args, **dict(ckwargs, **kwargs))
+        return self.link_lib(dst, objs, cwd=cwd, **lkwargs)
+
+    # --------------------------------------------------------------------------
+
+    def run(self, *args, classpaths=[], **kwargs):
+        """Run a scala library."""
+        # Automatically add the scala-library.jar to the classpath
+        classpaths = list(classpaths)
+        classpaths.append(self.where() / 'scala-library.jar')
+
+        return self.java.run_class(*args, classpaths=classpaths, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, **kwargs):
+        """Execute a temporary scala file."""
         with self.tempfile(code) as src:
             exe = self.uncached_compile(src, quieter=quieter, **ckwargs)
             return self.run(exe, quieter=quieter, **kwargs)
