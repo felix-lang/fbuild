@@ -410,7 +410,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
-        """Compile all the L{srcs} and link into a library."""
+        """Link all the L{srcs} into a library."""
         return self._link(self.uncached_link_lib, dst, srcs, *args,
             libs=libs,
             **kwargs)
@@ -419,7 +419,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=[],
             **kwargs) -> fbuild.db.DST:
-        """Compile all the L{srcs} and link into an executable."""
+        """Link all the L{srcs} into an executable."""
         return self._link(self.uncached_link_exe, dst, srcs, *args,
             libs=libs,
             **kwargs)

@@ -135,6 +135,7 @@ def execute(cmd,
             logger.log(stdout.rstrip().decode(), verbose=stdout_quieter)
         except UnicodeDecodeError:
             logger.log(repr(stdout.rstrip()), verbose=stdout_quieter)
+
     if stderr:
         try:
             logger.log(stderr.rstrip().decode(), verbose=stderr_quieter)
