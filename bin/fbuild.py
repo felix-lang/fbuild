@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.0
 
+import os
 import pprint
 import signal
 import sys
@@ -10,11 +11,11 @@ import fbuild.db
 import fbuild.path
 import fbuild.sched
 
-# If we can't import fbuildroot, set it to None so we can error out later.
+# If we can't import fbuildroot, save the exception and raise it later.
 try:
     import fbuildroot
-except ImportError:
-    fbuildroot = None
+except ImportError as e:
+    fbuildroot = e
 
 # ------------------------------------------------------------------------------
 
@@ -196,9 +197,8 @@ def main(argv=None):
 
     # If the fbuildroot doesn't exist, error out. We do this now so that
     # there's a chance to ask fbuild for help first.
-    if fbuildroot is None:
-        fbuild.logger.log('cannot find fbuildroot.py', color='red')
-        return 1
+    if isinstance(fbuildroot, Exception):
+        raise fbuildroot
 
     # Exit early if we want to clean the buildroot.
     if options.clean_buildroot:
