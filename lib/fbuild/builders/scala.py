@@ -14,47 +14,8 @@ from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
-class Scala:
-    def __init__(self, exe='scala', *, flags=[]):
-        self.exe = fbuild.builders.find_program([exe])
-        self.flags = flags
-
-    def __call__(self, src, *args, flags=[], buildroot=None, **kwargs):
-        """Run a scala script."""
-
-        src = Path(src)
-        buildroot = buildroot or fbuild.buildroot
-        src_buildroot = src.addroot(buildroot)
-        dst = src.replaceext('.jar')
-
-        # We need to copy the src into the buildroot so we don't pollute our
-        # tree.
-        if src != src_buildroot:
-            src_buildroot.parent.makedirs()
-            src.copy(src_buildroot)
-            src = src_buildroot
-
-        # Always save the compilation results.
-        cmd = [self.exe, '-savecompiled']
-        cmd.extend(self.flags)
-        cmd.extend(flags)
-        cmd.append(src)
-
-        stdout, stderr = fbuild.execute(cmd, *args, **kwargs)
-        return dst, stdout, stderr
-
-    def __str__(self):
-        return self.exe.name
-
-    def __eq__(self, other):
-        return isinstance(other, Scala) and \
-            self.exe == other.exe and \
-            self.flags == other.flags
-
-# ------------------------------------------------------------------------------
-
-class Scalac:
-    def __init__(self, exe='scalac', *,
+class _Compiler:
+    def __init__(self, exe, *,
             classpaths=[],
             sourcepaths=[],
             debug=False,
@@ -63,7 +24,6 @@ class Scalac:
             optimize_flags=['-optimise'],
             target=None,
             flags=[]):
-        # we split exe in case extra arguments were specified in the name
         self.exe = fbuild.builders.find_program([exe])
         self.classpaths = classpaths
         self.sourcepaths = sourcepaths
@@ -82,7 +42,8 @@ class Scalac:
         if optimize_flags and not self.check_flags(optimize_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
-    def __call__(self, dst, srcs, *args,
+    def _run(self, srcs, *args,
+            dst=None,
             classpaths=[],
             sourcepaths=[],
             debug=None,
@@ -92,11 +53,12 @@ class Scalac:
             **kwargs):
         """Run scalac on the arguments."""
 
-        dst = Path(dst)
-        dst.makedirs()
+        assert len(srcs) > 0, "%s: no sources passed in" % dst
+
         cmd = [self.exe]
 
-        cmd.extend(('-d', dst))
+        if dst is not None:
+            cmd.extend(('-d', dst))
 
         if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
@@ -133,7 +95,7 @@ class Scalac:
 
         with tempfile('', suffix='.scala') as src:
             try:
-                self(src.parent, [src], flags=flags, quieter=1)
+                self._run([src], flags=flags, quieter=1)
             except ExecutionError as e:
                 logger.failed()
                 if e.stdout:
@@ -149,7 +111,7 @@ class Scalac:
         return ' '.join([self.exe] + self.flags)
 
     def __eq__(self, other):
-        return isinstance(other, Scalac) and \
+        return isinstance(other, type(self)) and \
             self.exe == other.exe and \
             self.classpaths == other.classpaths and \
             self.sourcepaths == other.sourcepaths and \
@@ -158,6 +120,51 @@ class Scalac:
             self.optimize_flags == other.optimize_flags and \
             self.target == other.target and \
             self.flags == other.flags
+
+# ------------------------------------------------------------------------------
+
+class Scala(_Compiler):
+    def __init__(self, exe='scala', *args, **kwargs):
+        super().__init__(exe, *args, **kwargs)
+
+    def __call__(self, srcs, *args, flags=[], buildroot=None, **kwargs):
+        """Run a scala script."""
+
+        assert len(srcs) > 0, "%s: no sources passed in" % dst
+
+        src = Path(srcs[0])
+        buildroot = buildroot or fbuild.buildroot
+        src_buildroot = src.addroot(buildroot)
+        dst = src.replaceext('.jar')
+
+        # We need to copy the src into the buildroot so we don't pollute our
+        # tree.
+        if src != src_buildroot:
+            src_buildroot.parent.makedirs()
+            src.copy(src_buildroot)
+            src = src_buildroot
+
+        # Always save the compilation results.
+        flags = list(flags)
+        flags.append('-savecompiled')
+
+        stdout, stderr = super()._run(srcs, *args, flags=flags, **kwargs)
+        return dst, stdout, stderr
+
+# ------------------------------------------------------------------------------
+
+class Scalac(_Compiler):
+    def __init__(self, exe='scalac', *args, **kwargs):
+        super().__init__(exe, *args, **kwargs)
+
+    def __call__(self, dst, srcs, *args, buildroot=None, **kwargs):
+        """Run a scala script."""
+
+        dst = Path(dst).addroot(buildroot or fbuild.buildroot)
+        dst.makedirs()
+
+        stdout, stderr = self._run(srcs, *args, dst=dst, **kwargs)
+        return dst, stdout, stderr
 
 # ------------------------------------------------------------------------------
 
@@ -204,7 +211,7 @@ class Builder(fbuild.builders.AbstractLibLinker, fbuild.builders.AbstractRunner)
 
         # Extract the generated files when we compile the file.
         try:
-            stdout, stderr = self.scalac(dst, [src],
+            dst, stdout, stderr = self.scalac(dst, [src],
                 flags=list(chain(('-verbose',), flags)),
                 quieter=quieter,
                 stderr_quieter=1 if stderr_quieter == 0 else stderr_quieter,
@@ -265,7 +272,11 @@ class Builder(fbuild.builders.AbstractLibLinker, fbuild.builders.AbstractRunner)
 
     # --------------------------------------------------------------------------
 
-    def run(self, *args, classpaths=[], **kwargs):
+    def run_script(self, src, *args, **kwargs):
+        """Run a scala script."""
+        return self.scala((src,), *args, **kwargs)
+
+    def run_jar(self, *args, classpaths=[], **kwargs):
         """Run a scala library."""
         # Automatically add the scala-library.jar to the classpath
         classpaths = list(classpaths)

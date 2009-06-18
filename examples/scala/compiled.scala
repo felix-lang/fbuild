@@ -1,5 +1,8 @@
+import world.World
+
 object HelloWorld {
   def main(args: Array[String]) {
-    println("Hello, compiled world!")
+    val w = world.World
+    w.greet("compiled")
   }
 }
