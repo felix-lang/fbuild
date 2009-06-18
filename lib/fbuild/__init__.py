@@ -94,6 +94,9 @@ def execute(cmd,
             timed_out = True
             p.kill(group=True)
 
+        # Set the timer to None for now to make sure it's defined.
+        timer = None
+
     starttime = time.time()
     try:
         p = fbuild.subprocess.killableprocess.Popen(cmd,
@@ -118,7 +121,7 @@ def execute(cmd,
         logger.log('command failed: ' + cmd_string, color='red')
         raise e from e
     finally:
-        if timeout:
+        if timeout and timer is not None:
             timer.cancel()
     endtime = time.time()
 
