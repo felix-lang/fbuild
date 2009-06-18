@@ -126,7 +126,7 @@ class Path(str):
 
     def abspath(self):
         """Return the absolute version of a path."""
-        return os.path.abspath(self)
+        return Path(os.path.abspath(str(self)))
 
     def basename(self):
         """Returns the final component of a pathname
@@ -314,12 +314,12 @@ class Path(str):
 
     def normpath(self):
         """Normalize path, eliminating double slashes, etc."""
-        return Path(os.path.normpath(self))
+        return Path(os.path.normpath(str(self)))
 
     def realpath(self):
         """Return the canonical path of the specified filename, eliminating any
         symbolic links encountered in the path."""
-        return Path(os.path.realpath(self))
+        return Path(os.path.realpath(str(self)))
 
     def relpath(self, *args, **kwargs):
         """Return a relative version of a path.
@@ -327,7 +327,7 @@ class Path(str):
         >>> Path.relpath('foo/bar/baz.ext', 'foo/baz')
         Path('../bar/baz.ext')
         """
-        return Path(os.path.relpath(self, *args, **kwargs))
+        return Path(os.path.relpath(str(self), *args, **kwargs))
 
     def remove(self):
         return os.remove(self)
