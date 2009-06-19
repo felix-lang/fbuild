@@ -87,8 +87,6 @@ class Builder(fbuild.builders.java.AbstractBuilder):
             **kwargs):
         super().__init__(jar=jar, java=java, src_suffix='.scala')
 
-        self.jar = fbuild.builders.java.Jar(jar)
-        self.java = fbuild.builders.java.Java(java)
         self.scala = Scala(scala)
         self.scalac = Scalac(scalac, **kwargs)
 

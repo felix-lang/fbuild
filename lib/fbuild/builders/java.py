@@ -143,12 +143,10 @@ class AbstractCompiler:
         if target is not None:
             cmd.append('-target:' + str(target))
 
-        classpaths = tuple(chain(self.classpaths, classpaths))
-        for classpath in classpaths:
+        for classpath in chain(self.classpaths, classpaths):
             cmd.extend(('-cp', classpath))
 
-        sourcepaths = tuple(chain(self.sourcepaths, sourcepaths))
-        for sourcepath in sourcepaths:
+        for sourcepath in chain(self.sourcepaths, sourcepaths):
             cmd.extend(('-sourcepath', sourcepath))
 
         cmd.extend(self.flags)
