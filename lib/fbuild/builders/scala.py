@@ -39,12 +39,10 @@ class Scala(AbstractCompiler):
     def __init__(self, exe='scala', *args, **kwargs):
         super().__init__(exe, *args, **kwargs)
 
-    def __call__(self, srcs, *args, flags=[], buildroot=None, **kwargs):
+    def __call__(self, src, *args, flags=[], buildroot=None, **kwargs):
         """Run a scala script."""
 
-        assert len(srcs) > 0, "%s: no sources passed in" % dst
-
-        src = Path(srcs[0])
+        src = Path(src)
         buildroot = buildroot or fbuild.buildroot
         src_buildroot = src.addroot(buildroot)
         dst = src.replaceext('.jar')
@@ -60,7 +58,7 @@ class Scala(AbstractCompiler):
         flags = list(flags)
         flags.append('-savecompiled')
 
-        stdout, stderr = self._run(srcs, *args, flags=flags, **kwargs)
+        stdout, stderr = self._run([src], *args, flags=flags, **kwargs)
         return dst, stdout, stderr
 
 # ------------------------------------------------------------------------------
