@@ -10,4 +10,4 @@ def build():
 
     exe = scala.build_lib('exe.jar', ['compiled.scala'], classpaths=[lib])
     fbuild.logger.log(' * running %s:' % exe)
-    scala.run_jar('HelloWorld', classpaths=[lib, exe])
+    scala.run_class('HelloWorld', classpaths=[lib, exe])

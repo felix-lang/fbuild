@@ -1,9 +1,13 @@
+import io
+import re
+from functools import partial
 from itertools import chain
 
 import fbuild
 import fbuild.builders
 import fbuild.db
 from fbuild.path import Path
+from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
@@ -88,3 +92,237 @@ class Java:
 
     def __str__(self):
         return self.exe.name
+
+# ------------------------------------------------------------------------------
+
+class AbstractCompiler:
+    def __init__(self, exe, src_suffix, *,
+            classpaths=[],
+            sourcepaths=[],
+            debug=False,
+            debug_flags=['-g'],
+            target=None,
+            flags=[]):
+        self.exe = fbuild.builders.find_program([exe])
+        self.src_suffix = src_suffix
+        self.classpaths = classpaths
+        self.sourcepaths = sourcepaths
+        self.debug = debug
+        self.debug_flags = debug_flags
+        self.target = target
+        self.flags = flags
+
+        if not self.check_flags([]):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        if debug_flags and not self.check_flags(debug_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+    def _run(self, srcs, *args,
+            dst=None,
+            classpaths=[],
+            sourcepaths=[],
+            debug=None,
+            optimize=None,
+            target=None,
+            flags=[],
+            **kwargs):
+        """Process the L{srcs} on the arguments."""
+
+        assert len(srcs) > 0, "%s: no sources passed in" % dst
+
+        cmd = [self.exe]
+
+        if dst is not None:
+            cmd.extend(('-d', dst))
+
+        if (debug is None and self.debug) or debug:
+            cmd.extend(self.debug_flags)
+
+        target = self.target if target is None else target
+        if target is not None:
+            cmd.append('-target:' + str(target))
+
+        classpaths = tuple(chain(self.classpaths, classpaths))
+        for classpath in classpaths:
+            cmd.extend(('-cp', classpath))
+
+        sourcepaths = tuple(chain(self.sourcepaths, sourcepaths))
+        for sourcepath in sourcepaths:
+            cmd.extend(('-sourcepath', sourcepath))
+
+        cmd.extend(self.flags)
+        cmd.extend(flags)
+        cmd.extend(srcs)
+
+        return fbuild.execute(cmd, *args, **kwargs)
+
+    def check_flags(self, flags=[]):
+        """Verify that we can run with these flags."""
+
+        if flags:
+            fbuild.logger.check('checking %s with %s' %
+                (self, ' '.join(flags)))
+        else:
+            fbuild.logger.check('checking %s' % self)
+
+        with tempfile('', suffix=self.src_suffix) as src:
+            try:
+                self._run([src], flags=flags, quieter=1)
+            except fbuild.ExecutionError as e:
+                fbuild.logger.failed()
+                if e.stdout:
+                    fbuild.logger.log(e.stdout.decode())
+                if e.stderr:
+                    fbuild.logger.log(e.stderr.decode())
+                return False
+
+        fbuild.logger.passed()
+        return True
+
+    def __str__(self):
+        return ' '.join([self.exe.name] + self.flags)
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and \
+            self.exe == other.exe and \
+            self.classpaths == other.classpaths and \
+            self.sourcepaths == other.sourcepaths and \
+            self.debug == other.debug and \
+            self.debug_flags == other.debug_flags and \
+            self.target == other.target and \
+            self.flags == other.flags
+
+# ------------------------------------------------------------------------------
+
+class Javac(AbstractCompiler):
+    def __init__(self, exe='javac', *args, **kwargs):
+        super().__init__(exe, '.java', *args, **kwargs)
+
+    def __call__(self, dst, srcs, *args,
+            buildroot=None,
+            **kwargs):
+        """Compile a java src."""
+
+        dst = dst.addroot(buildroot or fbuild.buildroot)
+        dst.makedirs()
+
+        stdout, stderr = self._run(srcs, *args, dst=dst,  **kwargs)
+        return dst, stdout, stderr
+
+# ------------------------------------------------------------------------------
+
+class AbstractBuilder(fbuild.builders.AbstractLibLinker):
+    def __init__(self, *, jar='jar', java='java', **kwargs):
+        self.jar = fbuild.builders.java.Jar(jar)
+        self.java = fbuild.builders.java.Java(java)
+
+    # --------------------------------------------------------------------------
+
+    _dep_regex = re.compile(r'\[wrote (.*)\]\n')
+
+    def _run(self, builder, src, dst=None, *,
+            flags=[],
+            quieter=0,
+            stderr_quieter=0,
+            buildroot=None,
+            **kwargs):
+        """Compile a java file."""
+
+        src = Path(src)
+        dst = Path(dst or src.parent).addroot(buildroot or fbuild.buildroot)
+
+        # Extract the generated files when we compile the file.
+        try:
+            dst, stdout, stderr = builder(dst, [src],
+                flags=list(chain(('-verbose',), flags)),
+                quieter=quieter,
+                stderr_quieter=1 if stderr_quieter == 0 else stderr_quieter,
+                **kwargs)
+        except fbuild.ExecutionError as e:
+            if quieter == 0 and stderr_quieter == 0:
+                # We errored out, but we've hidden the stderr output.
+                for line in io.StringIO(e.stderr.decode()):
+                    if not line.startswith('['):
+                        fbuild.logger.write(line)
+            raise e
+
+        # Parse the output and find what files we generated.
+        dsts = []
+        for line in io.StringIO(stderr.decode()):
+            m = self._dep_regex.match(line)
+            if m:
+                dsts.append(Path(m.group(1)))
+            elif quieter == 0 and stderr_quieter == 0:
+                if not line.startswith('['):
+                    fbuild.logger.write(line)
+
+        # Log all the files we found
+        fbuild.logger.check(str(builder), '%s -> %s' % (src, ' '.join(dsts)),
+            color='green')
+
+        return dsts
+
+    # --------------------------------------------------------------------------
+
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DSTS:
+        """Compile the L{src} file and cache the results."""
+        return self.uncached_compile(src, *args, **kwargs)
+
+    def link_lib(self, *args, **kwargs):
+        """Link all the L{srcs} into a library and cache the result."""
+        return self.jar.create(*args, **kwargs)
+
+    def uncached_link_lib(self, *args, **kwargs):
+        """Link all the L{srcs} into a library."""
+        return self.jar.uncached_create(*args, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
+        """Compile all the L{srcs} in parallel."""
+        dsts = []
+        for d in fbuild.scheduler.map(partial(self.compile, **kwargs), srcs):
+            dsts.extend(d)
+
+        return dsts
+
+    def build_lib(self, dst, srcs, *args,
+            cwd=None,
+            ckwargs={},
+            lkwargs={},
+            **kwargs):
+        """Compile all the L{srcs} and link into a library."""
+        objs = self.build_objects(srcs, *args, **dict(ckwargs, **kwargs))
+        return self.link_lib(dst, objs, cwd=cwd, **lkwargs)
+
+    # --------------------------------------------------------------------------
+
+    def tempfile_run(self, code='', *, quieter=1, ckwargs={}, **kwargs):
+        """Execute a temporary file."""
+        with self.tempfile(code) as src:
+            exe = self.uncached_compile(src, quieter=quieter, **ckwargs)
+            return self.run(exe, quieter=quieter, **kwargs)
+
+    # --------------------------------------------------------------------------
+
+    def run_class(self, *args, **kwargs):
+        """Run a class."""
+        return self.java.run_class(*args, **kwargs)
+
+    def run_jar(self, *args, **kwargs):
+        """Run a jar library."""
+        return self.java.run_jar(*args, **kwargs)
+
+# ------------------------------------------------------------------------------
+
+class Builder(AbstractBuilder):
+    def __init__(self, *, jar='jar', java='java', javac='javac', **kwargs):
+        super().__init__(jar=jar, java=java, src_suffix='.java')
+
+        self.javac = fbuild.builders.java.Javac(javac, **kwargs)
+
+    def uncached_compile(self, *args, **kwargs):
+        return self._run(self.javac, *args, **kwargs)
