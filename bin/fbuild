@@ -24,7 +24,8 @@ except ImportError as e:
 # ------------------------------------------------------------------------------
 
 def parse_args(argv):
-    parser = OptionParser(option_list=[
+    parser = OptionParser(version=fbuild.__version__)
+    parser.add_options([
         make_option('-v', '--verbose',
             action='count',
             default=0,
