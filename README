@@ -1,0 +1,40 @@
+===================
+Fbuild Build System
+===================
+
+Overview
+========
+
+Fbuild is a new kind of build system that is designed around caching instead of
+tree evaluation.
+
+See docs/introducing-fbuild.markdown for more.
+
+
+Install
+=======
+
+To install Fbuild from source::
+
+    $ python3.0 setup.py install
+
+
+Unit Tests
+==========
+
+To run the unit tests::
+
+    $ cd tests
+    $ python3.0 run_tests.py
+
+If any tests fail, please copy and paste the output and send the details to the
+mailing list.
+
+
+Examples
+========
+
+To run the examples::
+
+    $ cd examples
+    $ python3.0 examples.py 
