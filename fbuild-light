@@ -5,20 +5,12 @@ import sys
 import imp
 
 fbuild_dirname = os.path.dirname(sys.argv[0])
+env = dict(os.environ)
+env['PYTHONPATH'] = env.get('PYTHONPATH', '') + ':' + \
+    os.path.join(fbuild_dirname, 'lib')
 
-sys.path.extend((
-    os.path.join(fbuild_dirname, 'lib'),
-    os.path.join(fbuild_dirname, 'external', 'PyYAML', 'lib'),
-    '.',
-))
-
-f, filename, description = imp.find_module('fbuild',
-        [os.path.join(fbuild_dirname, 'bin')])
-
-try:
-    fbuild = imp.load_module('fbuild_exe', f, filename, description)
-finally:
-    f.close()
-
-if __name__ == '__main__':
-    sys.exit(fbuild.main())
+sys.exit(os.execve(sys.executable,
+    [sys.executable,
+    os.path.join(fbuild_dirname, 'bin', 'fbuild')] +
+    sys.argv[1:],
+    env))

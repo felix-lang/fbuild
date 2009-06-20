@@ -6,6 +6,10 @@ import signal
 import sys
 from optparse import OptionParser, make_option
 
+# Make sure the current working directory is in the search path so we can find
+# the fbuildroot.py.
+sys.path.append(os.getcwd())
+
 import fbuild
 import fbuild.db
 import fbuild.path
