@@ -189,7 +189,7 @@ class Path(str):
                 files = itertools.chain(files, dirs)
 
             for f in files:
-                if name is not None and not Path.fnmatch(f, pattern):
+                if pattern is not None and not Path.fnmatch(f, pattern):
                     continue
 
                 yield Path(root, f)
@@ -321,13 +321,15 @@ class Path(str):
         symbolic links encountered in the path."""
         return Path(os.path.realpath(str(self)))
 
-    def relpath(self, *args, **kwargs):
+    def relpath(self, start=None):
         """Return a relative version of a path.
 
         >>> Path.relpath('foo/bar/baz.ext', 'foo/baz')
         Path('../bar/baz.ext')
         """
-        return Path(os.path.relpath(str(self), *args, **kwargs))
+        if start is not None:
+            start = str(start)
+        return Path(os.path.relpath(str(self), start))
 
     def remove(self):
         return os.remove(self)
