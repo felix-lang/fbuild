@@ -57,8 +57,8 @@ def execute(cmd,
         stderr_quieter=None,
         input=None,
         stdin=None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=fbuild.subprocess.PIPE,
+        stderr=fbuild.subprocess.PIPE,
         timeout=None,
         **kwargs):
     """Execute the command and return the output."""
@@ -104,7 +104,7 @@ def execute(cmd,
     starttime = time.time()
     try:
         p = fbuild.subprocess.killableprocess.Popen(cmd,
-            stdin=subprocess.PIPE if input else stdin,
+            stdin=fbuild.subprocess.PIPE if input else stdin,
             stdout=stdout,
             stderr=stderr,
             **kwargs)
