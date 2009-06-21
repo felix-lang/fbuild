@@ -6,7 +6,7 @@ import imp
 
 fbuild_dirname = os.path.dirname(sys.argv[0])
 env = dict(os.environ)
-env['PYTHONPATH'] = env.get('PYTHONPATH', '') + ':' + \
+env['PYTHONPATH'] = env.get('PYTHONPATH', '') + os.pathsep + \
     os.path.join(fbuild_dirname, 'lib')
 
 sys.exit(os.execve(sys.executable,
