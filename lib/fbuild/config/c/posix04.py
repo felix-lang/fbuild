@@ -498,7 +498,7 @@ class pthread_h(c.Header):
     @property
     def pthread_attr_destroy(self):
         if self.pthread_create:
-            return c.function_test('int', 'pthread_attr_t*')
+            return c.Function('int', 'pthread_attr_t*')
 
     pthread_attr_getdetachstate = c.function_test('int', 'const pthread_attr_t*', 'int*')
     pthread_attr_getguardsize = c.function_test('int', 'const pthread_attr_t*', 'size_t*')
@@ -513,12 +513,12 @@ class pthread_h(c.Header):
     @property
     def pthread_attr_init(self):
         if self.pthread_create:
-            return c.function_test('int', 'pthread_attr_t*')
+            return c.Function('int', 'pthread_attr_t*')
 
     @property
     def pthread_attr_setdetachstate(self):
         if self.pthread_create:
-            return c.function_test('int', 'pthread_attr_t*', 'int')
+            return c.Function('int', 'pthread_attr_t*', 'int')
 
     pthread_attr_setguardsize = c.function_test('int', 'pthread_attr_t*', 'size_t')
     pthread_attr_setinheritsched = c.function_test('int', 'pthread_attr_t*', 'int')
@@ -528,9 +528,28 @@ class pthread_h(c.Header):
     pthread_attr_setstack = c.function_test('int', 'pthread_attr_t*', 'void*', 'size_t')
     pthread_attr_setstackaddr = c.function_test('int', 'pthread_attr_t*', 'void*')
     pthread_attr_setstacksize = c.function_test('int', 'pthread_attr_t*', 'size_t')
-    pthread_barrier_destroy = c.function_test('int', 'pthread_barrier_t*')
-    pthread_barrier_init = c.function_test('int', 'pthread_barrier_t*', 'const pthread_barrierattr_t*', 'unsigned')
-    pthread_barrier_wait = c.function_test('int', 'pthread_barrier_t*')
+
+    @property
+    def pthread_barrier_destroy(self):
+        if self.pthread_barrier_init:
+            return c.Function('int', 'pthread_barrier_t*')
+
+    pthread_barrier_init = c.function_test('int', 'pthread_barrier_t*', 'const pthread_barrierattr_t*', 'unsigned', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_barrier_t barrier;
+            if (pthread_barrier_init(&barrier, 0, 1) != 0) return 1;
+            if (pthread_barrier_wait(&barrier) != PTHREAD_BARRIER_SERIAL_THREAD) return 1;
+            if (pthread_barrier_destroy(&barrier) != 0) return 1;
+            return 0;
+        }
+    ''')
+
+    @property
+    def pthread_barrier_wait(self):
+        if self.pthread_barrier_init:
+            return c.Function('int', 'pthread_barrier_t*')
+
     pthread_barrierattr_destroy = c.function_test('int', 'pthread_barrierattr_t*')
     pthread_barrierattr_getpshared = c.function_test('int', 'const pthread_barrierattr_t*', 'int*')
     pthread_barrierattr_init = c.function_test('int', 'pthread_barrierattr_t*')
@@ -538,12 +557,50 @@ class pthread_h(c.Header):
     pthread_cancel = c.function_test('int', 'pthread_t')
     pthread_cleanup_push = c.function_test('void', 'void (*)(void*)', 'void*')
     pthread_cleanup_pop = c.function_test('void', 'int')
-    pthread_cond_broadcast = c.function_test('int', 'pthread_cond_t*')
-    pthread_cond_destroy = c.function_test('int', 'pthread_cond_t*')
-    pthread_cond_init = c.function_test('int', 'pthread_cond_t*', 'const pthread_condattr_t*')
-    pthread_cond_signal = c.function_test('int', 'pthread_cond_t*')
-    pthread_cond_timedwait = c.function_test('int', 'pthread_cond_t*', 'pthread_mutex_t*', 'const struct timespec*')
-    pthread_cond_wait = c.function_test('int', 'pthread_cond_t*', 'pthread_mutex_t*')
+
+    @property
+    def pthread_cond_broadcast(self):
+        if self.pthread_cond_init:
+            return c.Function('int', 'pthread_cond_t*')
+
+    @property
+    def pthread_cond_destroy(self):
+        if self.pthread_cond_init:
+            return c.Function('int', 'pthread_cond_t*')
+
+    pthread_cond_init = c.function_test('int', 'pthread_cond_t*', 'const pthread_condattr_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+            pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+            struct timespec t = { 0, 0 };
+            if (pthread_mutex_init(&mutex, 0) != 0) return 1;
+            if (pthread_mutex_lock(&mutex) != 0) return 1;
+            if (pthread_cond_init(&cond, 0) != 0) return 1;
+            if (pthread_cond_broadcast(&cond) != 0) return 1;
+            if (pthread_cond_signal(&cond) != 0) return 1;
+            if (pthread_cond_timedwait(&cond, &mutex, &t) != 0) return 1;
+            if (pthread_cond_wait(&cond, &mutex) != 0) return 1;
+            if (pthread_cond_destroy(&cond) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    @property
+    def pthread_cond_signal(self):
+        if self.pthread_cond_init:
+            return c.Function ('int', 'pthread_cond_t*')
+
+    @property
+    def pthread_cond_timedwait(self):
+        if self.pthread_cond_init:
+            return c.Function('int', 'pthread_cond_t*', 'pthread_mutex_t*', 'const struct timespec*')
+
+    @property
+    def pthread_cond_wait(self):
+        if self.pthread_cond_init:
+            return c.Function('int', 'pthread_cond_t*', 'pthread_mutex_t*')
+
     pthread_condattr_destroy = c.function_test('int', 'pthread_condattr_t*')
     pthread_condattr_getclock = c.function_test('int', 'const pthread_condattr_t*', 'clockid_t*')
     pthread_condattr_getpshared = c.function_test('int', 'const pthread_condattr_t*', 'int*')
@@ -578,23 +635,47 @@ class pthread_h(c.Header):
 
     @property
     def pthread_mutex_destroy(self):
-        if self.pthread_mutex_lock:
-            return c.function_test('int', 'pthread_mutex_t*')
+        if self.pthread_mutex_init:
+            return c.Function('int', 'pthread_mutex_t*')
 
     pthread_mutex_getprioceiling = c.function_test('int', 'const pthread_mutex_t*', 'int*')
 
-    @property
-    def pthread_mutex_init(self):
-        if self.pthread_mutex_lock:
-            return c.function_test('int', 'pthread_mutex_t*', 'const pthread_mutexattr_t*')
-
-    pthread_mutex_lock = c.function_test('int', 'pthread_mutex_t*', test='''
+    pthread_mutex_init = c.function_test('int', 'pthread_mutex_t*', 'const pthread_mutexattr_t*', test='''
         #include <pthread.h>
         int main() {
             pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
             if (pthread_mutex_init(&mutex, 0) != 0) return 1;
             if (pthread_mutex_lock(&mutex) != 0) return 1;
             if (pthread_mutex_unlock(&mutex) != 0) return 1;
+            if (pthread_mutex_destroy(&mutex) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    def pthread_mutex_lock(self):
+        if self.pthread_mutex_init:
+            return c.Function('int', 'pthread_mutex_t*')
+
+    pthread_mutex_setprioceiling = c.function_test('int', 'pthread_mutex_t*', 'int', 'int*')
+
+    pthread_mutex_timedlock = c.function_test('int', 'pthread_mutex_t*', 'const struct timespec*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+            struct timespec t = { 0, 0 };
+            if (pthread_mutex_init(&mutex, 0) != 0) return 1;
+            if (pthread_mutex_timedlock(&mutex, &t) != 0) return 1;
+            if (pthread_mutex_unlock(&mutex) != 0) return 1;
+            if (pthread_mutex_destroy(&mutex) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    pthread_mutex_trylock = c.function_test('int', 'pthread_mutex_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+            if (pthread_mutex_init(&mutex, 0) != 0) return 1;
             if (pthread_mutex_trylock(&mutex) != 0) return 1;
             if (pthread_mutex_unlock(&mutex) != 0) return 1;
             if (pthread_mutex_destroy(&mutex) != 0) return 1;
@@ -602,16 +683,9 @@ class pthread_h(c.Header):
         }
         ''')
 
-    pthread_mutex_setprioceiling = c.function_test('int', 'pthread_mutex_t*', 'int', 'int*')
-    pthread_mutex_timedlock = c.function_test('int', 'pthread_mutex_t*', 'const struct timespec*')
-
-    def pthread_mutex_trylock(self):
-        if self.pthread_mutex_lock:
-            return c.function_test('int', 'pthread_mutex_t*')
-
     def pthread_mutex_unlock(self):
-        if self.pthread_mutex_lock:
-            c.function_test('int', 'pthread_mutex_t*')
+        if self.pthread_mutex_init:
+            return c.Function('int', 'pthread_mutex_t*')
 
     pthread_mutexattr_destroy = c.function_test('int', 'pthread_mutexattr_t*')
     pthread_mutexattr_getprioceiling = c.function_test('int', 'const pthread_mutexattr_t*', 'int*')
@@ -624,15 +698,91 @@ class pthread_h(c.Header):
     pthread_mutexattr_setpshared = c.function_test('int', 'pthread_mutexattr_t*', 'int')
     pthread_mutexattr_settype = c.function_test('int', 'pthread_mutexattr_t*', 'int')
     pthread_once = c.function_test('int', 'pthread_once_t*', 'void (*)(void)')
-    pthread_rwlock_destroy = c.function_test('int', 'pthread_rwlock_t*')
-    pthread_rwlock_init = c.function_test('int', 'pthread_rwlock_t*', 'const pthread_rwlockattr_t*')
-    pthread_rwlock_rdlock = c.function_test('int', 'pthread_rwlock_t*')
-    pthread_rwlock_timedrdlock = c.function_test('int', 'pthread_rwlock_t*', 'const struct timespec*')
-    pthread_rwlock_timedwrlock = c.function_test('int', 'pthread_rwlock_t*', 'const struct timespec*')
-    pthread_rwlock_tryrdlock = c.function_test('int', 'pthread_rwlock_t*')
-    pthread_rwlock_trywrlock = c.function_test('int', 'pthread_rwlock_t*')
-    pthread_rwlock_unlock = c.function_test('int', 'pthread_rwlock_t*')
-    pthread_rwlock_wrlock = c.function_test('int', 'pthread_rwlock_t*')
+
+    @property
+    def pthread_rwlock_destroy(self):
+        if self.pthread_rwlock_init:
+            return c.Function('int', 'pthread_rwlock_t*')
+
+    pthread_rwlock_init = c.function_test('int', 'pthread_rwlock_t*', 'const pthread_rwlockattr_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+            if (pthread_rwlock_init(&rwlock, 0) != 0) return 1;
+            if (pthread_rwlock_rdlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_wrlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_destroy(&rwlock) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    @property
+    def pthread_rwlock_rdlock(self):
+        if self.pthread_rwlock_init:
+            return c.Function('int', 'pthread_rwlock_t*')
+
+    pthread_rwlock_timedrdlock = c.function_test('int', 'pthread_rwlock_t*', 'const struct timespec*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+            struct timespec t = { 0, 0 };
+            if (pthread_rwlock_init(&rwlock, 0) != 0) return 1;
+            if (pthread_rwlock_timedrdlock(&rwlock, &t) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_destroy(&rwlock) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    pthread_rwlock_timedwrlock = c.function_test('int', 'pthread_rwlock_t*', 'const struct timespec*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+            struct timespec t = { 0, 0 };
+            if (pthread_rwlock_init(&rwlock, 0) != 0) return 1;
+            if (pthread_rwlock_timedwrlock(&rwlock, &t) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_destroy(&rwlock) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    pthread_rwlock_tryrdlock = c.function_test('int', 'pthread_rwlock_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+            if (pthread_rwlock_init(&rwlock, 0) != 0) return 1;
+            if (pthread_rwlock_tryrdlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_destroy(&rwlock) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    pthread_rwlock_trywrlock = c.function_test('int', 'pthread_rwlock_t*', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+            if (pthread_rwlock_init(&rwlock, 0) != 0) return 1;
+            if (pthread_rwlock_trywrlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_unlock(&rwlock) != 0) return 1;
+            if (pthread_rwlock_destroy(&rwlock) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    @property
+    def pthread_rwlock_unlock(self):
+        if self.pthread_rwlock_init:
+            return c.Function('int', 'pthread_rwlock_t*')
+
+    @property
+    def pthread_rwlock_wrlock(self):
+        if self.pthread_rwlock_init:
+            return c.Function('int', 'pthread_rwlock_t*')
+
     pthread_rwlockattr_destroy = c.function_test('int', 'pthread_rwlockattr_t*')
     pthread_rwlockattr_getpshared = c.function_test('int', 'const pthread_rwlockattr_t*', 'int*')
     pthread_rwlockattr_init = c.function_test('int', 'pthread_rwlockattr_t*')
@@ -644,11 +794,44 @@ class pthread_h(c.Header):
     pthread_setschedparam = c.function_test('int', 'pthread_t', 'int', 'const struct sched_param*')
     pthread_setschedprio = c.function_test('int', 'pthread_t', 'int')
     pthread_setspecific = c.function_test('int', 'pthread_key_t', 'const void*')
-    pthread_spin_destroy = c.function_test('int', 'pthread_spinlock_t*')
-    pthread_spin_init = c.function_test('int', 'pthread_spinlock_t*', 'int')
-    pthread_spin_lock = c.function_test('int', 'pthread_spinlock_t*')
-    pthread_spin_trylock = c.function_test('int', 'pthread_spinlock_t*')
-    pthread_spin_unlock = c.function_test('int', 'pthread_spinlock_t*')
+
+    @property
+    def pthread_spin_destroy(self):
+        if self.pthread_spin_init:
+            return c.Function('int', 'pthread_spinlock_t*')
+
+    pthread_spin_init = c.function_test('int', 'pthread_spinlock_t*', 'int', test='''
+        #include <pthread.h>
+        int main() {
+            pthread_spinlock_t spin;
+            if (pthread_spin_init(&spin, 0) != 0) return 1;
+
+            if (pthread_spin_lock(&spin) != 0) return 1;
+            if (pthread_spin_unlock(&spin) != 0) return 1;
+
+            if (pthread_spin_trylock(&spin) != 0) return 1;
+            if (pthread_spin_unlock(&spin) != 0) return 1;
+
+            if (pthread_spin_destroy(&spin) != 0) return 1;
+            return 0;
+        }
+        ''')
+
+    @property
+    def pthread_spin_lock(self):
+        if self.pthread_spin_init:
+            return c.Function('int', 'pthread_spinlock_t*')
+
+    @property
+    def pthread_spin_trylock(self):
+        if self.pthread_spin_init:
+            return c.Function('int', 'pthread_spinlock_t*')
+
+    @property
+    def pthread_spin_unlock(self):
+        if self.pthread_spin_init:
+            return c.Function('int', 'pthread_spinlock_t*')
+
     pthread_testcancel = c.function_test('void', 'void')
 
 class pwd_h(c.Header):
