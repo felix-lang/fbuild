@@ -89,10 +89,10 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     }''', file=f)
 
             obj = self.uncached_compile(src_lib, quieter=1)
-            lib = self.uncached_link_lib(dirname / 'temp', [obj],
+            lib = self.uncached_link_lib(dirname / 'templib', [obj],
                     quieter=1)
             obj = self.uncached_compile(src_exe, quieter=1)
-            exe = self.uncached_link_exe(dirname / 'temp', [obj],
+            exe = self.uncached_link_exe(dirname / 'tempexe', [obj],
                     libs=[lib],
                     quieter=1)
 
