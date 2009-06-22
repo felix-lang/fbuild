@@ -11,7 +11,10 @@ parser.add_option('--clean',
 
 options, args = parser.parse_args()
 
-for d in os.listdir(os.path.dirname(__file__)):
+examples_dir = os.path.dirname(__file__) or os.getcwd()
+for d in os.listdir(examples_dir):
+    d = os.path.join(examples_dir, d)
+
     if not os.path.isdir(d):
         continue
 
