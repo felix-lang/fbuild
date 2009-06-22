@@ -53,7 +53,7 @@ class Ocamldep(fbuild.db.PersistentObject):
             stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
-        m = re.match(b'\S+:(?: (.*))?$', stdout)
+        m = re.match(b'\S+:(?: (.*))?$', stdout.strip())
         if not m:
             raise ExecutionError('unable to understand %r' % stdout)
 
