@@ -95,7 +95,7 @@ class Cl(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return fbuild.execute(cmd, str(self), msg2, **kwargs)
+        return fbuild.execute(cmd, msg2=msg2, **kwargs)
 
     def check_flags(self, flags):
         if flags:
@@ -147,7 +147,7 @@ class Cl(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Compiler:
-    def __init__(self, cl, flags=['/c'], *, suffix):
+    def __init__(self, cl, flags, *, suffix):
         self.cl = cl
         self.flags = flags
         self.suffix = suffix
@@ -164,7 +164,8 @@ class Compiler:
         dst.parent.makedirs()
 
         stdout, stderr = self.cl([src], dst,
-            pre_flags=self.flags,
+            pre_flags=list(chain(['/c'], self.flags)),
+            msg1=str(self),
             color='green',
             **kwargs)
 
@@ -497,7 +498,7 @@ class Builder(fbuild.builders.c.Builder):
 def static(exe=None, *args,
         platform=None,
         flags=[],
-        compile_flags=['/c'],
+        compile_flags=[],
         libpaths=[],
         libs=[],
         link_flags=[],
@@ -523,7 +524,7 @@ def static(exe=None, *args,
 def shared(exe=None, *args,
         platform=None,
         flags=[],
-        compile_flags=['/c'],
+        compile_flags=[],
         libpaths=[],
         libs=[],
         link_flags=[],

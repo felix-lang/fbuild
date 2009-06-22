@@ -158,7 +158,7 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend('-l' + l for l in external_libs)
         cmd.extend(libs)
 
-        return execute(cmd, str(self), msg2, **kwargs)
+        return execute(cmd, msg2=msg2, **kwargs)
 
     def check_flags(self, flags):
         if flags:
@@ -239,7 +239,11 @@ class Compiler(fbuild.db.PersistentObject):
         dst = (dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
-        self.gcc([src], dst, pre_flags=self.flags, color='green', **kwargs)
+        self.gcc([src], dst,
+            pre_flags=list(chain(['-c'], self.flags)),
+            msg1=str(self),
+            color='green',
+            **kwargs)
 
         return dst
 
@@ -283,7 +287,11 @@ class Linker(fbuild.db.PersistentObject):
         dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
 
-        self.gcc(srcs, dst, pre_flags=self.flags, color='cyan', **kwargs)
+        self.gcc(srcs, dst,
+            pre_flags=self.flags,
+            msg1=str(self),
+            color='cyan',
+            **kwargs)
 
         return dst
 
@@ -405,7 +413,7 @@ def static(exe=None, *args,
         make_linker=make_linker,
         platform=None,
         flags=[],
-        compile_flags=['-c'],
+        compile_flags=[],
         libpaths=[],
         libs=[],
         link_flags=[],
@@ -438,7 +446,7 @@ def shared(exe=None, *args,
         make_linker=make_linker,
         platform=None,
         flags=[],
-        compile_flags=['-c', '-fPIC'],
+        compile_flags=['-fPIC'],
         libpaths=[],
         libs=[],
         link_flags=[],
