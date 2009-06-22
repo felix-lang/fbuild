@@ -179,7 +179,7 @@ class Gcc(fbuild.db.PersistentObject):
         return True
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.exe,), self.flags))
+        return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
     def __eq__(self, other):
         return isinstance(other, Gcc) and \

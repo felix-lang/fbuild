@@ -99,10 +99,9 @@ class Cl(fbuild.db.PersistentObject):
 
     def check_flags(self, flags):
         if flags:
-            fbuild.logger.check('checking %s with %s' %
-                (self.exe, ' '.join(flags)))
+            fbuild.logger.check('checking %s with %s' % (self, ' '.join(flags)))
         else:
-            fbuild.logger.check('checking %s' % self.exe)
+            fbuild.logger.check('checking %s' % self)
 
         code = 'int main(int argc, char** argv){return 0;}'
 
@@ -117,7 +116,7 @@ class Cl(fbuild.db.PersistentObject):
         return True
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.exe,), self.flags))
+        return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
     def __eq__(self, other):
         return isinstance(other, type(self)) and \
@@ -229,7 +228,7 @@ class Lib(fbuild.db.PersistentObject):
         #    else:
         #        cmd.append(lib)
 
-        fbuild.execute(cmd, self.exe,
+        fbuild.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
             color='cyan',
             **kwargs)
@@ -237,7 +236,7 @@ class Lib(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.exe,), self.flags))
+        return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
 # ------------------------------------------------------------------------------
 
@@ -329,7 +328,7 @@ class Link(fbuild.db.PersistentObject):
 
         cmd.extend(srcs)
 
-        stdout, stderr = fbuild.execute(cmd, self.exe,
+        stdout, stderr = fbuild.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
             color='cyan',
             **kwargs)
@@ -344,7 +343,7 @@ class Link(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.exe,), self.flags))
+        return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
 class ExeLink(Link):
     def __call__(self, dst, *args, buildroot=None, **kwargs):

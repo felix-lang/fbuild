@@ -70,3 +70,6 @@ class Nm(fbuild.db.PersistentObject):
                     defined_symbols.add(symbol)
 
         return defined_symbols, undefined_symbols
+
+    def __str__(self):
+        return str(self.exe.name)

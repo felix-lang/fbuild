@@ -42,3 +42,6 @@ class Bison(fbuild.db.PersistentObject):
         fbuild.execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
 
         return dst
+
+    def __str__(self):
+        return str(self.exe.name)

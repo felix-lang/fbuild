@@ -71,7 +71,7 @@ class Ar(fbuild.db.PersistentObject):
         #cmd.extend(external_libs)
 
         execute(cmd,
-            msg1=self.exe,
+            msg1=str(self),
             msg2='%s -> %s' % (' '.join(srcs), dst),
             color='cyan',
             **kwargs)
@@ -83,7 +83,7 @@ class Ar(fbuild.db.PersistentObject):
             cmd.append(dst)
 
             execute(cmd,
-                msg1=self.ranlib,
+                msg1=self.ranlib.name,
                 msg2=dst,
                 color='cyan',
                 **kwargs)
@@ -91,4 +91,4 @@ class Ar(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(chain((self.exe,), self.flags))
+        return ' '.join(chain((self.exe.name,), self.flags))
