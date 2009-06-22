@@ -2,15 +2,16 @@
 
 import os
 import sys
-import imp
 
 fbuild_dirname = os.path.dirname(sys.argv[0])
-env = dict(os.environ)
-env['PYTHONPATH'] = env.get('PYTHONPATH', '') + os.pathsep + \
-    os.path.join(fbuild_dirname, 'lib')
 
-sys.exit(os.execve(sys.executable,
-    [sys.executable,
-    os.path.join(fbuild_dirname, 'bin', 'fbuild')] +
-    sys.argv[1:],
-    env))
+sys.path.extend((
+    os.path.join(fbuild_dirname, 'lib'),
+))
+
+fbuild_exename = os.path.join(fbuild_dirname, 'bin', 'fbuild')
+f = open(fbuild_exename)
+try:
+    exec(compile(f.read(), fbuild_exename, 'exec'))
+finally:
+    f.close()
