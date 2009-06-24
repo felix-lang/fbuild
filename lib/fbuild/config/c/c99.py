@@ -724,7 +724,7 @@ class stdio_h(c90.stdio_h):
             int x = 0, y = 0;
             return f("%d %d", &x, &y) && x == 5 && y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     vsnprintf = c.function_test('int', 'char*', 'size_t', 'char*', 'va_list', test='''
         #include <stdarg.h>
         #include <stdio.h>
@@ -948,7 +948,7 @@ class wchar_h(c.Header):
                 x == 5 &&
                 y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     swprintf = c.function_test('int', 'wchar_t*', 'size_t', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
@@ -994,7 +994,7 @@ class wchar_h(c.Header):
                 x == 5 &&
                 y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     vswprintf = c.function_test('int', 'wchar_t*', 'size_t', 'const wchar_t*', 'va_list', test='''
         #include <stdarg.h>
         #include <wchar.h>
@@ -1050,7 +1050,7 @@ class wchar_h(c.Header):
             int x = 0, y = 0;
             return f(L"%d %d", &x, &y) && x == 5 && y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     wprintf = c.function_test('int', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
@@ -1065,7 +1065,7 @@ class wchar_h(c.Header):
                 x == 5 &&
                 y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     fgetwc = c.function_test('wint_t', 'FILE*', test='''
         #include <wchar.h>
         int main() {
@@ -1101,13 +1101,13 @@ class wchar_h(c.Header):
         int main() {
             return getwc(stdin) == 'c' ? 0 : 1;
         }
-        ''', stdin=b'c', timeout=1.0)
+        ''', stdin=b'c')
     getwchar = c.function_test('wint_t', 'void', test='''
         #include <wchar.h>
         int main() {
             return getwchar() == 'c' ? 0 : 1;
         }
-        ''', stdin=b'c', timeout=1.0)
+        ''', stdin=b'c')
     putwc = c.function_test('wint_t', 'wchar_t', 'FILE*', test='''
         #include <wchar.h>
         int main() {

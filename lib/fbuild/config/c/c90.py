@@ -469,7 +469,7 @@ class stdio_h(c.Header):
                 x == 5 &&
                 y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     printf = c.function_test('int', 'const char*', test='''
         #include <stdio.h>
         int main() {
@@ -484,7 +484,7 @@ class stdio_h(c.Header):
                 x == 5 &&
                 y == 6 ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     sprintf = c.function_test('int', 'char*', 'const char*', test='''
         #include <stdio.h>
         int main() {
@@ -578,13 +578,13 @@ class stdio_h(c.Header):
             return getc(stdin) == '5' ? 0 : 1;
         }
         ''',
-        stdin=b'5', timeout=1.0)
+        stdin=b'5')
     getchar = c.function_test('int', 'void', test='''
         #include <stdio.h>
         int main() {
             return getchar() == '5' ? 0 : 1;
         }
-        ''', stdin=b'5', timeout=1.0)
+        ''', stdin=b'5')
     gets = c.function_test('char*', 'char*', test='''
         #include <stdio.h>
         int main() {
@@ -595,7 +595,7 @@ class stdio_h(c.Header):
                 s[2] == '6' &&
                 s[3] == '\\0' ? 0 : 1;
         }
-        ''', stdin=b'5 6', timeout=1.0)
+        ''', stdin=b'5 6')
     putc = c.function_test('int', 'int', 'FILE*', test='''
         #include <stdio.h>
         int main() {
