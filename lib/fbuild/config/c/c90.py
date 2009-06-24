@@ -621,8 +621,22 @@ class stdio_h(c.Header):
             return getc(stdin) == '5' ? 0 : 1;
         }
         ''')
-    fread = c.function_test('size_t', 'void*', 'size_t', 'size_t', 'FILE*')
-    fwrite = c.function_test('size_t', 'const void*', 'size_t', 'size_t', 'FILE*')
+    fread = c.function_test('size_t', 'void*', 'size_t', 'size_t', 'FILE*', test='''
+        #include <stdio.h>
+        int main() {
+            char s[50] = {0};
+            return fread(s, sizeof(char), 3, stdin) == 3 &&
+                s[0] == '5' &&
+                s[1] == ' ' &&
+                s[2] == '6' ? 0 : 1;
+        }
+        ''', stdin=b'5 6')
+    fwrite = c.function_test('size_t', 'const void*', 'size_t', 'size_t', 'FILE*', test='''
+        #include <stdio.h>
+        int main() {
+            return fwrite("5 6", sizeof(char), 3, stdout) == 3 ? 0 : 1;
+        }
+        ''', stdout=b'5 6')
 
     @c.cacheproperty
     def fgetpos(self):
