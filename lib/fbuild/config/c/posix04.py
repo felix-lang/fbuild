@@ -906,7 +906,17 @@ class stdio_h(c99.stdio_h):
 class stdlib_h(c99.stdlib_h):
     drand48 = c.function_test('double', 'void')
     lrand48 = c.function_test('long', 'void')
-    mkstemp = c.function_test('int', 'char*')
+    mkstemp = c.function_test('int', 'char*', test='''
+        #include <stdlib.h>
+        #include <unistd.h>
+        int main() {
+            char s[] = "XXXXXX";
+            int fd;
+            if ((fd = mkstemp(s)) == -1) return 1;
+            if (close(fd) == -1) return 1;
+            return 0;
+        }
+        ''')
     realpath = c.function_test('char*', 'const char*', 'char*')
     srand = c.function_test('void', 'unsigned int')
     srand48 = c.function_test('void', 'long')

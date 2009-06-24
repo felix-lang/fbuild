@@ -35,7 +35,13 @@ class stdlib_h(c.Header):
             return s[0] == '0' && s[1] == '\\0' ? 0 : 1;
         }
         ''')
-    mktemp = c.function_test('char*', 'char*')
+    mktemp = c.function_test('char*', 'char*', test='''
+        #include <stdlib.h>
+        int main() {
+            char s[] = "XXXXXX";
+            return mktemp(s) == NULL ? 1 : 0;
+        }
+        ''')
 
 class strings_h(c.Header):
     bcmp = c.function_test('int', 'const void*', 'const void*', 'size_t')

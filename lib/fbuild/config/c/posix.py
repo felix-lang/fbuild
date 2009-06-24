@@ -26,7 +26,16 @@ class pthread_h(pthread_h):
             self.external_libs.append('rt')
 
 class stdlib_h(stdlib_h):
-    mkdtemp = c.function_test('char*', 'char*')
+    mkdtemp = c.function_test('char*', 'char*', test='''
+        #include <stdlib.h>
+        #include <unistd.h>
+        int main() {
+            char s[] = "XXXXXX";
+            if (mkdtemp(s) == NULL) return 1;
+            if (rmdir(s) == -1) return 1;
+            return 0;
+        }
+        ''')
     strtoq = c.function_test('quad_t', 'const char*', 'char**', test='''
         #include <stdlib.h>
         #include <sys/types.h>
