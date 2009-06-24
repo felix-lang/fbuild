@@ -1123,15 +1123,43 @@ class time_h(c.Header):
         }
         ''')
     time = c.function_test('time_t', 'time_t*', default_args=('NULL',))
-    asctime = c.function_test('char*', 'const struct tm*')
-    ctime = c.function_test('char*', 'const time_t*')
-    gmtime = c.function_test('struct tm*', 'const time_t*')
-    localtime = c.function_test('struct tm*', 'const time_t*')
+    asctime = c.function_test('char*', 'const struct tm*', test='''
+        #include <time.h>
+        int main() {
+            struct tm t = { 0, 0, 0, 1, 0, 70, 4, 0, 0 };
+            char* s = asctime(&t);
+            return 0;
+        }
+        ''')
+    ctime = c.function_test('char*', 'const time_t*', test='''
+        #include <time.h>
+        int main() {
+            time_t t = 0;
+            char* s = ctime(&t);
+            return 0;
+        }
+        ''')
+    gmtime = c.function_test('struct tm*', 'const time_t*', test='''
+        #include <time.h>
+        int main() {
+            time_t t = 0;
+            struct tm* tm = gmtime(&t);
+            return 0;
+        }
+        ''')
+    localtime = c.function_test('struct tm*', 'const time_t*', test='''
+        #include <time.h>
+        int main() {
+            time_t t = 0;
+            struct tm* tm = localtime(&t);
+            return 0;
+        }
+        ''')
     strftime = c.function_test('size_t', 'char*', 'size_t', 'const char*', 'const struct tm*', test='''
         #include <time.h>
         int main() {
+            struct tm t = { 0, 0, 0, 1, 0, 70, 4, 0, 0 };
             char s[50] = {0};
-            struct tm t;
-            return strftime(s, 0, "", &t) == 0 ? 0 : 1;
+            return strftime(s, 50, " ", &t) == 1 ? 0 : 1;
         }
         ''')
