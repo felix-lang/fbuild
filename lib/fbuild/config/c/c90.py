@@ -452,9 +452,9 @@ class stdio_h(c.Header):
                     if (fclose(f) != 0) return 1;
                     return 0;
                 }
-                ''' % (f.name)
+                ''' % f.name
 
-            if self.builder.check_run(test, "checking FILE in 'stdio.h'"):
+            if self.builder.check_run(test, "checking fopen in 'stdio.h'"):
                 return c.Function('FILE*', 'const char*', 'const char*')
 
     @c.cacheproperty
