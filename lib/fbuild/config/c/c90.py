@@ -681,7 +681,7 @@ class stdio_h(c.Header):
         if self.fopen:
             return c.Function('int', 'FILE*')
 
-    perror = c.function_test('void', 'const char*')
+    perror = c.function_test('void', 'const char*', default_args=('""',))
 
 # -----------------------------------------------------------------------------
 
