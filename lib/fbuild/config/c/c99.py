@@ -1438,7 +1438,13 @@ class wchar_h(c.Header):
     wctob = c.function_test('int', 'wint_t')
     mbsinit = c.function_test('int', 'const mbstate_t*')
     mbrlen = c.function_test('size_t', 'const char*', 'size_t', 'mbstate_t*')
-    mbrtowc = c.function_test('size_t', 'wchar_t*', 'const char*', 'size_t', 'mbstate_t*')
+    mbrtowc = c.function_test('size_t', 'wchar_t*', 'const char*', 'size_t', 'mbstate_t*', test='''
+        #include <wchar.h>
+        int main() {
+            wchar_t s[50];
+            return mbrtowc(s, "5", 50, NULL) == 1 && s[0] == L'5' ? 0 : 1;
+        }
+        ''')
     wcrtomb = c.function_test('size_t', 'char*', 'wchar_t', 'mbstate_t*')
     mbsrtowcs = c.function_test('size_t', 'wchar_t*', 'const char**', 'size_t', 'mbstate_t*', test='''
         #include <wchar.h>
