@@ -7,9 +7,34 @@ class libgen_h(c.Header):
     dirname = c.function_test('char*', 'char*')
 
 class stdlib_h(c.Header):
-    ecvt = c.function_test('char*', 'double', 'int', 'int*', 'int*')
-    fcvt = c.function_test('char*', 'double', 'int', 'int*', 'int*')
-    gcvt = c.function_test('char*', 'double', 'int', 'char*')
+    ecvt = c.function_test('char*', 'double', 'int', 'int*', 'int*', test='''
+        #include <stdlib.h>
+        int main() {
+            int decpt;
+            int sign;
+            char* s = ecvt(0.0, 1, &decpt, &sign);
+            return s[0] == '0' && s[1] == '\\0' ? 0 : 1;
+        }
+        ''')
+    fcvt = c.function_test('char*', 'double', 'int', 'int*', 'int*', test='''
+        #include <stdlib.h>
+        int main() {
+            int decpt;
+            int sign;
+            char* s = fcvt(0.0, 1, &decpt, &sign);
+            return s[0] == '0' && s[1] == '\\0' ? 0 : 1;
+        }
+        ''')
+    gcvt = c.function_test('char*', 'double', 'int', 'char*', test='''
+        #include <stdlib.h>
+        int main() {
+            char s[50] = {0};
+            int decpt;
+            int sign;
+            gcvt(0.0, 1, s);
+            return s[0] == '0' && s[1] == '\\0' ? 0 : 1;
+        }
+        ''')
     mktemp = c.function_test('char*', 'char*')
 
 class strings_h(c.Header):
