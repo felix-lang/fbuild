@@ -337,7 +337,13 @@ class signal_h(c.Header):
             return 0;
         }
         ''')
-    raise_ = c.function_test('int', 'int', name='raise')
+    raise_ = c.function_test('int', 'int', name='raise', test='''
+        #include <signal.h>
+        int main() {
+            signal(SIGTERM, SIG_IGN);
+            return raise(SIGTERM) == 0 ? 0 : 1;
+        }
+        ''')
 
 # -----------------------------------------------------------------------------
 
