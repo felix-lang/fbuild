@@ -27,15 +27,16 @@ class pthread_h(pthread_h):
 
 class stdlib_h(stdlib_h):
     mkdtemp = c.function_test('char*', 'char*')
-    strtof = c.function_test('double', 'const char*', 'char**', test='''
+    strtoq = c.function_test('quad_t', 'const char*', 'char**', test='''
         #include <stdlib.h>
+        #include <sys/types.h>
         int main() {
             char* s1 = "15";
             char* s2 = "abc";
             char* endp;
-            quad_t d = strtoq(s1, &endp);
-            if (s1 != endp && *endp == '\\0' && d == 15.0) {
-                d = strtoq(s2, &endp);
+            quad_t d = strtoq(s1, &endp, 8);
+            if (s1 != endp && *endp == '\\0' && d == 13l) {
+                d = strtoq(s2, &endp, 8);
                 return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
