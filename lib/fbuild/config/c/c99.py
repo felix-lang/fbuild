@@ -716,9 +716,12 @@ class stdio_h(c90.stdio_h):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vfscanf(stdin, s, ap);
+            rc = vfscanf(stdin, s, ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             int x = 0, y = 0;
@@ -729,9 +732,12 @@ class stdio_h(c90.stdio_h):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vsnprintf(s, 50, "%d %d", ap);
+            rc = vsnprintf(s, 50, "%d %d", ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             char s[50] = {0};
@@ -746,9 +752,12 @@ class stdio_h(c90.stdio_h):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vsscanf("5 6", s, ap);
+            rc = vsscanf("5 6", s, ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             int x = 0, y = 0;

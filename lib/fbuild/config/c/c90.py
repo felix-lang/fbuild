@@ -527,9 +527,12 @@ class stdio_h(c.Header):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vfprintf(stdout, s, ap);
+            rc = vfprintf(stdout, s, ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             return f("%d %d", 5, 6) ? 0 : 1;
@@ -539,9 +542,12 @@ class stdio_h(c.Header):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vprintf(s, ap);
+            rc = vprintf(s, ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             return f("%d %d", 5, 6) ? 0 : 1;
@@ -551,9 +557,12 @@ class stdio_h(c.Header):
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
+            int rc;
             va_list ap;
             va_start(ap, s);
-            return vsprintf(s, "%d %d", ap);
+            rc = vsprintf(s, "%d %d", ap);
+            va_end(ap);
+            return rc;
         }
         int main() {
             char s[50] = {0};
