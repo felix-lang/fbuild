@@ -122,7 +122,16 @@ class assert_h(c.Header):
 
         if self.builder.try_run('''
                 #include <assert.h>
+                #ifdef _WIN32
+                #include <windows.h>
+                #endif
+
                 int main() {
+                #ifdef _WIN32
+                    /* Turn off the windows error box */
+                    DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+                    SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+                #endif
                     assert(0);
                     return 0;
                 }
@@ -798,7 +807,16 @@ class stdlib_h(c.Header):
 
         with self.builder.tempfile('''
                 #include <stdlib.h>
+                #ifdef _WIN32
+                #include <windows.h>
+                #endif
+
                 int main() {
+                #ifdef _WIN32
+                    /* Turn off the windows error box */
+                    DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+                    SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+                #endif
                     abort();
                     return 0;
                 }
