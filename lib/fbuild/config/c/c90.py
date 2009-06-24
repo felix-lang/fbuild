@@ -460,7 +460,13 @@ class stdio_h(c.Header):
             return 0;
         }
         ''')
-    setvbuf = c.function_test('int', 'FILE*', 'char*', 'int', 'size_t')
+    setvbuf = c.function_test('int', 'FILE*', 'char*', 'int', 'size_t', test='''
+        #include <stdio.h>
+        int main() {
+            setvbuf(stdout, "", _IONBF, 0);
+            return 0;
+        }
+        ''')
     fprintf = c.function_test('int', 'FILE*', 'const char*', test='''
         #include <stdio.h>
         int main() {
