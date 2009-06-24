@@ -34,9 +34,9 @@ class stdlib_h(stdlib_h):
             char* s2 = "abc";
             char* endp;
             quad_t d = strtoq(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 15.0) {
+            if (s1 != endp && *endp == '\\0' && d == 15.0) {
                 d = strtoq(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }

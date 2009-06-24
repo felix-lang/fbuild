@@ -35,15 +35,15 @@ class types(c.Test):
     long_double = c.type_test(name='long double')
 
     voidp = c.type_test(name='void*')
-    enum = c.type_test(test=r'''
+    enum = c.type_test(test='''
         #include <stddef.h>
         #include <stdio.h>
 
         typedef enum enum_t {tag} type;
         struct TEST { char c; type mem; };
         int main() {
-            printf("%d\n", (int)offsetof(struct TEST, mem));
-            printf("%d\n", (int)sizeof(type));
+            printf("%d\\n", (int)offsetof(struct TEST, mem));
+            printf("%d\\n", (int)sizeof(type));
             return 0;
         }
         ''')
@@ -485,7 +485,7 @@ class stdio_h(c.Header):
                 y == 6 ? 0 : 1;
         }
         ''', stdin=b'5 6', timeout=1.0)
-    sprintf = c.function_test('int', 'char*', 'const char*', test=r'''
+    sprintf = c.function_test('int', 'char*', 'const char*', test='''
         #include <stdio.h>
         int main() {
             char s[50];
@@ -514,7 +514,7 @@ class stdio_h(c.Header):
             return f("%d %d", 5, 6) ? 0 : 1;
         }
         ''', stdout=b'5 6')
-    vprintf = c.function_test('int', 'const char*', 'va_list', test=r'''
+    vprintf = c.function_test('int', 'const char*', 'va_list', test='''
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
@@ -526,7 +526,7 @@ class stdio_h(c.Header):
             return f("%d %d", 5, 6) ? 0 : 1;
         }
         ''', stdout=b'5 6')
-    vsprintf = c.function_test('int', 'char*', 'const char*', 'va_list', test=r'''
+    vsprintf = c.function_test('int', 'char*', 'const char*', 'va_list', test='''
         #include <stdarg.h>
         #include <stdio.h>
         int f(char* s, ...) {
@@ -540,7 +540,7 @@ class stdio_h(c.Header):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''')
     fgetc = c.function_test('int', 'FILE*', test='''
@@ -549,7 +549,7 @@ class stdio_h(c.Header):
             return fgetc(stdin) == '5' ? 0 : 1;
         }
         ''', stdin=b'5')
-    fgets = c.function_test('char*', 'char*', 'int', 'FILE*', test=r'''
+    fgets = c.function_test('char*', 'char*', 'int', 'FILE*', test='''
         #include <stdio.h>
         int main() {
             char s[50] = {0};
@@ -557,7 +557,7 @@ class stdio_h(c.Header):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''', stdin=b'5 6')
     fputc = c.function_test('int', 'int', 'FILE*', test='''
@@ -585,7 +585,7 @@ class stdio_h(c.Header):
             return getchar() == '5' ? 0 : 1;
         }
         ''', stdin=b'5', timeout=1.0)
-    gets = c.function_test('char*', 'char*', test=r'''
+    gets = c.function_test('char*', 'char*', test='''
         #include <stdio.h>
         int main() {
             char s[50] = {0};
@@ -593,7 +593,7 @@ class stdio_h(c.Header):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''', stdin=b'5 6', timeout=1.0)
     putc = c.function_test('int', 'int', 'FILE*', test='''
@@ -706,9 +706,9 @@ class stdlib_h(c.Header):
             char* s2 = "abc";
             char* endp;
             double d = strtod(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 0.5) {
+            if (s1 != endp && *endp == '\\0' && d == 0.5) {
                 d = strtod(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -720,9 +720,9 @@ class stdlib_h(c.Header):
             char* s2 = "abc";
             char* endp;
             long int d = strtol(s1, &endp, 8);
-            if (s1 != endp && *endp == '\0' && d == 13l) {
+            if (s1 != endp && *endp == '\\0' && d == 13l) {
                 d = strtol(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -734,9 +734,9 @@ class stdlib_h(c.Header):
             char* s2 = "abc";
             char* endp;
             unsigned long int d = strtoul(s1, &endp, 8);
-            if (s1 != endp && *endp == '\0' && d == 13ul) {
+            if (s1 != endp && *endp == '\\0' && d == 13ul) {
                 d = strtoul(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -857,7 +857,7 @@ class stdlib_h(c.Header):
                 s[0] == L'5' &&
                 s[1] == L' ' &&
                 s[2] == L'6' &&
-                s[3] == L'\0' ? 0 : 1;
+                s[3] == L'\\0' ? 0 : 1;
         }
         ''')
     wcstombs = c.function_test('size_t', 'char*', 'const wchar_t*', 'size_t', test='''
@@ -868,7 +868,7 @@ class stdlib_h(c.Header):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''')
 
@@ -906,21 +906,21 @@ class string_h(c.Header):
     strcpy = c.function_test('char*', 'char*', 'const char*', test='''
         #include <string.h>
         int main() {
-            char s[] = {'a', 'b', 'c', 'd', 'e', 'f', '\0'};
+            char s[] = {'a', 'b', 'c', 'd', 'e', 'f', '\\0'};
             return strcpy(s, "1234") == s &&
                 s[0] == '1' &&
                 s[1] == '2' &&
                 s[2] == '3' &&
                 s[3] == '4' &&
-                s[4] == '\0' &&
+                s[4] == '\\0' &&
                 s[5] == 'f' &&
-                s[6] == '\0' ? 0 : 1;
+                s[6] == '\\0' ? 0 : 1;
         }
         ''')
     strncpy = c.function_test('char*', 'char*', 'const char*', 'size_t', test='''
         #include <string.h>
         int main() {
-            char s[] = {'a', 'b', 'c', 'd', 'e', 'f', '\0'};
+            char s[] = {'a', 'b', 'c', 'd', 'e', 'f', '\\0'};
             return strncpy(s, "1234", 4) == s &&
                 s[0] == '1' &&
                 s[1] == '2' &&
@@ -928,13 +928,13 @@ class string_h(c.Header):
                 s[3] == '4' &&
                 s[4] == 'e' &&
                 s[5] == 'f' &&
-                s[6] == '\0' ? 0 : 1;
+                s[6] == '\\0' ? 0 : 1;
         }
         ''')
     strcat = c.function_test('char*', 'char*', 'const char*', test='''
         #include <string.h>
         int main() {
-            char s[] = {'1', ' ', '2', '\0', '\0', '\0', '\0'};
+            char s[] = {'1', ' ', '2', '\\0', '\\0', '\\0', '\\0'};
             return strcat(s, "5 6") == s &&
                 s[0] == '1' &&
                 s[1] == ' ' &&
@@ -942,44 +942,44 @@ class string_h(c.Header):
                 s[3] == '5' &&
                 s[4] == ' ' &&
                 s[5] == '6' &&
-                s[6] == '\0' ? 0 : 1;
+                s[6] == '\\0' ? 0 : 1;
         }
         ''')
     strncat = c.function_test('char*', 'char*', 'const char*', 'size_t', test='''
         #include <string.h>
         int main() {
-            char s[] = {'1', ' ', '2', '\0', '\0', '\0', '\0'};
+            char s[] = {'1', ' ', '2', '\\0', '\\0', '\\0', '\\0'};
             return strncat(s, "5 6", 2) == s &&
                 s[0] == '1' &&
                 s[1] == ' ' &&
                 s[2] == '2' &&
                 s[3] == '5' &&
                 s[4] == ' ' &&
-                s[5] == '\0' ? 0 : 1;
+                s[5] == '\\0' ? 0 : 1;
         }
         ''')
     memcmp = c.function_test('int', 'const void*', 'const void*', 'size_t', test='''
         #include <string.h>
         int main() {
             return
-                 memcmp("1 2\0 3", "1 2\0 3", 6) &&
-                !memcmp("1 2\0 3", "2 2\0 3", 6);
+                 memcmp("1 2\\0 3", "1 2\\0 3", 6) &&
+                !memcmp("1 2\\0 3", "2 2\\0 3", 6);
         }
         ''')
     strcmp = c.function_test('int', 'const char*', 'const char*', test='''
         #include <string.h>
         int main() {
             return
-                  strcmp("1 2\0 3", "1 2\0 4") &&
-                 !strcmp("1 2\0 3", "2 2\0 4");
+                  strcmp("1 2\\0 3", "1 2\\0 4") &&
+                 !strcmp("1 2\\0 3", "2 2\\0 4");
         }
         ''')
     strcoll = c.function_test('int', 'const char*', 'const char*', test='''
         #include <string.h>
         int main() {
             return
-                  strcoll("1 2\0 3", "1 2\0 4") &&
-                 !strcoll("1 2\0 3", "2 2\0 4");
+                  strcoll("1 2\\0 3", "1 2\\0 4") &&
+                 !strcoll("1 2\\0 3", "2 2\\0 4");
         }
         ''')
     strncmp = c.function_test('int', 'const char*', 'const char*', 'size_t', test='''
@@ -999,9 +999,9 @@ class string_h(c.Header):
     memchr = c.function_test('void*', 'const void*', 'int', 'size_t', test='''
         #include <string.h>
         int main() {
-            char* s = "ab\0dc";
+            char* s = "ab\\0dc";
             return
-                memchr(s, '\0', 5) == &s[2] &&
+                memchr(s, '\\0', 5) == &s[2] &&
                 memchr(s, 'f', 5) == NULL ? 0 : 1;
         }
         ''')
@@ -1059,7 +1059,7 @@ class string_h(c.Header):
         int main() {
             char s[] = "a,b,c";
             char* p = strtok(s, ",");
-            return p && p[0] == 'a' && p[1] == '\0' ? 0 : 1;
+            return p && p[0] == 'a' && p[1] == '\\0' ? 0 : 1;
         }
         ''')
     memset = c.function_test('void*', 'void*', 'int', 'size_t', test='''

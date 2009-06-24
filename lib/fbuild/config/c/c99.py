@@ -709,7 +709,7 @@ class stdio_h(c90.stdio_h):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''')
     vfscanf = c.function_test('int', 'FILE*', 'const char*', 'va_list', test='''
@@ -739,7 +739,7 @@ class stdio_h(c90.stdio_h):
                 s[0] == '5' &&
                 s[1] == ' ' &&
                 s[2] == '6' &&
-                s[3] == '\0' ? 0 : 1;
+                s[3] == '\\0' ? 0 : 1;
         }
         ''')
     vsscanf = c.function_test('const char*', 'char*', 'va_list', test='''
@@ -773,9 +773,9 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             double d = strtod(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 15.0) {
+            if (s1 != endp && *endp == '\\0' && d == 15.0) {
                 d = strtod(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -787,9 +787,9 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             float d = strtof(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 15.0f) {
+            if (s1 != endp && *endp == '\\0' && d == 15.0f) {
                 d = strtof(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -801,9 +801,9 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             long double d = strtold(s1, &endp);
-            if (s1 != endp && *endp == '\0' && d == 15.0l) {
+            if (s1 != endp && *endp == '\\0' && d == 15.0l) {
                 d = strtold(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -815,9 +815,9 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             long long int d = strtoll(s1, &endp, 8);
-            if (s1 != endp && *endp == '\0' && d == 13l) {
+            if (s1 != endp && *endp == '\\0' && d == 13l) {
                 d = strtoll(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -829,9 +829,9 @@ class stdlib_h(c90.stdlib_h):
             char* s2 = "abc";
             char* endp;
             unsigned long long int d = strtoull(s1, &endp, 8);
-            if (s1 != endp && *endp == '\0' && d == 13ul) {
+            if (s1 != endp && *endp == '\\0' && d == 13ul) {
                 d = strtoull(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -957,7 +957,7 @@ class wchar_h(c.Header):
                 s[0] == L'5' &&
                 s[1] == L' ' &&
                 s[2] == L'6' &&
-                s[3] == L'\0' ? 0 : 1;
+                s[3] == L'\\0' ? 0 : 1;
         }
         ''')
     swscanf = c.function_test('int', 'const wchar_t*', 'const wchar_t*', test='''
@@ -1009,7 +1009,7 @@ class wchar_h(c.Header):
                 s[0] == L'5' &&
                 s[1] == L' ' &&
                 s[2] == L'6' &&
-                s[3] == L'\0' ? 0 : 1;
+                s[3] == L'\\0' ? 0 : 1;
         }
         ''')
     vswscanf = c.function_test('int', 'const wchar_t*', 'const wchar_t*', 'va_list', test='''
@@ -1080,7 +1080,7 @@ class wchar_h(c.Header):
                 s[0] == L'5' &&
                 s[1] == L' ' &&
                 s[2] == L'6' &&
-                s[3] == L'\0' ? 0 : 1;
+                s[3] == L'\\0' ? 0 : 1;
         }
         ''', stdin=b'5 6')
     fputwc = c.function_test('wint_t', 'wchar_t', 'FILE*', test='''
@@ -1134,9 +1134,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             double d = wcstod(s1, &endp);
-            if (s1 != endp && *endp == L'\0' && d == 0.5) {
+            if (s1 != endp && *endp == L'\\0' && d == 0.5) {
                 d = wcstod(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1148,9 +1148,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             float d = wcstof(s1, &endp);
-            if (s1 != endp && *endp == L'\0' && d == 0.5f) {
+            if (s1 != endp && *endp == L'\\0' && d == 0.5f) {
                 d = wcstof(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1162,9 +1162,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             long double d = wcstold(s1, &endp);
-            if (s1 != endp && *endp == L'\0' && d == 0.5l) {
+            if (s1 != endp && *endp == L'\\0' && d == 0.5l) {
                 d = wcstold(s2, &endp);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1176,9 +1176,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             long int d = wcstol(s1, &endp, 8);
-            if (s1 != endp && *endp == L'\0' && d == 13) {
+            if (s1 != endp && *endp == L'\\0' && d == 13) {
                 d = wcstol(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1190,9 +1190,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             long long int d = wcstoll(s1, &endp, 8);
-            if (s1 != endp && *endp == L'\0' && d == 13l) {
+            if (s1 != endp && *endp == L'\\0' && d == 13l) {
                 d = wcstoll(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1204,9 +1204,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             unsigned long int d = wcstoul(s1, &endp, 8);
-            if (s1 != endp && *endp == L'\0' && d == 13ul) {
+            if (s1 != endp && *endp == L'\\0' && d == 13ul) {
                 d = wcstoul(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1218,9 +1218,9 @@ class wchar_h(c.Header):
             wchar_t* s2 = L"abc";
             wchar_t* endp;
             unsigned long long int d = wcstoull(s1, &endp, 8);
-            if (s1 != endp && *endp == L'\0' && d == 13ull) {
+            if (s1 != endp && *endp == L'\\0' && d == 13ull) {
                 d = wcstoull(s2, &endp, 8);
-                return s1 == endp || *endp != '\0' ? 0 : 1;
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
             }
             return 1;
         }
@@ -1228,21 +1228,21 @@ class wchar_h(c.Header):
     wcscpy = c.function_test('wchar_t*', 'wchar_t*', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
-            wchar_t s[] = {L'a', L'b', L'c', L'd', L'e', L'f', L'\0'};
+            wchar_t s[] = {L'a', L'b', L'c', L'd', L'e', L'f', L'\\0'};
             return wcscpy(s, L"1234") == s &&
                 s[0] == L'1' &&
                 s[1] == L'2' &&
                 s[2] == L'3' &&
                 s[3] == L'4' &&
-                s[4] == L'\0' &&
+                s[4] == L'\\0' &&
                 s[5] == L'f' &&
-                s[6] == L'\0' ? 0 : 1;
+                s[6] == L'\\0' ? 0 : 1;
         }
         ''')
     wcsncpy = c.function_test('wchar_t*', 'wchar_t*', 'const wchar_t*', 'size_t', test='''
         #include <wchar.h>
         int main() {
-            wchar_t s[] = {L'a', L'b', L'c', L'd', L'e', L'f', L'\0'};
+            wchar_t s[] = {L'a', L'b', L'c', L'd', L'e', L'f', L'\\0'};
             return wcsncpy(s, L"1234", 4) == s &&
                 s[0] == L'1' &&
                 s[1] == L'2' &&
@@ -1250,7 +1250,7 @@ class wchar_h(c.Header):
                 s[3] == L'4' &&
                 s[4] == L'e' &&
                 s[5] == L'f' &&
-                s[6] == L'\0' ? 0 : 1;
+                s[6] == L'\\0' ? 0 : 1;
         }
         ''')
     wmemcpy = c.function_test('wchar_t*', 'wchar_t*', 'const wchar_t*', 'size_t', test='''
@@ -1282,7 +1282,7 @@ class wchar_h(c.Header):
     wcscat = c.function_test('wchar_t*', 'wchar_t*', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
-            wchar_t s[] = {L'1', L' ', L'2', L'\0', L'\0', L'\0', L'\0'};
+            wchar_t s[] = {L'1', L' ', L'2', L'\\0', L'\\0', L'\\0', L'\\0'};
             return wcscat(s, L"5 6") == s &&
                 s[0] == L'1' &&
                 s[1] == L' ' &&
@@ -1290,36 +1290,36 @@ class wchar_h(c.Header):
                 s[3] == L'5' &&
                 s[4] == L' ' &&
                 s[5] == L'6' &&
-                s[6] == L'\0' ? 0 : 1;
+                s[6] == L'\\0' ? 0 : 1;
         }
         ''')
     wcsncat = c.function_test('wchar_t*', 'wchar_t*', 'const wchar_t*', 'size_t', test='''
         #include <wchar.h>
         int main() {
-            wchar_t s[] = {L'1', L' ', L'2', L'\0', L'\0', L'\0', L'\0'};
+            wchar_t s[] = {L'1', L' ', L'2', L'\\0', L'\\0', L'\\0', L'\\0'};
             return wcsncat(s, L"5 6", 2) == s &&
                 s[0] == L'1' &&
                 s[1] == L' ' &&
                 s[2] == L'2' &&
                 s[3] == L'5' &&
                 s[4] == L' ' &&
-                s[5] == L'\0' ? 0 : 1;
+                s[5] == L'\\0' ? 0 : 1;
         }
         ''')
     wcscmp = c.function_test('int', 'const wchar_t*', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
             return
-                  wcscmp(L"1 2\0 3", L"1 2\0 4") &&
-                 !wcscmp(L"1 2\0 3", L"2 2\0 4");
+                  wcscmp(L"1 2\\0 3", L"1 2\\0 4") &&
+                 !wcscmp(L"1 2\\0 3", L"2 2\\0 4");
         }
         ''')
     wcscoll = c.function_test('int', 'const wchar_t*', 'const wchar_t*', test='''
         #include <wchar.h>
         int main() {
             return
-                  wcscoll("1 2\0 3", "1 2\0 4") &&
-                 !wcscoll("1 2\0 3", "2 2\0 4");
+                  wcscoll("1 2\\0 3", "1 2\\0 4") &&
+                 !wcscoll("1 2\\0 3", "2 2\\0 4");
         }
         ''')
     wcsncmp = c.function_test('int', 'const wchar_t*', 'const wchar_t*', 'size_t', test='''
@@ -1340,8 +1340,8 @@ class wchar_h(c.Header):
         #include <string.h>
         int main() {
             return
-                 wmemcmp(L"1 2\0 3", L"1 2\0 3", 6) &&
-                !wmemcmp(L"1 2\0 3", L"2 2\0 3", 6);
+                 wmemcmp(L"1 2\\0 3", L"1 2\\0 3", 6) &&
+                !wmemcmp(L"1 2\\0 3", L"2 2\\0 3", 6);
         }
         ''')
     wcschr = c.function_test('wchar_t*', 'const wchar_t*', 'wchar_t', test='''
@@ -1398,15 +1398,15 @@ class wchar_h(c.Header):
         int main() {
             wchar_t *last, s[50] = L"a,b,c";
             wchar_t* p = wcstok(s, L",", &last);
-            return p && p[0] == L'a' && p[1] == L'\0' ? 0 : 1;
+            return p && p[0] == L'a' && p[1] == L'\\0' ? 0 : 1;
         }
         ''')
     wmemchr = c.function_test('wchar_t*', 'const wchar_t*', 'wchar_t', 'size_t', test='''
         #include <wchar.h>
         int main() {
-            wchar_t* s = L"ab\0dc";
+            wchar_t* s = L"ab\\0dc";
             return
-                wmemchr(s, L'\0', 5) == &s[2] &&
+                wmemchr(s, L'\\0', 5) == &s[2] &&
                 wmemchr(s, L'f', 5) == NULL ? 0 : 1;
         }
         ''')
