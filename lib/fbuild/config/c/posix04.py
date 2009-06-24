@@ -1,3 +1,5 @@
+import tempfile
+
 import fbuild.builders.c
 import fbuild.config.c as c
 import fbuild.config.c.c99 as c99
@@ -361,7 +363,22 @@ class fcntl_h(c.Header):
         ('pid_t', 'l_pid'))
     creat = c.function_test('int', 'const char*', 'mode_t')
     fcntl = c.function_test('int', 'int', 'int')
-    open = c.function_test('int', 'const char*', 'int')
+
+    @c.cacheproperty
+    def open(self):
+        with tempfile.NamedTemporaryFile() as f:
+            test = '''
+                #include <fcntl.h>
+                int main() {
+                    int fd;
+                    if ((fd = open("%s", O_RDONLY)) == -1) return 1;
+                    return 0;
+                }
+                ''' % f.name
+
+            if self.builder.check_run(test, "checking open in 'fcntl.h'"):
+                return c.function_test('int', 'const char*', 'int')
+
     posix_fadvise = c.function_test('int', 'int', 'off_t', 'off_t', 'int')
     posix_fallocate = c.function_test('int', 'int', 'off_t', 'off_t')
 
