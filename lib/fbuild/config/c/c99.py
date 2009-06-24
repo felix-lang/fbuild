@@ -1429,9 +1429,9 @@ class wchar_h(c.Header):
     wcsftime = c.function_test('size_t', 'wchar_t*', 'size_t', 'const wchar_t*', 'const struct tm*', test='''
         #include <wchar.h>
         int main() {
+            struct tm t = { 0, 0, 0, 1, 0, 70, 4, 0, 0 };
             wchar_t s[50] = {0};
-            struct tm t;
-            return strftime(s, 0, L"", &t) == 0 ? 0 : 1;
+            return wcsftime(s, 50, L" ", &t) == 1 ? 0 : 1;
         }
         ''')
     btowc = c.function_test('wint_t', 'int')
