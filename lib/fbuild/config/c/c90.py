@@ -823,7 +823,7 @@ class stdlib_h(c.Header):
             return 1;
         }
         ''')
-    getenv = c.function_test('char*', 'const char*')
+    getenv = c.function_test('char*', 'const char*', default_args=('""',))
     system = c.function_test('int', 'const char*', default_args=('NULL',))
     bsearch = c.function_test(
         'void*',
@@ -861,7 +861,13 @@ class stdlib_h(c.Header):
     labs = c.function_test('long int', 'long int')
     ldiv = c.function_test('ldiv_t', 'long int', 'long int')
     mblen = c.function_test('int', 'const char*', 'size_t', default_args=('""', 0))
-    mbtowc = c.function_test('int', 'wchar_t*', 'const char*', 'size_t')
+    mbtowc = c.function_test('int', 'wchar_t*', 'const char*', 'size_t', test='''
+        #include <stdlib.h>
+        int main() {
+            wchar_t s[50];
+            return mbtowc(s, "5", 50) == 1 && s[0] == L'5' ? 0 : 1;
+        }
+        ''')
     wctomb = c.function_test('int', 'char*', 'wchar_t')
     mbstowcs = c.function_test('size_t', 'wchar_t*', 'const char*', 'size_t', test='''
         #include <stdlib.h>
