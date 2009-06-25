@@ -715,6 +715,10 @@ class stdio_h(c90.stdio_h):
     vfscanf = c.function_test('int', 'FILE*', 'const char*', 'va_list', test='''
         #include <stdarg.h>
         #include <stdio.h>
+        #ifdef _WIN32
+        #include <windows.h>
+        #endif
+
         int f(char* s, ...) {
             int rc;
             va_list ap;
@@ -725,6 +729,11 @@ class stdio_h(c90.stdio_h):
         }
         int main() {
             int x = 0, y = 0;
+        #ifdef _WIN32
+            /* Turn off the windows error box */
+            DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+            SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+        #endif
             return f("%d %d", &x, &y) && x == 5 && y == 6 ? 0 : 1;
         }
         ''', stdin=b'5 6')
@@ -748,6 +757,31 @@ class stdio_h(c90.stdio_h):
                 s[3] == '\\0' ? 0 : 1;
         }
         ''')
+    vscanf = c.function_test('const char*', 'char*', 'va_list', test='''
+        #include <stdarg.h>
+        #include <stdio.h>
+        #ifdef _WIN32
+        #include <windows.h>
+        #endif
+
+        int f(char* s, ...) {
+            int rc;
+            va_list ap;
+            va_start(ap, s);
+            rc = vscanf(s, ap);
+            va_end(ap);
+            return rc;
+        }
+        int main() {
+            int x = 0, y = 0;
+        #ifdef _WIN32
+            /* Turn off the windows error box */
+            DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+            SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+        #endif
+            return f("%d %d", &x, &y) && x == 5 && y == 6 ? 0 : 1;
+        }
+        ''', stdin=b"5 6")
     vsscanf = c.function_test('const char*', 'char*', 'va_list', test='''
         #include <stdarg.h>
         #include <stdio.h>
@@ -992,6 +1026,10 @@ class wchar_h(c.Header):
     vfwscanf = c.function_test('int', 'FILE*', 'const wchar_t*', 'va_list', test='''
         #include <stdarg.h>
         #include <wchar.h>
+        #ifdef _WIN32
+        #include <windows.h>
+        #endif
+
         int f(wchar_t* s, ...) {
             va_list ap;
             va_start(ap, s);
@@ -999,6 +1037,11 @@ class wchar_h(c.Header):
         }
         int main() {
             int x = 0, y = 0;
+        #ifdef _WIN32
+            /* Turn off the windows error box */
+            DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+            SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+        #endif
             return f(L"%d %d", &x, &y) &&
                 x == 5 &&
                 y == 6 ? 0 : 1;
@@ -1007,6 +1050,10 @@ class wchar_h(c.Header):
     vswprintf = c.function_test('int', 'wchar_t*', 'size_t', 'const wchar_t*', 'va_list', test='''
         #include <stdarg.h>
         #include <wchar.h>
+        #ifdef _WIN32
+        #include <windows.h>
+        #endif
+
         int f(wchar_t* s, ...) {
             va_list ap;
             va_start(ap, s);
@@ -1014,6 +1061,11 @@ class wchar_h(c.Header):
         }
         int main() {
             wchar_t s[50] = {0};
+        #ifdef _WIN32
+            /* Turn off the windows error box */
+            DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+            SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+        #endif
             return f(s, 5, 6) &&
                 s[0] == L'5' &&
                 s[1] == L' ' &&
@@ -1050,6 +1102,10 @@ class wchar_h(c.Header):
     vwscanf = c.function_test('int', 'const wchar_t*', 'va_list', test='''
         #include <stdarg.h>
         #include <wchar.h>
+        #ifdef _WIN32
+        #include <windows.h>
+        #endif
+
         int f(const wchar_t* s, ...) {
             va_list ap;
             va_start(ap, s);
@@ -1057,6 +1113,11 @@ class wchar_h(c.Header):
         }
         int main() {
             int x = 0, y = 0;
+        #ifdef _WIN32
+            /* Turn off the windows error box */
+            DWORD dwMode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
+            SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
+        #endif
             return f(L"%d %d", &x, &y) && x == 5 && y == 6 ? 0 : 1;
         }
         ''', stdin=b'5 6')
