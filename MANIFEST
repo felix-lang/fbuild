@@ -133,7 +133,8 @@ lib/fbuild/subprocess/killableprocess.py
 lib/fbuild/subprocess/winprocess.py
 lib/fbuild/temp.py
 LICENSE
-MANIFEST.in
+MANIFEST
+README
 setup.py
 tests/run_tests.py
 tests/test_fnmatch.py
