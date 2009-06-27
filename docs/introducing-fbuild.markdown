@@ -12,17 +12,17 @@ turns out to be an elegant and easy way to describe and program build systems.
 On top of this alternative design, `Fbuild` comes out of the box with some
 pretty advanced features:
 
- * Linux and Apple support (Windows support will come soon)
- * C, C++, OCaml, Bison, and Felix builders
+ * Linux, Apple and Windows support
+ * C, C++, OCaml, Java, Scala, Bison, and Felix builders
  * Multilevel namespaces for builders
  * Simple creation of new builders
  * Extensive configuration system for c90, c99, most of posix, and other
    libraries
  * On-demand configuration
  * Simultaneous building
- * Detects file changes via digests verses timestamps
+ * Detects file changes via file digests
  * Pretty output
- * Very speedy (though it could be much faster)
+ * Very speedy
 
 Here's a quick example, in a file called `fbuildroot.py`:
 
@@ -346,5 +346,5 @@ cd examples/c
 Where `fbuild-light` is just a simple wrapper around the `fbuild` executable.
 It's used so that you can run `fbuild` without it being installed.
 
-If you have any questions, feel free to ask on the [felix mailing
-list](http://groups.google.com/group/felix-language), or reply to the comments.
+If you have any questions, feel free to ask on the [fbuild mailing
+list](http://groups.google.com/group/fbuild), or reply to the comments.
