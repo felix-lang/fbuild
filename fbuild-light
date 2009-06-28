@@ -5,9 +5,7 @@ import sys
 
 fbuild_dirname = os.path.dirname(sys.argv[0])
 
-sys.path.extend((
-    os.path.join(fbuild_dirname, 'lib'),
-))
+sys.path.insert(0, os.path.join(fbuild_dirname, 'lib'))
 
 fbuild_exename = os.path.join(fbuild_dirname, 'bin', 'fbuild')
 f = open(fbuild_exename)
