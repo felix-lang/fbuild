@@ -42,13 +42,19 @@ def static(exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(False) / 'usr/bin/gcc'
 
-    return _builder(darwin.static, exe, *args, simulator=False, **kwargs)
+    return _builder(darwin.static, exe, *args,
+        simulator=False,
+        cross_compiler=True,
+        **kwargs)
 
 def shared(exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(False) / 'usr/bin/gcc'
 
-    return _builder(darwin.shared, exe, *args, simulator=False, **kwargs)
+    return _builder(darwin.shared, exe, *args,
+        simulator=False,
+        cross_compiler=True,
+        **kwargs)
 
 # ------------------------------------------------------------------------------
 

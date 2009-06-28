@@ -25,10 +25,14 @@ class MissingHeader(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def __init__(self, *args, flags=[], **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def __init__(self, *args, flags=[], cross_compiler=False, **kwargs):
         self.flags = flags
+
+        # If we're a cross compiler, don't try to execute tests as they'll
+        # probably fail.
+        self.cross_compiler = cross_compiler
+
+        super().__init__(*args, **kwargs)
 
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
@@ -49,7 +53,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         fbuild.logger.check('checking if %s can make exes' % self)
         try:
-            self.tempfile_run('int main() { return 0; }')
+            with self.tempfile_link_exe('int main() { return 0; }') as exe:
+                if not self.cross_compiler:
+                    fbuild.execute([exe])
         except fbuild.ExecutionError as e:
             raise fbuild.ConfigFailed('exe linker failed: %s' % e)
         else:
@@ -96,14 +102,15 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     libs=[lib],
                     quieter=1)
 
-            try:
-                stdout, stderr = fbuild.execute([exe], quieter=1)
-            except ExecutionError:
-                raise fbuild.ConfigFailed('failed to link lib to exe')
-            else:
-                if stdout != b'5':
+            if not self.cross_compiler:
+                try:
+                    stdout, stderr = fbuild.execute([exe], quieter=1)
+                except ExecutionError:
                     raise fbuild.ConfigFailed('failed to link lib to exe')
-                fbuild.logger.passed()
+                else:
+                    if stdout != b'5':
+                        raise fbuild.ConfigFailed('failed to link lib to exe')
+                    fbuild.logger.passed()
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:

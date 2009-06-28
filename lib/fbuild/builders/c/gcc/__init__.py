@@ -421,6 +421,7 @@ def static(exe=None, *args,
         link_flags=[],
         exe_link_flags=[],
         src_suffix='.c',
+        cross_compiler=False,
         **kwargs):
     gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
@@ -438,7 +439,8 @@ def static(exe=None, *args,
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),
         src_suffix=src_suffix,
-        flags=flags)
+        flags=flags,
+        cross_compiler=cross_compiler)
 
 # ------------------------------------------------------------------------------
 
@@ -456,6 +458,7 @@ def shared(exe=None, *args,
         lib_link_flags=['-fPIC', '-shared'],
         exe_link_flags=[],
         src_suffix='.c',
+        cross_compiler=False,
         **kwargs):
     gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
 
@@ -472,4 +475,5 @@ def shared(exe=None, *args,
             prefix='',
             suffix=fbuild.builders.platform.exe_suffix(platform)),
         src_suffix=src_suffix,
-        flags=flags)
+        flags=flags,
+        cross_compiler=cross_compiler)
