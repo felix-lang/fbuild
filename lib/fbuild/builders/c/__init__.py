@@ -308,6 +308,7 @@ def guess_static(*args, **kwargs):
     functions."""
 
     return _guess_builder('c static', (
+        ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.static'),
         ({'iphone', 'simulator'},
             'fbuild.builders.c.gcc.iphone.static_simulator'),
         ({'iphone'}, 'fbuild.builders.c.gcc.iphone.static'),
@@ -324,6 +325,7 @@ def guess_shared(*args, **kwargs):
     functions."""
 
     return _guess_builder('c shared', (
+        ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.shared'),
         ({'iphone', 'simulator'},
             'fbuild.builders.c.gcc.iphone.shared_simulator'),
         ({'iphone'}, 'fbuild.builders.c.gcc.iphone.shared'),
