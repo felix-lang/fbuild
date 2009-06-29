@@ -1,3 +1,5 @@
+import fbuild.builders.ar
+
 # ------------------------------------------------------------------------------
 
 class Ar(fbuild.builder.ar.Ar):
