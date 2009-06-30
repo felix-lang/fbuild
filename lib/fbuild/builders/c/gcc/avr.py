@@ -40,10 +40,12 @@ def static(*args, make_gcc=make_gcc, **kwargs):
     return fbuild.builders.c.gcc.static(*args,
         make_gcc=make_gcc,
         make_lib_linker=fbuild.builders.ar.avr.Ar,
+        cross_compiler=True,
         **kwargs)
 
 @fbuild.db.caches
 def shared(*args, make_gcc=make_gcc, **kwargs):
     return fbuild.builders.c.gcc.shared(*args,
         make_gcc=make_gcc,
+        cross_compiler=True,
         **kwargs)
