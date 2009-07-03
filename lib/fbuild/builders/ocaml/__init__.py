@@ -186,7 +186,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 requires_version,
                 requires_at_least_version,
                 requires_at_most_version)):
-            logger.check('checking %s version' % self.exe.name)
+            logger.check('checking %s version' % str(self))
 
             version_str = self.version()
 
@@ -222,25 +222,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
 
-        logger.check('checking if %s can make objects' % self.exe.name)
+        logger.check('checking if %s can make objects' % str(self))
         if self.try_compile():
             logger.passed()
         else:
-            raise ConfigFailed('%s compiler failed' % self.exe.name)
+            raise ConfigFailed('%s compiler failed' % str(self))
 
-        logger.check('checking if %s can make libraries' % self.exe.name)
+        logger.check('checking if %s can make libraries' % str(self))
         if self.try_link_lib():
             logger.passed()
         else:
-            raise ConfigFailed('%s lib linker failed' % self.exe.name)
+            raise ConfigFailed('%s lib linker failed' % str(self))
 
-        logger.check('checking if %s can make exes' % self.exe.name)
+        logger.check('checking if %s can make exes' % str(self))
         if self.try_link_exe():
             logger.passed()
         else:
-            raise ConfigFailed('%s exe linker failed' % self.exe.name)
+            raise ConfigFailed('%s exe linker failed' % str(self))
 
-        logger.check('checking if %s can link lib to exe' % self.exe.name)
+        logger.check('checking if %s can link lib to exe' % str(self))
         with fbuild.temp.tempdir() as parent:
             src_lib = parent / 'lib.ml'
             with open(src_lib, 'w') as f:
@@ -261,11 +261,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 stdout, stderr = execute([exe], quieter=1)
             except ExecutionError:
                 raise ConfigFailed('failed to link %s lib to exe' %
-                    self.exe.name)
+                    str(self))
             else:
                 if stdout != b'5':
                    raise ConfigFailed('failed to link %s lib to exe' %
-                        self.exe.name)
+                        str(self))
                 logger.passed()
 
     # --------------------------------------------------------------------------
