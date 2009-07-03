@@ -1,8 +1,8 @@
-import fbuild.builders.ocamlfind
+import fbuild.builders.ocaml.ocamlfind
 from fbuild.path import Path
 
 def build():
-    ocaml = fbuild.builders.ocamlfind.Ocaml(
+    ocaml = fbuild.builders.ocaml.ocamlfind.Ocaml(
         packages=['unix'])
 
     libb = ocaml.ocamlc.build_lib('libb', Path.glob('b*.ml{,i}'),
