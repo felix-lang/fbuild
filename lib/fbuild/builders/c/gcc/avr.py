@@ -6,19 +6,13 @@ import fbuild.builders.c.gcc
 class Gcc(fbuild.builders.c.gcc.Gcc):
     """Overload Gcc's builder to add the avr-gcc options."""
 
-    def __init__(self, *args, mmcu=None, **kwargs):
+    def __init__(self, *args, mmcu, pre_flags=[], **kwargs):
         self.mmcu = mmcu
 
-        super().__init__(*args, **kwargs)
+        pre_flags = list(pre_flags)
+        pre_flags.append('-mmcu=' + mmcu)
 
-    def __call__(self, *args, mmcu=None, flags=[], **kwargs):
-        flags = list(flags)
-
-        mmcu = self.mmcu if mmcu is None else mmcu
-        if mmcu is not None:
-            flags.extend(('-mmcu', mmcu))
-
-        return super().__call__(*args, flags=flags, **kwargs)
+        super().__init__(*args, pre_flags=pre_flags, **kwargs)
 
 # ------------------------------------------------------------------------------
 
