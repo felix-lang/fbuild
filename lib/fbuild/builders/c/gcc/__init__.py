@@ -61,12 +61,14 @@ class Gcc(fbuild.db.PersistentObject):
             debug=None,
             optimize=None,
             **kwargs):
+        # Make sure we don't repeat includes
         new_includes = []
         for include in chain(self.includes, includes, (s.parent for s in srcs)):
             if include not in new_includes:
                 new_includes.append(include)
         includes = new_includes
 
+        # Make sure we don't repeat flags
         new_flags = []
         for flag in chain(self.flags, flags):
             if flag not in new_flags:
@@ -79,12 +81,14 @@ class Gcc(fbuild.db.PersistentObject):
         warnings = set(warnings)
         warnings.update(self.warnings)
 
+        # Make sure we don't repeat library paths
         new_libpaths = []
         for libpath in chain(self.libpaths, libpaths):
             if libpath not in new_libpaths:
                 new_libpaths.append(libpath)
         libpaths = new_libpaths
 
+        # Make sure we don't repeat external library paths
         new_external_libs = []
         for lib in chain(self.external_libs, external_libs):
             if lib not in new_external_libs:
