@@ -304,7 +304,7 @@ def _guess_builder(name, functions, *args,
                     kwargs.update(kw)
             return fbuild.functools.call(function, *args, **kwargs)
 
-    raise fbuild.ConfigFailed('cannot find a builder for %s' %
+    raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
         (name, platform))
 
 def guess_static(*args, **kwargs):
