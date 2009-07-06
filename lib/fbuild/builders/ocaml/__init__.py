@@ -378,7 +378,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return dst
 
 
-    def uncached_compile(self, src, dst=None, *args, **kwargs):
+    def uncached_compile(self, src, dst=None, *args, pre_flags=[], **kwargs):
         """Compile an ocaml implementation or interface file without caching
         the results.  This is needed when compiling temporary files."""
         if src.endswith('.mli'):
@@ -388,8 +388,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         dst = Path(dst or src).replaceext(obj_suffix)
 
+        pre_flags = list(pre_flags)
+        pre_flags.append('-c')
+
         return self._run(dst, [src],
-            pre_flags=['-c'],
+            pre_flags=pre_flags,
             color='green',
             *args, **kwargs)
 
