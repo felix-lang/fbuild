@@ -162,12 +162,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             debug=False,
             debug_flags=['-g'],
             ocamldep=None,
+            make_ocamldep=Ocamldep,
             requires_version=None,
             requires_at_least_version=None,
             requires_at_most_version=None):
         super().__init__(src_suffix='.ml')
 
-        self.ocamldep = ocamldep or Ocamldep()
+        self.ocamldep = ocamldep or make_ocamldep()
         self.exe = exe
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
@@ -625,9 +626,10 @@ class Ocamlopt(Builder):
             obj_suffix='.cmx',
             lib_suffix='.cmxa',
             ocamlc=None,
+            make_ocamlc=Ocamlc,
             **kwargs):
         # We need the bytecode compiler to compile .mli files.
-        self.ocamlc = ocamlc or Ocamlc()
+        self.ocamlc = ocamlc or make_ocamlc()
         self.native_obj_suffix = \
             fbuild.builders.platform.obj_suffix(platform)
         self.native_lib_suffix = \
@@ -716,13 +718,26 @@ class Ocamlopt(Builder):
 class Ocaml(fbuild.builders.AbstractCompilerBuilder):
     Tuple = collections.namedtuple('Tuple', 'bytecode native')
 
-    def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None, **kwargs):
-        self.ocamldep = ocamldep or Ocamldep()
-        self.ocamlc = Ocamlc(ocamldep=ocamldep, exe=ocamlc, **kwargs)
-        self.ocamlopt = Ocamlopt(
+    def __init__(self, *,
+            ocamldep=None,
+            ocamlc=None,
+            ocamlopt=None,
+            make_ocamldep=Ocamldep,
+            make_ocamlc=Ocamlc,
+            make_ocamlopt=Ocamlopt,
+            **kwargs):
+        self.ocamldep = ocamldep or make_ocamldep()
+        self.ocamlc = make_ocamlc(
             ocamldep=ocamldep,
+            exe=ocamlc,
+            make_ocamldep=make_ocamldep,
+            **kwargs)
+        self.ocamlopt = make_ocamlopt(
+            ocamldep=self.ocamldep,
             ocamlc=self.ocamlc,
             exe=ocamlopt,
+            make_ocamldep=make_ocamldep,
+            make_ocamlc=make_ocamlc,
             **kwargs)
 
     # --------------------------------------------------------------------------

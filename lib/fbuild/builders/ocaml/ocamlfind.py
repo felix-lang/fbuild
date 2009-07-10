@@ -1,3 +1,4 @@
+from functools import partial
 from itertools import chain
 
 from fbuild import execute
@@ -11,11 +12,13 @@ class Ocamldep(ocaml.Ocamldep):
     """Overload ocaml.Ocamldep builder to use ocamlfind's ocamldep."""
 
     def __init__(self, exe=None, *args,
+            ocamlfind_cmd='ocamldep',
             pre_flags=[],
             packages=[],
             syntaxes=[],
             ppopts=[],
             **kwargs):
+        self.ocamlfind_cmd = ocamlfind_cmd
         self.packages = packages
         self.syntaxes = syntaxes
         self.ppopts = ppopts
@@ -24,7 +27,7 @@ class Ocamldep(ocaml.Ocamldep):
         # preflag.
         exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
         super().__init__(exe, *args,
-            pre_flags=['ocamldep'] + pre_flags,
+            pre_flags=[ocamlfind_cmd] + pre_flags,
             **kwargs)
 
     def modules(self, *args,
@@ -50,7 +53,7 @@ class Ocamldep(ocaml.Ocamldep):
         return super().modules(*args, flags=flags, **kwargs)
 
     def __str__(self):
-        return self.exe.name + ' ocamldep'
+        return '%s %s' % (self.exe.name, self.ocamlfind_cmd)
 
 # ------------------------------------------------------------------------------
 
@@ -58,13 +61,15 @@ class Ocamlc(ocaml.Ocamlc):
     """Overload ocaml.Ocamlc builder to use ocamlfind's ocamlc."""
 
     def __init__(self, exe=None, *args,
+            ocamlfind_cmd='ocamlc',
             pre_flags=[],
-            ocamldep=None,
             packages=[],
             syntaxes=[],
             linkpkg=True,
             ppopts=[],
+            make_ocamldep=Ocamldep,
             **kwargs):
+        self.ocamlfind_cmd = ocamlfind_cmd
         self.packages = packages
         self.syntaxes = syntaxes
         self.linkpkg = linkpkg
@@ -74,8 +79,8 @@ class Ocamlc(ocaml.Ocamlc):
         # preflag.
         exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
         super().__init__(exe, *args,
-            pre_flags=['ocamlc'] + pre_flags,
-            ocamldep=ocamldep if ocamldep else Ocamldep(
+            pre_flags=[ocamlfind_cmd] + pre_flags,
+            make_ocamldep=partial(make_ocamldep,
                 packages=packages,
                 syntaxes=syntaxes,
                 ppopts=ppopts),
@@ -149,7 +154,7 @@ class Ocamlc(ocaml.Ocamlc):
         return super().link_exe(*args, flags=flags, **kwargs)
 
     def __str__(self):
-        return self.exe.name + ' ocamlc'
+        return '%s %s' % (self.exe.name, self.ocamlfind_cmd)
 
 # ------------------------------------------------------------------------------
 
@@ -157,14 +162,17 @@ class Ocamlopt(ocaml.Ocamlopt):
     """Overload ocaml.Ocamlc builder to use ocamlfind's ocamlopt."""
 
     def __init__(self, exe=None, *args,
+            ocamlfind_cmd='ocamlopt',
             pre_flags=[],
-            ocamldep=None,
             ocamlc=None,
             packages=[],
             syntaxes=[],
             linkpkg=True,
             ppopts=[],
+            make_ocamldep=Ocamldep,
+            make_ocamlc=Ocamlc,
             **kwargs):
+        self.ocamlfind_cmd = ocamlfind_cmd
         self.packages = packages
         self.syntaxes = syntaxes
         self.linkpkg = linkpkg
@@ -173,15 +181,14 @@ class Ocamlopt(ocaml.Ocamlopt):
         # We'll use ocamlfind as our executable and add ocamlopt as the first
         # preflag.
         exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
-        ocamldep = ocamldep if ocamldep else Ocamldep(
-            packages=packages,
-            syntaxes=syntaxes)
 
         super().__init__(exe, *args,
-            pre_flags=['ocamlopt'] + pre_flags,
-            ocamldep=ocamldep,
-            ocamlc=ocamlc if ocamlc else Ocamlc(
-                ocamldep=ocamldep,
+            pre_flags=[ocamlfind_cmd] + pre_flags,
+            make_ocamldep=partial(make_ocamldep,
+                packages=packages,
+                syntaxes=syntaxes,
+                ppopts=ppopts),
+            make_ocamlc=partial(make_ocamlc,
                 packages=packages,
                 syntaxes=syntaxes,
                 linkpkg=linkpkg,
@@ -256,39 +263,32 @@ class Ocamlopt(ocaml.Ocamlopt):
         return super().link_exe(*args, flags=flags, **kwargs)
 
     def __str__(self):
-        return self.exe.name + ' ocamlopt'
+        return '%s %s' % (self.exe.name, self.ocamlfind_cmd)
 
 # ------------------------------------------------------------------------------
 
 class Ocaml(ocaml.Ocaml):
     """Overload ocaml.Ocaml builder to use ocamlfind."""
 
-    def __init__(self, *, ocamldep=None, ocamlc=None, ocamlopt=None,
+    def __init__(self, *args,
+            make_ocamldep=Ocamldep,
+            make_ocamlc=Ocamlc,
+            make_ocamlopt=Ocamlopt,
             packages=[],
             syntaxes=[],
             ppopts=[],
             **kwargs):
-        # We purposefully do not use ocaml.Ocaml's constructor as we want to
-        # use ocamlfind's builders.
-
-        self.ocamldep = ocamldep or Ocamldep(
-            packages=packages,
-            syntaxes=syntaxes,
-            ppopts=ppopts)
-
-        self.ocamlc = Ocamlc(
-            ocamldep=ocamldep,
-            exe=ocamlc,
-            packages=packages,
-            syntaxes=syntaxes,
-            ppopts=ppopts,
-            **kwargs)
-
-        self.ocamlopt = Ocamlopt(
-            ocamldep=ocamldep,
-            ocamlc=self.ocamlc,
-            exe=ocamlopt,
-            packages=packages,
-            syntaxes=syntaxes,
-            ppopts=ppopts,
+        super().__init__(*args,
+            make_ocamldep=partial(make_ocamldep,
+                packages=packages,
+                syntaxes=syntaxes,
+                ppopts=ppopts),
+            make_ocamlc=partial(make_ocamlc,
+                packages=packages,
+                syntaxes=syntaxes,
+                ppopts=ppopts),
+            make_ocamlopt=partial(make_ocamlopt,
+                packages=packages,
+                syntaxes=syntaxes,
+                ppopts=ppopts),
             **kwargs)
