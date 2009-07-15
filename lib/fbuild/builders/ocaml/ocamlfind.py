@@ -241,7 +241,7 @@ class Ocamlopt(ocaml.Ocamlopt):
             ocamldep_flags.extend(('-syntax', syntax))
 
         for ppopt in chain(self.ppopts, ppopts):
-            flags.extend(('-ppopt', ppopt))
+            ocamldep_flags.extend(('-ppopt', ppopt))
 
         return super().build_objects(*args,
             ocamldep_flags=ocamldep_flags,
