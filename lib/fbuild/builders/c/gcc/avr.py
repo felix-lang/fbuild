@@ -1,5 +1,10 @@
-import fbuild.builders.ar.avr
 import fbuild.builders.c.gcc
+
+# ------------------------------------------------------------------------------
+
+class Ar(fbuild.builders.c.gcc.Ar):
+    def __init__(self, exe='avr-ar', ranlib='avr-ranlib', **kwargs):
+        super().__init__(exe, ranlib=ranlib, **kwargs)
 
 # ------------------------------------------------------------------------------
 
