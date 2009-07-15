@@ -351,9 +351,6 @@ class Compiler(fbuild.db.PersistentObject):
     def __hash__(self):
         return hash((self.gcc, self.flags, self.suffix))
 
-def make_compiler(gcc, flags=[], **kwargs):
-    return Compiler(gcc, flags, **kwargs)
-
 # ------------------------------------------------------------------------------
 
 class Linker(fbuild.db.PersistentObject):
@@ -404,9 +401,6 @@ class Linker(fbuild.db.PersistentObject):
             self.prefix,
             self.suffix,
         ))
-
-def make_linker(gcc, flags=[], **kwargs):
-    return Linker(gcc, flags, **kwargs)
 
 # ------------------------------------------------------------------------------
 
@@ -501,9 +495,9 @@ class Builder(fbuild.builders.c.Builder):
 
 def static(exe=None, *args,
         make_gcc=make_gcc,
-        make_compiler=make_compiler,
+        make_compiler=Compiler,
         make_lib_linker=Ar,
-        make_exe_linker=make_linker,
+        make_exe_linker=Linker,
         platform=None,
         flags=[],
         compile_flags=[],
@@ -538,9 +532,9 @@ def static(exe=None, *args,
 
 def shared(exe=None, *args,
         make_gcc=make_gcc,
-        make_compiler=make_compiler,
-        make_lib_linker=make_linker,
-        make_exe_linker=make_linker,
+        make_compiler=Compiler,
+        make_lib_linker=Linker,
+        make_exe_linker=Linker,
         platform=None,
         flags=[],
         compile_flags=['-fPIC'],

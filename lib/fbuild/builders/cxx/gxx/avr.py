@@ -7,16 +7,6 @@ import fbuild.builders.c.gcc.avr
 def make_gxx(exe=None, default_exes=['avr-g++'], **kwargs):
     return fbuild.builders.c.gcc.avr.make_gcc(exe, default_exes, **kwargs)
 
-def make_compiler(*args, make_gcc=make_gxx, **kwargs):
-    return fbuild.builders.gcc.avr.make_compiler(*args,
-        make_gcc=make_gcc,
-        **kwargs)
-
-def make_linker(*args, make_gcc=make_gxx, **kwargs):
-    return fbuild.builders.gcc.avr.make_linker(*args,
-        make_gcc=make_gcc,
-        **kwargs)
-
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches

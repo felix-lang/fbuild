@@ -9,12 +9,6 @@ import fbuild.record
 def make_gxx(exe=None, default_exes=['g++', 'c++'], **kwargs):
     return fbuild.builders.c.gcc.make_gcc(exe, default_exes, **kwargs)
 
-def make_compiler(*args, make_gcc=make_gxx, **kwargs):
-    return fbuild.builders.gcc.make_compiler(*args, make_gcc=make_gcc, **kwargs)
-
-def make_linker(*args, make_gcc=make_gxx, **kwargs):
-    return fbuild.builders.gcc.make_linker(*args, make_gcc=make_gcc, **kwargs)
-
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches

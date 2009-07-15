@@ -26,12 +26,6 @@ def make_gcc(exe=None, default_exes=['avr-gcc'], **kwargs):
         fbuild.builders.find_program([exe] if exe else default_exes),
         **kwargs)
 
-def make_compiler(*args, make_gcc=make_gcc, **kwargs):
-    return fbuild.builders.gcc.make_compiler(*args, make_gcc=make_gcc, **kwargs)
-
-def make_linker(*args, make_gcc=make_gcc, **kwargs):
-    return fbuild.builders.gcc.make_linker(*args, make_gcc=make_gcc, **kwargs)
-
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
