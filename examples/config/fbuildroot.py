@@ -90,6 +90,7 @@ def build():
                 import_module('fbuild.config.cxx.cxx03'),
                 import_module('fbuild.config.cxx.cmath'),
                 import_module('fbuild.config.cxx.iterator'),
+                import_module('fbuild.config.cxx.gtest'),
                 import_module('fbuild.config.cxx.gnu')):
             p, t = test_module(builder, module)
             passed += p
