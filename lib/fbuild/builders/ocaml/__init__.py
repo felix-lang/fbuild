@@ -549,6 +549,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             c_libs=[],
             lflags=[],
             lkwargs={},
+            flags=[],
             buildroot=None,
             **kwargs):
         # This must be called from a cached function to work properly.
@@ -561,7 +562,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         objs = self.build_objects(srcs,
             includes=includes,
-            flags=cflags,
+            flags=list(chain(flags, cflags)),
             buildroot=buildroot,
             **dict(kwargs, **ckwargs))
 
@@ -571,7 +572,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             external_libs=external_libs,
             custom=custom,
             c_libs=c_libs,
-            flags=lflags,
+            flags=list(chain(flags, lflags)),
             buildroot=buildroot,
             **dict(kwargs, **lkwargs))
 
