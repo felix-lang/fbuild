@@ -157,6 +157,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             lib_suffix,
             includes=[],
             libs=[],
+            cc=None,
+            c_libs=[],
             pre_flags=[],
             flags=[],
             debug=False,
@@ -175,6 +177,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
         self.includes = includes
         self.libs = libs
+        self.cc = cc
+        self.c_libs = c_libs
         self.pre_flags = pre_flags
         self.flags = flags
         self.debug = debug
@@ -290,6 +294,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             flags=[],
             debug=None,
             custom=False,
+            cc=None,
             c_libs=[],
             for_pack=None,
             preprocessor=None,
@@ -334,7 +339,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         if custom:
             cmd.append('-custom')
 
-        for lib in c_libs:
+        cc = cc or self.cc
+        if cc:
+            cmd.extend(('-cc', cc))
+
+        for lib in chain(self.c_libs, c_libs):
             if Path(lib).exists():
                 cmd.extend(('-cclib', lib))
             else:
