@@ -321,13 +321,13 @@ class Path(str):
         symbolic links encountered in the path."""
         return Path(os.path.realpath(str(self)))
 
-    def relpath(self, start=None):
+    def relpath(self, start=os.curdir):
         """Return a relative version of a path.
 
         >>> Path.relpath('foo/bar/baz.ext', 'foo/baz')
         Path('../bar/baz.ext')
         """
-        if start is not None:
+        if start is not os.curdir:
             start = str(start)
         return Path(os.path.relpath(str(self), start))
 
