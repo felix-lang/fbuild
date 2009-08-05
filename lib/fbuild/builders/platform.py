@@ -34,6 +34,8 @@ archmap = {
     'nt':        {'windows', 'win32', 'nt'},
     'win32':     {'windows', 'win32'},
     'win64':     {'windows', 'win64'},
+    'windows32': {'windows', 'win32'},
+    'windows64': {'windows', 'win64'},
     'freebsd':   {'posix', 'bsd', 'freebsd'},
     'netbsd':    {'posix', 'bsd', 'netbsd'},
     'openbsd':   {'posix', 'bsd', 'openbsd'},
