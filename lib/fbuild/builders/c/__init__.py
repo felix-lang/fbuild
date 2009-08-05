@@ -105,7 +105,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             if not self.cross_compiler:
                 try:
                     stdout, stderr = fbuild.execute([exe], quieter=1)
-                except ExecutionError:
+                except fbuild.ExecutionError:
                     raise fbuild.ConfigFailed('failed to link lib to exe')
                 else:
                     if stdout != b'5':
