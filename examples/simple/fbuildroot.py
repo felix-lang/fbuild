@@ -40,8 +40,16 @@ def make_c_builder(**kwargs):
         shared=shared)
 
 def make_cxx_builder(**kwargs):
-    static = call('fbuild.builders.cxx.guess_static', **kwargs)
-    shared = call('fbuild.builders.cxx.guess_shared', **kwargs)
+    static = call('fbuild.builders.cxx.guess_static',
+        platform_options=[
+            ({'windows'}, {'flags': ['/EHsc']}),
+        ],
+        **kwargs)
+    shared = call('fbuild.builders.cxx.guess_shared',
+        platform_options=[
+            ({'windows'}, {'flags': ['/EHsc']}),
+        ],
+        **kwargs)
 
     return Record(
         static=static,

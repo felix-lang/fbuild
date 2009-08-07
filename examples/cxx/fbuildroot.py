@@ -1,7 +1,9 @@
 import fbuild.builders.cxx
 
 def build():
-    static = fbuild.builders.cxx.guess_static()
+    static = fbuild.builders.cxx.guess_static(platform_options=[
+        ({'windows'}, {'flags': ['/EHsc']}),
+    ])
     lib = static.build_lib('lib_static', ['lib.cpp'], macros=['STATIC_LINK'])
     exe = static.build_exe('exe_static', ['exe.cpp'], macros=['STATIC_LINK'],
         libs=[lib])
@@ -9,7 +11,9 @@ def build():
     fbuild.logger.log(' * running %s:' % exe)
     fbuild.execute([exe])
 
-    shared = fbuild.builders.cxx.guess_shared()
+    shared = fbuild.builders.cxx.guess_shared(platform_options=[
+        ({'windows'}, {'flags': ['/EHsc']}),
+    ])
     lib = shared.build_lib('lib_shared', ['lib.cpp'], macros=['BUILD_LIB'])
     exe = shared.build_exe('exe_shared', ['exe.cpp'], libs=[lib])
 

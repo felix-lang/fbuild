@@ -59,9 +59,12 @@ def test_module(builder, module):
 def build():
     c_static = fbuild.builders.c.guess_static()
     c_shared = fbuild.builders.c.guess_shared()
-    cxx_static = fbuild.builders.cxx.guess_static()
-    cxx_shared = fbuild.builders.cxx.guess_shared()
-
+    cxx_static = fbuild.builders.cxx.guess_static(platform_options=[
+        ({'windows'}, {'flags': ['/EHsc']}),
+    ])
+    cxx_shared = fbuild.builders.cxx.guess_shared(platform_options=[
+        ({'windows'}, {'flags': ['/EHsc']}),
+    ])
     passed = 0
     total = 0
 
