@@ -56,11 +56,11 @@ def format_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *,
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def m4_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
-        -> fbuild.db.DST:
-    """L{m4_substitute} replaces the I{patterns} in the file named I{src} and
-    saves the changes into file named I{dst}. It uses m4-style @word@ patterns
-    for find the insertion points."""
+def autoconf_config_file(ctx, dst, src:fbuild.db.SRC, patterns, *,
+        buildroot=None) -> fbuild.db.DST:
+    """L{autoconf_config_file} replaces the I{patterns} in the file named
+    I{src} and saves the changes into file named I{dst}. It uses autoconf
+    AC_CONFIG_FILES @word@ patterns to find the insertion points."""
 
     buildroot = buildroot or ctx.buildroot
     src = fbuild.path.Path(src)
@@ -78,7 +78,62 @@ def m4_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
         return str(value)
 
     with open(src, 'r') as src_file:
-        code = re.sub('@(\w+)@', replace, src_file.read(), re.M)
+        code = src_file.read()
+
+    code = re.sub('@(\w+)@', replace, code, flags=re.M)
+
+    with open(dst, 'w') as dst_file:
+        dst_file.write(code)
+
+    return dst
+
+# ------------------------------------------------------------------------------
+
+@fbuild.db.caches
+def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
+        buildroot=None) -> fbuild.db.DST:
+    """L{autoconfig_config_header} replaces the I{patterns} in the file named
+    I{src} and saves the changes into file named I{dst}. It uses autoconf
+    AC_CONFIG_HEADERS @word@ and #define patterns to find the insertion
+    points."""
+
+    buildroot = buildroot or ctx.buildroot
+    src = fbuild.path.Path(src)
+    dst = fbuild.path.Path.addroot(dst, buildroot)
+    dst.parent.makedirs()
+
+    ctx.logger.log(' * creating ' + dst, color='cyan')
+
+    def replace(match):
+        if match.group('sub'):
+            # Handle the @foo@ substitution
+            value = patterns[match.group('sub')]
+            if isinstance(value, str):
+                return value
+            elif isinstance(value, collections.Iterable):
+                return ' '.join(str(v) for v in value)
+            return str(value)
+        else:
+            # Handle the #undef replacement
+            key = match.group('def')
+            value = patterns[key]
+            if isinstance(value, bool):
+                value = int(value)
+            elif \
+                    not isinstance(value, str) and \
+                    isinstance(value, collections.Iterable):
+                value = ' '.join(str(v) for v in value)
+
+            if value:
+                return '#define %s %s' % (key, value)
+            else:
+                return '/* #undef %s */' % (key)
+
+    with open(src, 'r') as src_file:
+        code = src_file.read()
+
+    code = re.sub('(^#undef +(?P<def>\w+)$)|(?:@(?P<sub>\w+)@)', replace, code,
+        flags=re.M)
 
     with open(dst, 'w') as dst_file:
         dst_file.write(code)
