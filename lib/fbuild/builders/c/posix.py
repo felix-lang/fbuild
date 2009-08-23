@@ -7,7 +7,7 @@ from fbuild.builders.c import std, MissingHeader
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_dlfcn_h(builder, shared=None):
+def config_dlfcn_h(ctx, builder, shared=None):
     '''
     Test for the posix dlfcn.h header, which provides for dynamically loading
     libraries.
@@ -60,7 +60,7 @@ def config_dlfcn_h(builder, shared=None):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_sys_mman_h(builder):
+def config_sys_mman_h(ctx, builder):
     '''
     Test for the posix sys/mman.h header, which provides memory mapped files.
 
@@ -86,7 +86,7 @@ def config_sys_mman_h(builder):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_poll_h(builder):
+def config_poll_h(ctx, builder):
     '''
     Test for the posix poll.h header, which provides asynchronous io.
 
@@ -102,7 +102,7 @@ def config_poll_h(builder):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_pthread_h(builder):
+def config_pthread_h(ctx, builder):
     '''
     Test for the posix pthread.h header, which provides posix threads.
 
@@ -145,7 +145,7 @@ def config_pthread_h(builder):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_sys_socket_h(builder):
+def config_sys_socket_h(ctx, builder):
     '''
     Test for the posix sys/socket.h header, which provides network sockets.
 
@@ -191,7 +191,7 @@ default_types_unistd_h = (
 )
 
 @fbuild.db.caches
-def config_unistd_h(builder):
+def config_unistd_h(ctx, builder):
     '''
     Test for the posix unistd.h header, which provides standard posix types.
 
@@ -242,4 +242,4 @@ def config(builder, shared=None):
 # -----------------------------------------------------------------------------
 
 def types_unistd_h():
-    return (t for t in default_types_unistd_h if t in env.posix.unistd.types)
+    return (t for t in default_types_unistd_h if t in ctx.posix.unistd.types)

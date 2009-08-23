@@ -33,13 +33,13 @@ class DependencyLoop(fbuild.Error):
 # ------------------------------------------------------------------------------
 
 class Scheduler:
-    def __init__(self, count=0):
+    def __init__(self, logger, count=0):
         self.__count = max(1, count)
         self.__ready_queue = queue.LifoQueue()
         self.__threads = []
 
         for i in range(self.__count):
-            thread = WorkerThread(self.__ready_queue)
+            thread = WorkerThread(logger, self.__ready_queue)
             self.__threads.append(thread)
             thread.start()
 
@@ -174,10 +174,11 @@ class Scheduler:
 # ------------------------------------------------------------------------------
 
 class WorkerThread(threading.Thread):
-    def __init__(self, ready_queue):
+    def __init__(self, logger, ready_queue):
         super().__init__()
         self.daemon = True
 
+        self.__logger = logger
         self.__ready_queue = ready_queue
         self.__finished = False
 
@@ -185,10 +186,8 @@ class WorkerThread(threading.Thread):
         self.__finished = True
 
     def run(self):
-        from fbuild import logger
-
         while not self.__finished:
-            with logger.log_from_thread():
+            with self.__logger.log_from_thread():
                 if self.run_one():
                     break
 

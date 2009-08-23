@@ -50,16 +50,16 @@ archmap = {
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def platform(arch=None):
+def platform(ctx, arch=None):
     """L{platform} returns a platform set that describes the various features
     of the specified I{platform}. If I{platform} is I{None}, try to determine
     which platform the system is and return that value. If the platform cannot
     be determined, return I{None}."""
-    fbuild.logger.check('determining platform')
+    ctx.logger.check('determining platform')
     if arch is None:
         # First lets see if uname exists
         try:
-            uname = fbuild.builders.find_program(['uname'], quieter=1)
+            uname = fbuild.builders.find_program(ctx, ['uname'], quieter=1)
         except fbuild.builders.MissingProgram:
             # Maybe we're on windows. Let's just use what python thinks is the
             # platform.
@@ -67,7 +67,7 @@ def platform(arch=None):
         else:
             # We've got uname, so let's see what platform it thinks we're on.
             try:
-                stdout, stderr = fbuild.execute((uname, '-s'), quieter=1)
+                stdout, stderr = ctx.execute((uname, '-s'), quieter=1)
             except fbuild.ExecutionError:
                 # Ack, that failed too. Just fall back to python.
                 arch = os.name
@@ -77,16 +77,16 @@ def platform(arch=None):
     try:
         architecture = archmap[arch]
     except KeyError:
-        fbuild.logger.failed()
+        ctx.logger.failed()
         raise UnknownPlatform(arch)
     else:
-        fbuild.logger.passed(architecture)
+        ctx.logger.passed(architecture)
         return architecture
 
 # ------------------------------------------------------------------------------
 
-def obj_suffix(arch=None):
-    arch = platform(arch)
+def obj_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '.obj'
     else:
@@ -94,22 +94,22 @@ def obj_suffix(arch=None):
 
 # ------------------------------------------------------------------------------
 
-def static_obj_suffix(arch=None):
-    arch = platform(arch)
+def static_obj_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '_static.obj'
     else:
         return '.o'
 
-def static_lib_prefix(arch=None):
-    arch = platform(arch)
+def static_lib_prefix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return ''
     else:
         return 'lib'
 
-def static_lib_suffix(arch=None):
-    arch = platform(arch)
+def static_lib_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '.lib'
     else:
@@ -117,22 +117,22 @@ def static_lib_suffix(arch=None):
 
 # ------------------------------------------------------------------------------
 
-def shared_obj_suffix(arch=None):
-    arch = platform(arch)
+def shared_obj_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '_shared.obj'
     else:
         return '.os'
 
-def shared_lib_prefix(arch=None):
-    arch = platform(arch)
+def shared_lib_prefix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return ''
     else:
         return 'lib'
 
-def shared_lib_suffix(arch=None):
-    arch = platform(arch)
+def shared_lib_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '.dll'
     elif 'darwin' in arch:
@@ -142,8 +142,8 @@ def shared_lib_suffix(arch=None):
 
 # ------------------------------------------------------------------------------
 
-def exe_suffix(arch=None):
-    arch = platform(arch)
+def exe_suffix(ctx, arch=None):
+    arch = platform(ctx, arch)
     if 'windows' in arch:
         return '.exe'
     else:

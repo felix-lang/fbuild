@@ -108,7 +108,7 @@ class types(c.Test):
 class assert_h(c.Header):
     @c.cacheproperty
     def assert_(self):
-        fbuild.logger.check("checking assert in 'assert.h'")
+        self.ctx.logger.check("checking assert in 'assert.h'")
 
         if not self.builder.try_run('''
                 #include <assert.h>
@@ -117,7 +117,7 @@ class assert_h(c.Header):
                     return 0;
                 }
                 '''):
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
         if self.builder.try_run('''
@@ -136,7 +136,7 @@ class assert_h(c.Header):
                     return 0;
                 }
                 '''):
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
         if not self.builder.try_run('''
@@ -146,10 +146,10 @@ class assert_h(c.Header):
                     return 0;
                 }
                 ''', ckwargs={'macros': ['NDEBUG']}):
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
-        fbuild.logger.passed()
+        self.ctx.logger.passed()
         return c.Macro()
 
 # ------------------------------------------------------------------------------
@@ -812,7 +812,7 @@ class stdlib_h(c.Header):
 
     @c.cacheproperty
     def abort(self):
-        fbuild.logger.check("checking abort in 'stdlib.h'")
+        self.ctx.logger.check("checking abort in 'stdlib.h'")
 
         with self.builder.tempfile('''
                 #include <stdlib.h>
@@ -838,12 +838,12 @@ class stdlib_h(c.Header):
                 pass
             else:
                 try:
-                    fbuild.execute([exe], quieter=1)
+                    self.builder.ctx.execute([exe], quieter=1)
                 except fbuild.ExecutionError as e:
-                    fbuild.logger.passed()
+                    self.ctx.logger.passed()
                     return c.Function('void', 'void')
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     atexit = c.function_test('int', 'void (*f)(void)', test='''
         #include <stdio.h>

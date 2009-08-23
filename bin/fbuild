@@ -2,7 +2,6 @@
 
 import os
 import pprint
-import signal
 import sys
 from optparse import OptionParser, make_option
 
@@ -13,7 +12,7 @@ sys.path.append(os.getcwd())
 import fbuild
 import fbuild.db
 import fbuild.path
-import fbuild.sched
+import fbuild.context
 
 # If we can't import fbuildroot, save the exception and raise it later.
 try:
@@ -109,96 +108,39 @@ def parse_args(argv):
     else:
         options, args = post_options(options, args) or (options, args)
 
-    # -------------------------------------------------------------------------
-    # Prepare all the global variables.
-
-    # Convert the option paths into Path objects.
-    options.buildroot = fbuild.path.Path(options.buildroot)
-    options.state_file = options.buildroot / options.state_file
-
-    # --------------------------------------------------------------------------
-    # Prepare the fbuild global variables (ick!).
-
-    fbuild.buildroot = options.buildroot
-
-    fbuild.logger.verbose = options.verbose
-    fbuild.logger.nocolor = options.nocolor
-    fbuild.logger.show_threads = options.show_threads
-
-    # Construct the global scheduler.
-    fbuild.scheduler = fbuild.sched.Scheduler(options.threadcount)
-
-    # Store the options and args in fbuild.
-    fbuild.options = options
-    fbuild.args = args
-
-    # --------------------------------------------------------------------------
-
-    return options, args
+    return fbuild.context.Context(options, args)
 
 # ------------------------------------------------------------------------------
 
-def create_buildroot(options):
-    # Make sure the buildroot exists before running.
-    fbuild.buildroot.makedirs()
-
-    # Load the logger options into the logger.
-    fbuild.logger.file = open(options.buildroot / options.log_file, 'w')
-
-    # Make sure the state file directory exists.
-    options.state_file.parent.makedirs()
-
-# ------------------------------------------------------------------------------
-
-def load_configuration(options):
-    # Optionally do `not` load the old database.
-    if not options.force_configuration and options.state_file.exists():
-        # We aren't reconfiguring, so load the old database.
-        fbuild.db.database.load(options.state_file)
-
-# ------------------------------------------------------------------------------
-
-def save_configuration(options):
-    # Optionally do `not` save the database.
-    if not options.do_not_save_database:
-        # Remove the signal handler so that we can't interrupt saving the db.
-        prev_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        try:
-            fbuild.db.database.save(options.state_file)
-        finally:
-            signal.signal(signal.SIGINT, prev_handler)
-
-# ------------------------------------------------------------------------------
-
-def build(options):
+def build(ctx):
     # Exit early if we're just viewing the state.
-    if options.dump_state:
+    if ctx.options.dump_state:
         # print out the entire state
         pprint.pprint(fbuild.db.database.__dict__)
         return 0
 
     # Exit early if we're just clearing a function.
-    if options.clear_function:
-        if not fbuild.db.database.clear_function(options.clear_function):
+    if ctx.options.clear_function:
+        if not ctx.db.clear_function(options.clear_function):
             raise fbuild.Error('function %r not cached' %
-                    options.clear_function)
+                    ctx.options.clear_function)
         return 0
 
     # Exit early if we're just clearing a file.
-    if options.clear_file:
-        if not fbuild.db.database.clear_file(options.clear_file):
-            raise fbuild.Error('file %r not cached' % options.clear_file)
+    if ctx.options.clear_file:
+        if not ctx.db.clear_file(options.clear_file):
+            raise fbuild.Error('file %r not cached' % ctx.options.clear_file)
         return 0
 
     # finally, do the actual build
-    fbuildroot.build()
+    fbuildroot.build(ctx)
 
     return 0
 
 # ------------------------------------------------------------------------------
 
 def main(argv=None):
-    options, args = parse_args(sys.argv if argv is None else argv)
+    ctx = parse_args(sys.argv if argv is None else argv)
 
     # If the fbuildroot doesn't exist, error out. We do this now so that
     # there's a chance to ask fbuild for help first.
@@ -206,21 +148,21 @@ def main(argv=None):
         raise fbuildroot
 
     # Exit early if we want to clean the buildroot.
-    if options.clean_buildroot:
+    if ctx.options.clean_buildroot:
         # Only try to clean the buildroot if it actually exists.
-        if options.buildroot.exists():
-            options.buildroot.rmtree()
+        if ctx.options.buildroot.exists():
+            ctx.options.buildroot.rmtree()
         return
 
-    # Prep the environment for running.
-    create_buildroot(options)
-    load_configuration(options)
+    # Prep the context for running.
+    ctx.create_buildroot()
+    ctx.load_configuration()
 
     # ... and then run the build.
     try:
-        result = build(options)
+        result = build(ctx)
     except fbuild.Error as e:
-        fbuild.logger.log(e, color='red')
+        ctx.logger.log(e, color='red')
         return 1
     except KeyboardInterrupt:
         # It appears that we can't reliably shutdown the scheduler's threads
@@ -231,9 +173,9 @@ def main(argv=None):
         raise
     else:
         # No exception occurred, so let us be good and shut down the scheduler.
-        fbuild.scheduler.shutdown()
+        ctx.shutdown()
     finally:
-        save_configuration(options)
+        ctx.save_configuration()
 
     return result
 

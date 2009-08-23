@@ -12,8 +12,10 @@ from fbuild.temp import tempfile
 # ------------------------------------------------------------------------------
 
 class Jar(fbuild.db.PersistentObject):
-    def __init__(self, exe='jar'):
-        self.exe = fbuild.builders.find_program([exe])
+    def __init__(self, ctx, exe='jar'):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
 
     # --------------------------------------------------------------------------
 
@@ -36,7 +38,7 @@ class Jar(fbuild.db.PersistentObject):
         # where we want the jar files to be relative to. By default we'll at
         # least run jar from the buildroot.
 
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         cwd = cwd or buildroot
         dst = Path(dst).addroot(buildroot)
 
@@ -60,7 +62,7 @@ class Jar(fbuild.db.PersistentObject):
         else:
             msg2 = '%s %s -> %s' % (manifest, ' '.join(srcs), dst)
 
-        fbuild.execute(cmd, self, msg2, cwd=cwd, color='cyan', **kwargs)
+        self.ctx.execute(cmd, self, msg2, cwd=cwd, color='cyan', **kwargs)
 
         return dst
 
@@ -71,9 +73,11 @@ class Jar(fbuild.db.PersistentObject):
 
 # ------------------------------------------------------------------------------
 
-class Java:
-    def __init__(self, exe='java', *, classpaths=[]):
-        self.exe = fbuild.builders.find_program([exe])
+class Java(fbuild.db.PersistentObject):
+    def __init__(self, ctx, exe='java', *, classpaths=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.classpaths = classpaths
 
     def run_class(self, cls, *args, classpaths=[], **kwargs):
@@ -82,28 +86,30 @@ class Java:
         cmd.extend(('-cp', ':'.join(chain(self.classpaths, classpaths))))
         cmd.append(cls)
 
-        return fbuild.execute(cmd, *args, **kwargs)
+        return self.ctx.execute(cmd, *args, **kwargs)
 
     def run_jar(self, jar, *args, **kwargs):
         cmd = [self.exe]
         cmd.extend(('-jar', jar))
 
-        return fbuild.execute(cmd, *args, **kwargs)
+        return self.ctx.execute(cmd, *args, **kwargs)
 
     def __str__(self):
         return self.exe.name
 
 # ------------------------------------------------------------------------------
 
-class AbstractCompiler:
-    def __init__(self, exe, src_suffix, *,
+class AbstractCompiler(fbuild.db.PersistentObject):
+    def __init__(self, ctx, exe, src_suffix, *,
             classpaths=[],
             sourcepaths=[],
             debug=False,
             debug_flags=['-g'],
             target=None,
             flags=[]):
-        self.exe = fbuild.builders.find_program([exe])
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.src_suffix = src_suffix
         self.classpaths = classpaths
         self.sourcepaths = sourcepaths
@@ -153,29 +159,29 @@ class AbstractCompiler:
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return fbuild.execute(cmd, *args, **kwargs)
+        return self.ctx.execute(cmd, *args, **kwargs)
 
     def check_flags(self, flags=[]):
         """Verify that we can run with these flags."""
 
         if flags:
-            fbuild.logger.check('checking %s with %s' %
+            self.ctx.logger.check('checking %s with %s' %
                 (self, ' '.join(flags)))
         else:
-            fbuild.logger.check('checking %s' % self)
+            self.ctx.logger.check('checking %s' % self)
 
         with tempfile('', suffix=self.src_suffix) as src:
             try:
                 self._run([src], flags=flags, quieter=1)
             except fbuild.ExecutionError as e:
-                fbuild.logger.failed()
+                self.ctx.logger.failed()
                 if e.stdout:
-                    fbuild.logger.log(e.stdout.decode())
+                    self.ctx.logger.log(e.stdout.decode())
                 if e.stderr:
-                    fbuild.logger.log(e.stderr.decode())
+                    self.ctx.logger.log(e.stderr.decode())
                 return False
 
-        fbuild.logger.passed()
+        self.ctx.logger.passed()
         return True
 
     def __str__(self):
@@ -194,15 +200,15 @@ class AbstractCompiler:
 # ------------------------------------------------------------------------------
 
 class Javac(AbstractCompiler):
-    def __init__(self, exe='javac', *args, **kwargs):
-        super().__init__(exe, '.java', *args, **kwargs)
+    def __init__(self, ctx, exe='javac', *args, **kwargs):
+        super().__init__(ctx, exe, '.java', *args, **kwargs)
 
     def __call__(self, dst, srcs, *args,
             buildroot=None,
             **kwargs):
         """Compile a java src."""
 
-        dst = dst.addroot(buildroot or fbuild.buildroot)
+        dst = dst.addroot(buildroot or self.ctx.buildroot)
         dst.makedirs()
 
         stdout, stderr = self._run(srcs, *args, dst=dst,  **kwargs)
@@ -211,9 +217,11 @@ class Javac(AbstractCompiler):
 # ------------------------------------------------------------------------------
 
 class AbstractBuilder(fbuild.builders.AbstractLibLinker):
-    def __init__(self, *, jar='jar', java='java', **kwargs):
-        self.jar = fbuild.builders.java.Jar(jar)
-        self.java = fbuild.builders.java.Java(java)
+    def __init__(self, ctx, *, jar='jar', java='java', **kwargs):
+        super().__init__(ctx, src_suffix='.class')
+
+        self.jar = fbuild.builders.java.Jar(ctx, jar)
+        self.java = fbuild.builders.java.Java(ctx, java)
 
     # --------------------------------------------------------------------------
 
@@ -228,7 +236,7 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
         """Compile a java file."""
 
         src = Path(src)
-        dst = Path(dst or src.parent).addroot(buildroot or fbuild.buildroot)
+        dst = Path(dst or src.parent).addroot(buildroot or self.ctx.buildroot)
 
         # Extract the generated files when we compile the file.
         try:
@@ -242,7 +250,7 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
                 # We errored out, but we've hidden the stderr output.
                 for line in io.StringIO(e.stderr.decode()):
                     if not line.startswith('['):
-                        fbuild.logger.write(line)
+                        self.ctx.logger.write(line)
             raise e
 
         # Parse the output and find what files we generated.
@@ -253,10 +261,10 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
                 dsts.append(Path(m.group(1)))
             elif quieter == 0 and stderr_quieter == 0:
                 if not line.startswith('['):
-                    fbuild.logger.write(line)
+                    self.ctx.logger.write(line)
 
         # Log all the files we found
-        fbuild.logger.check(str(builder), '%s -> %s' % (src, ' '.join(dsts)),
+        self.ctx.logger.check(str(builder), '%s -> %s' % (src, ' '.join(dsts)),
             color='green')
 
         return dsts
@@ -282,7 +290,7 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
         dsts = []
-        for d in fbuild.scheduler.map(partial(self.compile, **kwargs), srcs):
+        for d in self.ctx.scheduler.map(partial(self.compile, **kwargs), srcs):
             dsts.extend(d)
 
         return dsts
@@ -317,10 +325,10 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
 # ------------------------------------------------------------------------------
 
 class Builder(AbstractBuilder):
-    def __init__(self, *, jar='jar', java='java', javac='javac', **kwargs):
-        super().__init__(jar=jar, java=java, src_suffix='.java')
+    def __init__(self, ctx, *, jar='jar', java='java', javac='javac', **kwargs):
+        super().__init__(ctx, jar=jar, java=java, src_suffix='.java')
 
-        self.javac = fbuild.builders.java.Javac(javac, **kwargs)
+        self.javac = fbuild.builders.java.Javac(ctx, javac, **kwargs)
 
     def uncached_compile(self, *args, **kwargs):
         return self._run(self.javac, *args, **kwargs)

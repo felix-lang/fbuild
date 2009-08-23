@@ -59,7 +59,7 @@ class string_h(string_h):
             return None
 
         # Some implementations return a char* of the message.
-        fbuild.logger.check("checking strerror_r in 'string.h'")
+        self.ctx.logger.check("checking strerror_r in 'string.h'")
 
         if self.builder.try_run('''
                 #include <string.h>
@@ -69,7 +69,7 @@ class string_h(string_h):
                     return r == 0 ? 0 : 1;
                 }
                 '''):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return c.Function('int', 'int', 'char*', 'size_t')
 
         if self.builder.try_run('''
@@ -80,10 +80,10 @@ class string_h(string_h):
                     return 0;
                 }
                 '''):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return c.Function('char*', 'int', 'char*', 'size_t')
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
 class sys_mman_h(sys_mman_h):
     header = 'sys/mman.h'
@@ -141,17 +141,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking accept in 'sys/socket.h'")
+        self.ctx.logger.check("checking accept in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, struct sockaddr*, %s) = accept;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def bind(self):
@@ -163,17 +163,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking bind in 'sys/socket.h'")
+        self.ctx.logger.check("checking bind in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
             if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, const struct sockaddr*, %s) = bind;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'const struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def connect(self):
@@ -185,17 +185,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking connect in 'sys/socket.h'")
+        self.ctx.logger.check("checking connect in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, const struct sockaddr*, %s) = connect;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'const struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def getpeername(self):
@@ -207,17 +207,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking getpeername in 'sys/socket.h'")
+        self.ctx.logger.check("checking getpeername in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, struct sockaddr*, %s) = getpeername;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def getsockname(self):
@@ -229,17 +229,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking getsockname in 'sys/socket.h'")
+        self.ctx.logger.check("checking getsockname in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, struct sockaddr*, %s) = getsockname;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def getsockopt(self):
@@ -251,17 +251,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking getsockopt in 'sys/socket.h'")
+        self.ctx.logger.check("checking getsockopt in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, int, int, void*, %s) = getsockopt;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'int', 'void*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def recvfrom(self):
@@ -273,17 +273,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking recvfrom in 'sys/socket.h'")
+        self.ctx.logger.check("checking recvfrom in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     ssize_t (*x)(int, void*, size_t, int, struct sockaddr*, %s) = recvfrom;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('ssize_t', 'int', 'void*', 'size_t', 'int', 'struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def sendto(self):
@@ -295,17 +295,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking sendto in 'sys/socket.h'")
+        self.ctx.logger.check("checking sendto in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     ssize_t (*x)(int, const void*, size_t, int, const struct sockaddr*, %s) = sendto;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('ssize_t', 'int', 'const void*', 'size_t', 'int', 'const struct sockaddr*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
     @c.cacheproperty
     def setsockopt(self):
@@ -317,17 +317,17 @@ class sys_socket_h(sys_socket_h):
 
         # Some old implementations use 'int' or 'unsigned int' instead of
         # socklen_t.
-        fbuild.logger.check("checking setsockopt in 'sys/socket.h'")
+        self.ctx.logger.check("checking setsockopt in 'sys/socket.h'")
         for typename in 'unsigned int*', 'int*':
            if self.builder.try_run('''
                     #include <sys/socket.h>
                     int (*x)(int, int, int, const void*, %s) = setsockopt;
                     int main() { return 0; }
                     ''' % typename):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
                 return c.Function('int', 'int', 'int', 'const void*', typename)
 
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
 
 class sys_types_h(sys_types_h):
     header = 'sys/types.h'

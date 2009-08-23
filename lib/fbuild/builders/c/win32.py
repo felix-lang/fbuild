@@ -5,7 +5,7 @@ from fbuild.record import Record
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_windows_h(builder):
+def config_windows_h(ctx, builder):
     if not builder.check_header_exists('windows.h'):
         raise MissingHeader('windows.h')
 

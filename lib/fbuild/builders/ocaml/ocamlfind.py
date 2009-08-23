@@ -1,7 +1,6 @@
 from functools import partial
 from itertools import chain
 
-from fbuild import execute
 import fbuild.builders
 import fbuild.builders.ocaml as ocaml
 import fbuild.db
@@ -11,7 +10,7 @@ import fbuild.db
 class Ocamldep(ocaml.Ocamldep):
     """Overload ocaml.Ocamldep builder to use ocamlfind's ocamldep."""
 
-    def __init__(self, exe=None, *args,
+    def __init__(self, ctx, exe=None, *args,
             ocamlfind_cmd='ocamldep',
             pre_flags=[],
             packages=[],
@@ -25,8 +24,8 @@ class Ocamldep(ocaml.Ocamldep):
 
         # We'll use ocamlfind as our executable and add ocamldep as the first
         # preflag.
-        exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
-        super().__init__(exe, *args,
+        exe = fbuild.builders.find_program(ctx, [exe if exe else 'ocamlfind'])
+        super().__init__(ctx, exe, *args,
             pre_flags=[ocamlfind_cmd] + pre_flags,
             **kwargs)
 
@@ -60,7 +59,7 @@ class Ocamldep(ocaml.Ocamldep):
 class Ocamlc(ocaml.Ocamlc):
     """Overload ocaml.Ocamlc builder to use ocamlfind's ocamlc."""
 
-    def __init__(self, exe=None, *args,
+    def __init__(self, ctx, exe=None, *args,
             ocamlfind_cmd='ocamlc',
             pre_flags=[],
             packages=[],
@@ -77,8 +76,8 @@ class Ocamlc(ocaml.Ocamlc):
 
         # We'll use ocamlfind as our executable and add ocamlc as the first
         # preflag.
-        exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
-        super().__init__(exe, *args,
+        exe = fbuild.builders.find_program(ctx, [exe if exe else 'ocamlfind'])
+        super().__init__(ctx, exe, *args,
             pre_flags=[ocamlfind_cmd] + pre_flags,
             make_ocamldep=partial(make_ocamldep,
                 packages=packages,
@@ -161,7 +160,7 @@ class Ocamlc(ocaml.Ocamlc):
 class Ocamlopt(ocaml.Ocamlopt):
     """Overload ocaml.Ocamlopt builder to use ocamlfind's ocamlopt."""
 
-    def __init__(self, exe=None, *args,
+    def __init__(self, ctx, exe=None, *args,
             ocamlfind_cmd='ocamlopt',
             pre_flags=[],
             packages=[],
@@ -179,9 +178,9 @@ class Ocamlopt(ocaml.Ocamlopt):
 
         # We'll use ocamlfind as our executable and add ocamlopt as the first
         # preflag.
-        exe = fbuild.builders.find_program([exe if exe else 'ocamlfind'])
+        exe = fbuild.builders.find_program(ctx, [exe if exe else 'ocamlfind'])
 
-        super().__init__(exe, *args,
+        super().__init__(ctx, exe, *args,
             pre_flags=[ocamlfind_cmd] + pre_flags,
             make_ocamldep=partial(make_ocamldep,
                 packages=packages,

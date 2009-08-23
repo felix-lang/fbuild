@@ -181,7 +181,8 @@ class dlfcn_h(c.Header):
             return
 
         # try to get a shared compiler
-        shared = fbuild.builders.cxx.guess_shared(flags=self.builder.flags)
+        shared = fbuild.builders.cxx.guess_shared(self.ctx,
+            flags=self.builder.flags)
 
         lib_code = '''
             #ifdef __cplusplus
@@ -207,7 +208,7 @@ class dlfcn_h(c.Header):
             }
         '''
 
-        fbuild.logger.check("checking dlopen in 'dlfcn.h'")
+        self.ctx.logger.check("checking dlopen in 'dlfcn.h'")
 
         with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
@@ -224,10 +225,10 @@ class dlfcn_h(c.Header):
                             'libs': self.libs,
                             'external_libs': self.external_libs},
                         quieter=1):
-                    fbuild.logger.passed()
+                    self.ctx.logger.passed()
                     return c.Function('void*', 'const char*', 'int')
 
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
     @property

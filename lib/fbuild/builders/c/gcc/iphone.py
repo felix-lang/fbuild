@@ -38,34 +38,34 @@ def _builder(builder, *args, pre_flags=[], sdk=None, simulator, **kwargs):
 
 # ------------------------------------------------------------------------------
 
-def static(exe=None, *args, **kwargs):
+def static(ctx, exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(False) / 'usr/bin/gcc'
 
-    return _builder(darwin.static, exe, *args,
+    return _builder(darwin.static, ctx, exe, *args,
         simulator=False,
         cross_compiler=True,
         **kwargs)
 
-def shared(exe=None, *args, **kwargs):
+def shared(ctx, exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(False) / 'usr/bin/gcc'
 
-    return _builder(darwin.shared, exe, *args,
+    return _builder(darwin.shared, ctx, exe, *args,
         simulator=False,
         cross_compiler=True,
         **kwargs)
 
 # ------------------------------------------------------------------------------
 
-def static_simulator(exe=None, *args, **kwargs):
+def static_simulator(ctx, exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(True) / 'usr/bin/gcc'
 
-    return _builder(darwin.static, exe, *args, simulator=True, **kwargs)
+    return _builder(darwin.static, ctx, exe, *args, simulator=True, **kwargs)
 
-def shared_simulator(exe=None, *args, **kwargs):
+def shared_simulator(ctx, exe=None, *args, **kwargs):
     if exe is None:
         exe = _iphone_devroot(True) / 'usr/bin/gcc'
 
-    return _builder(darwin.shared, exe, *args, simulator=True, **kwargs)
+    return _builder(darwin.shared, ctx, exe, *args, simulator=True, **kwargs)

@@ -6,11 +6,11 @@ import fbuild.path
 
 # ------------------------------------------------------------------------------
 
-def build():
+def build(ctx):
     patterns = {'a': 1, 'b': 2}
 
-    foo = text.format_substitute('foo.py', 'foo.py.in', patterns)
-    fbuild.execute((sys.executable, foo))
+    foo = text.format_substitute(ctx, 'foo.py', 'foo.py.in', patterns)
+    ctx.execute((sys.executable, foo))
 
-    bar = text.m4_substitute('bar.py', 'bar.py.in', patterns)
-    fbuild.execute((sys.executable, bar))
+    bar = text.m4_substitute(ctx, 'bar.py', 'bar.py.in', patterns)
+    ctx.execute((sys.executable, bar))

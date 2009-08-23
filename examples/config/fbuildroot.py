@@ -8,11 +8,11 @@ from fbuild.functools import import_module
 
 # ------------------------------------------------------------------------------
 
-def test_field(test, field):
+def test_field(ctx, test, field):
     if getattr(test, field.__name__):
         return True
     else:
-        fbuild.logger.check('%r failed test' % str(test.builder),
+        ctx.logger.check('%r failed test' % str(test.builder),
             '%s.%s.%s' % (
                 test.__class__.__module__,
                 test.__class__.__name__,
@@ -25,16 +25,16 @@ def test_field(test, field):
         except AttributeError as e:
             pass
         else:
-            fbuild.logger.log(src, verbose=1)
+            ctx.logger.log(src, verbose=1)
 
         return False
 
-def test_test(test):
+def test_test(ctx, test):
     passed = 0
     total = 0
 
-    for result in fbuild.scheduler.map(
-            functools.partial(test_field, test),
+    for result in ctx.scheduler.map(
+            functools.partial(test_field, ctx, test),
             (f for n, f in test.fields())):
         total += 1
         if result:
@@ -42,7 +42,7 @@ def test_test(test):
 
     return passed, total
 
-def test_module(builder, module):
+def test_module(ctx, builder, module):
     tests = []
     for name in dir(module):
         test = getattr(module, name)
@@ -51,18 +51,18 @@ def test_module(builder, module):
 
     passed = 0
     total = 0
-    for p, t in fbuild.scheduler.map(test_test, tests):
+    for p, t in ctx.scheduler.map(functools.partial(test_test, ctx), tests):
         passed += p
         total += t
     return passed, total
 
-def build():
-    c_static = fbuild.builders.c.guess_static()
-    c_shared = fbuild.builders.c.guess_shared()
-    cxx_static = fbuild.builders.cxx.guess_static(platform_options=[
+def build(ctx):
+    c_static = fbuild.builders.c.guess_static(ctx)
+    c_shared = fbuild.builders.c.guess_shared(ctx)
+    cxx_static = fbuild.builders.cxx.guess_static(ctx, platform_options=[
         ({'windows'}, {'flags': ['/EHsc']}),
     ])
-    cxx_shared = fbuild.builders.cxx.guess_shared(platform_options=[
+    cxx_shared = fbuild.builders.cxx.guess_shared(ctx, platform_options=[
         ({'windows'}, {'flags': ['/EHsc']}),
     ])
     passed = 0
@@ -83,7 +83,7 @@ def build():
                 import_module('fbuild.config.c.posix04'),
                 import_module('fbuild.config.c.stdlib'),
                 import_module('fbuild.config.c.win32')):
-            p, t = test_module(builder, module)
+            p, t = test_module(ctx, builder, module)
             passed += p
             total += t
 
@@ -95,8 +95,8 @@ def build():
                 import_module('fbuild.config.cxx.iterator'),
                 import_module('fbuild.config.cxx.gtest'),
                 import_module('fbuild.config.cxx.gnu')):
-            p, t = test_module(builder, module)
+            p, t = test_module(ctx, builder, module)
             passed += p
             total += t
 
-    fbuild.logger.log('%d/%d tests' % (passed, total))
+    ctx.logger.log('%d/%d tests' % (passed, total))

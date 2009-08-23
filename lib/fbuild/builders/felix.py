@@ -6,22 +6,23 @@ import fbuild
 import fbuild.builders
 import fbuild.builders.platform
 import fbuild.db
-from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
-class Flx:
-    def __init__(self, exe, *, includes=[], debug=False, flags=[]):
+class Flx(fbuild.db.PersistentObject):
+    def __init__(self, ctx, exe, *, includes=[], debug=False, flags=[]):
+        super().__init__(ctx)
+
         # we split exe in case extra arguments were specified in the name
-        self.exe = fbuild.builders.find_program([exe])
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.includes = includes
         self.debug = debug
         self.flags = flags
 
         if not self.check_flags([]):
-            raise ConfigFailed('%s failed to compile an exe' % self)
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
     def __call__(self, src, *args,
             includes=[],
@@ -50,27 +51,27 @@ class Flx:
         cmd.extend(flags)
         cmd.append(src)
 
-        return execute(cmd, *args, **kwargs)
+        return self.ctx.execute(cmd, *args, **kwargs)
 
     def check_flags(self, flags=[]):
         if flags:
-            logger.check('checking %s with %s' %
+            self.ctx.logger.check('checking %s with %s' %
                 (self, ' '.join(flags)))
         else:
-            logger.check('checking %s' % self)
+            self.ctx.logger.check('checking %s' % self)
 
         with tempfile('', suffix='.flx') as src:
             try:
                 self(src, flags=flags, quieter=1)
-            except ExecutionError as e:
-                logger.failed()
+            except fbuild.ExecutionError as e:
+                self.ctx.logger.failed()
                 if e.stdout:
-                    logger.log(e.stdout.decode())
+                    self.ctx.logger.log(e.stdout.decode())
                 if e.stderr:
-                    logger.log(e.stderr.decode())
+                    self.ctx.logger.log(e.stderr.decode())
                 return False
 
-        logger.passed()
+        self.ctx.logger.passed()
         return True
 
     def __str__(self):
@@ -83,17 +84,18 @@ class Flx:
 # ------------------------------------------------------------------------------
 
 class Felix(fbuild.builders.AbstractCompiler):
-    def __init__(self, exe='flx.py', *,
+    def __init__(self, ctx, exe='flx.py', *,
             platform=None,
             includes=[],
             static=False,
             debug=False,
             flags=[]):
-        super().__init__(src_suffix='.flx')
+        super().__init__(ctx, src_suffix='.flx')
 
-        self.flx = Flx(exe, debug=debug, flags=flags)
-        self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
-        self.lib_suffix = fbuild.builders.platform.shared_lib_suffix(platform)
+        self.flx = Flx(ctx, exe, debug=debug, flags=flags)
+        self.exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
+        self.lib_suffix = fbuild.builders.platform.shared_lib_suffix(ctx,
+            platform)
         self.static = static
         self.includes = includes
         self.flags = flags
@@ -112,7 +114,7 @@ class Felix(fbuild.builders.AbstractCompiler):
         """Compile a felix file without caching the results.  This is needed
         when compiling temporary files."""
         src = Path(src)
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         src_buildroot = src.addroot(buildroot)
 
         static = static or self.static

@@ -7,14 +7,13 @@ import fbuild.builders.c
 import fbuild.builders.platform
 import fbuild.db
 import fbuild.record
-from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 from fbuild.temp import tempfile
 
 # ------------------------------------------------------------------------------
 
 class Ar(fbuild.db.PersistentObject):
-    def __init__(self, exe='ar', *,
+    def __init__(self, ctx, exe='ar', *,
             platform=None,
             prefix=None,
             suffix=None,
@@ -24,9 +23,11 @@ class Ar(fbuild.db.PersistentObject):
             external_libs=[],
             ranlib='ranlib',
             ranlib_flags=[]):
-        self.exe = fbuild.builders.find_program([exe])
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         try:
-            self.ranlib = fbuild.builders.find_program([ranlib])
+            self.ranlib = fbuild.builders.find_program(ctx, [ranlib])
         except fbuild.ConfigFailed:
             self.ranlib = None
 
@@ -50,7 +51,7 @@ class Ar(fbuild.db.PersistentObject):
             suffix=None,
             buildroot=None,
             **kwargs) -> fbuild.db.DST:
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         #libs = set(libs)
         #libs.update(self.libs)
         #libs = sorted(libs)
@@ -75,7 +76,7 @@ class Ar(fbuild.db.PersistentObject):
         #cmd.extend(self.external_libs)
         #cmd.extend(external_libs)
 
-        execute(cmd,
+        self.ctx.execute(cmd,
             msg1=str(self),
             msg2='%s -> %s' % (' '.join(srcs), dst),
             color='cyan',
@@ -87,7 +88,7 @@ class Ar(fbuild.db.PersistentObject):
             cmd.extend(ranlib_flags)
             cmd.append(dst)
 
-            execute(cmd,
+            self.ctx.execute(cmd,
                 msg1=self.ranlib.name,
                 msg2=dst,
                 color='cyan',
@@ -101,7 +102,7 @@ class Ar(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Gcc(fbuild.db.PersistentObject):
-    def __init__(self, exe, *,
+    def __init__(self, ctx, exe, *,
             pre_flags=[],
             flags=[],
             includes=[],
@@ -114,6 +115,8 @@ class Gcc(fbuild.db.PersistentObject):
             optimize=None,
             debug_flags=['-g'],
             optimize_flags=['-O2']):
+        super().__init__(ctx)
+
         self.exe = exe
         self.pre_flags = pre_flags
         self.flags = flags
@@ -250,24 +253,25 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend('-l' + l for l in external_libs)
         cmd.extend(libs)
 
-        return execute(cmd, msg2=msg2, **kwargs)
+        return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
     def check_flags(self, flags):
         if flags:
-            logger.check('checking %s with %s' % (self, ' '.join(flags)))
+            self.ctx.logger.check('checking %s with %s' %
+                (self, ' '.join(flags)))
         else:
-            logger.check('checking %s' % self)
+            self.ctx.logger.check('checking %s' % self)
 
         code = 'int main(int argc, char** argv){return 0;}'
 
         with tempfile(code, suffix='.c') as src:
             try:
                 self([src], flags=flags, quieter=1, cwd=src.parent)
-            except ExecutionError:
-                logger.failed()
+            except fbuild.ExecutionError:
+                self.ctx.logger.failed()
                 return False
 
-        logger.passed()
+        self.ctx.logger.passed()
         return True
 
     def __str__(self):
@@ -304,31 +308,34 @@ class Gcc(fbuild.db.PersistentObject):
             self.external_libs,
         ))
 
-def make_gcc(exe=None, default_exes=['gcc', 'cc'], **kwargs):
-    return Gcc(
-        fbuild.builders.find_program([exe] if exe else default_exes),
+def make_gcc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
+    return Gcc(ctx,
+        fbuild.builders.find_program(ctx, [exe] if exe else default_exes),
         **kwargs)
 
 # ------------------------------------------------------------------------------
 
 class Compiler(fbuild.db.PersistentObject):
-    def __init__(self, gcc, flags, *, suffix):
+    def __init__(self, ctx, gcc, flags, *, suffix):
+        super().__init__(ctx)
+
         self.gcc = gcc
         self.flags = flags
         self.suffix = suffix
 
         if flags and not gcc.check_flags(flags):
-            raise ConfigFailed('%s does not support %s flags' % (gcc, flags))
+            raise fbuild.ConfigFailed('%s does not support %s flags' %
+                (gcc, flags))
 
     def __call__(self, src, dst=None, *,
             suffix=None,
             buildroot=None,
             **kwargs):
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         src = Path(src)
 
         suffix = suffix or self.suffix
-        dst = (dst or src).addroot(buildroot).replaceext(suffix)
+        dst = Path(dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
         self.gcc([src], dst,
@@ -354,14 +361,16 @@ class Compiler(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Linker(fbuild.db.PersistentObject):
-    def __init__(self, gcc, flags=[], *, prefix, suffix):
+    def __init__(self, ctx, gcc, flags=[], *, prefix, suffix):
+        super().__init__(ctx)
+
         self.gcc = gcc
         self.flags = flags
         self.prefix = prefix
         self.suffix = suffix
 
         if flags and not gcc.check_flags(flags):
-            raise ConfigFailed('%s does not support %s' %
+            raise fbuild.ConfigFailed('%s does not support %s' %
                 (gcc, ' '.join(flags)))
 
     def __call__(self, dst, srcs, *,
@@ -371,7 +380,7 @@ class Linker(fbuild.db.PersistentObject):
             **kwargs):
         prefix = prefix or self.prefix
         suffix = suffix or self.suffix
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         dst = Path(dst).addroot(buildroot)
         dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
@@ -440,12 +449,12 @@ class Builder(fbuild.builders.c.Builder):
         # Parse the output and return the module dependencies.
         m = re.match(b'\S+:(?: (.*))?$', stdout)
         if not m:
-            raise ExecutionError('unable to understand %r' % stdout)
+            raise fbuild.ExecutionError('unable to understand %r' % stdout)
 
         s = m.group(1)
         if s is not None:
             deps = s.decode().split()
-            fbuild.db.add_external_dependencies_to_call(srcs=deps)
+            fbuild.db.add_external_dependencies_to_call(self.ctx, srcs=deps)
 
         return obj
 
@@ -493,7 +502,7 @@ class Builder(fbuild.builders.c.Builder):
 
 # ------------------------------------------------------------------------------
 
-def static(exe=None, *args,
+def static(ctx, exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=Compiler,
         make_lib_linker=Ar,
@@ -509,28 +518,28 @@ def static(exe=None, *args,
         src_suffix='.c',
         cross_compiler=False,
         **kwargs):
-    gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
+    gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
-    return Builder(
-        compiler=make_compiler(gcc,
+    return Builder(ctx,
+        compiler=make_compiler(ctx, gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.static_obj_suffix(platform)),
-        lib_linker=make_lib_linker(
+            suffix=fbuild.builders.platform.static_obj_suffix(ctx, platform)),
+        lib_linker=make_lib_linker(ctx,
             libs=libs,
             libpaths=libpaths,
-            prefix=fbuild.builders.platform.static_lib_prefix(platform),
-            suffix=fbuild.builders.platform.static_lib_suffix(platform)),
-        exe_linker=make_exe_linker(gcc,
+            prefix=fbuild.builders.platform.static_lib_prefix(ctx, platform),
+            suffix=fbuild.builders.platform.static_lib_suffix(ctx, platform)),
+        exe_linker=make_exe_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=fbuild.builders.platform.exe_suffix(platform)),
+            suffix=fbuild.builders.platform.exe_suffix(ctx, platform)),
         src_suffix=src_suffix,
         flags=flags,
         cross_compiler=cross_compiler)
 
 # ------------------------------------------------------------------------------
 
-def shared(exe=None, *args,
+def shared(ctx, exe=None, *args,
         make_gcc=make_gcc,
         make_compiler=Compiler,
         make_lib_linker=Linker,
@@ -546,20 +555,20 @@ def shared(exe=None, *args,
         src_suffix='.c',
         cross_compiler=False,
         **kwargs):
-    gcc = make_gcc(exe, libpaths=libpaths, libs=libs, **kwargs)
+    gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
-    return Builder(
-        compiler=make_compiler(gcc,
+    return Builder(ctx,
+        compiler=make_compiler(ctx, gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.shared_obj_suffix(platform)),
-        lib_linker=make_lib_linker(gcc,
+            suffix=fbuild.builders.platform.shared_obj_suffix(ctx, platform)),
+        lib_linker=make_lib_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, lib_link_flags)),
-            prefix=fbuild.builders.platform.shared_lib_prefix(platform),
-            suffix=fbuild.builders.platform.shared_lib_suffix(platform)),
-        exe_linker=make_exe_linker(gcc,
+            prefix=fbuild.builders.platform.shared_lib_prefix(ctx, platform),
+            suffix=fbuild.builders.platform.shared_lib_suffix(ctx, platform)),
+        exe_linker=make_exe_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=fbuild.builders.platform.exe_suffix(platform)),
+            suffix=fbuild.builders.platform.exe_suffix(ctx, platform)),
         src_suffix=src_suffix,
         flags=flags,
         cross_compiler=cross_compiler)

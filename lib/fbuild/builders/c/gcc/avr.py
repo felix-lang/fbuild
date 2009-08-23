@@ -3,8 +3,8 @@ import fbuild.builders.c.gcc
 # ------------------------------------------------------------------------------
 
 class Ar(fbuild.builders.c.gcc.Ar):
-    def __init__(self, exe='avr-ar', ranlib='avr-ranlib', **kwargs):
-        super().__init__(exe, ranlib=ranlib, **kwargs)
+    def __init__(self, ctx, exe='avr-ar', ranlib='avr-ranlib', **kwargs):
+        super().__init__(ctx, exe, ranlib=ranlib, **kwargs)
 
 # ------------------------------------------------------------------------------
 
@@ -21,9 +21,9 @@ class Gcc(fbuild.builders.c.gcc.Gcc):
 
 # ------------------------------------------------------------------------------
 
-def make_gcc(exe=None, default_exes=['avr-gcc'], **kwargs):
-    return Gcc(
-        fbuild.builders.find_program([exe] if exe else default_exes),
+def make_gcc(ctx, exe=None, default_exes=['avr-gcc'], **kwargs):
+    return Gcc(ctx,
+        fbuild.builders.find_program(ctx, [exe] if exe else default_exes),
         **kwargs)
 
 # ------------------------------------------------------------------------------

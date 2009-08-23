@@ -17,7 +17,7 @@ default_types = default_types_int + default_types_float + default_types_misc
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_types(builder):
+def config_types(ctx, builder):
     return c_std.config_types(builder,
         types_int=default_types_int,
         types_float=default_types_float,
@@ -26,7 +26,7 @@ def config_types(builder):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_compiler_bugs(builder):
+def config_compiler_bugs(ctx, builder):
     """
     Test for common c++ bugs.
     """

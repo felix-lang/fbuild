@@ -15,7 +15,6 @@ import fbuild.builders
 import fbuild.builders.platform
 import fbuild.db
 import fbuild.temp
-from fbuild import ConfigFailed, ExecutionError, execute, logger
 from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
@@ -23,8 +22,10 @@ from fbuild.path import Path
 class Ocamldep(fbuild.db.PersistentObject):
     """Use ocamldep to generate dependencies for ocaml files."""
 
-    def __init__(self, exe=None, *, pre_flags=[], flags=[]):
-        self.exe = fbuild.builders.find_program(
+    def __init__(self, ctx, exe=None, *, pre_flags=[], flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamldep.opt', 'ocamldep'])
         self.pre_flags = pre_flags
         self.flags = flags
@@ -48,14 +49,14 @@ class Ocamldep(fbuild.db.PersistentObject):
         cmd.append(src)
 
         # Now, run ocamldep
-        stdout, stderr = execute(cmd, str(self), src,
+        stdout, stderr = self.ctx.execute(cmd, str(self), src,
             color='yellow',
             stdout_quieter=1)
 
         # Parse the output and return the module dependencies.
         m = re.match(b'\S+:(?: (.*))?$', stdout.strip())
         if not m:
-            raise ExecutionError('unable to understand %r' % stdout)
+            raise fbuild.ExecutionError('unable to understand %r' % stdout)
 
         s = m.group(1)
         if s is None:
@@ -151,7 +152,7 @@ class Ocamldep(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def __init__(self, exe, *,
+    def __init__(self, ctx, exe, *,
             platform=None,
             obj_suffix,
             lib_suffix,
@@ -168,13 +169,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             requires_version=None,
             requires_at_least_version=None,
             requires_at_most_version=None):
-        super().__init__(src_suffix='.ml')
+        super().__init__(ctx, src_suffix='.ml')
 
-        self.ocamldep = ocamldep or make_ocamldep()
+        self.ocamldep = ocamldep or make_ocamldep(ctx)
         self.exe = exe
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
-        self.exe_suffix = fbuild.builders.platform.exe_suffix(platform)
+        self.exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
         self.includes = includes
         self.libs = libs
         self.cc = cc
@@ -191,7 +192,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 requires_version,
                 requires_at_least_version,
                 requires_at_most_version)):
-            logger.check('checking %s version' % str(self))
+            self.ctx.logger.check('checking %s version' % str(self))
 
             version_str = self.version()
 
@@ -207,45 +208,47 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             version = tuple(version)
 
             if requires_version is not None and requires_version != version:
-                raise ConfigFailed('version %s required; found %s' %
+                raise fbuild.ConfigFailed('version %s required; found %s' %
                     ('.'.join(str(i) for i in requires_version), version_str))
 
             if requires_at_least_version is not None and \
                     requires_at_least_version > version:
-                raise ConfigFailed('at least version %s required; found %s' % (
-                    '.'.join(str(i) for i in requires_at_least_version),
+                raise fbuild.ConfigFailed('at least version %s required; '
+                    'found %s' % ('.'.join(str(i)
+                        for i in requires_at_least_version),
                     version_str))
 
             if requires_at_most_version is not None and \
                     requires_at_most_version < version:
-                raise ConfigFailed('at most version %s required; found %s' % (
-                    '.'.join(str(i) for i in requires_at_most_version),
+                raise fbuild.ConfigFailed('at most version %s required; '
+                    'found %s' % ('.'.join(str(i)
+                        for i in requires_at_most_version),
                     version_str))
 
-            logger.passed(version_str)
+            self.ctx.logger.passed(version_str)
 
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
 
-        logger.check('checking if %s can make objects' % str(self))
+        self.ctx.logger.check('checking if %s can make objects' % str(self))
         if self.try_compile():
-            logger.passed()
+            self.ctx.logger.passed()
         else:
-            raise ConfigFailed('%s compiler failed' % str(self))
+            raise fbuild.ConfigFailed('%s compiler failed' % str(self))
 
-        logger.check('checking if %s can make libraries' % str(self))
+        self.ctx.logger.check('checking if %s can make libraries' % str(self))
         if self.try_link_lib():
-            logger.passed()
+            self.ctx.logger.passed()
         else:
-            raise ConfigFailed('%s lib linker failed' % str(self))
+            raise fbuild.ConfigFailed('%s lib linker failed' % str(self))
 
-        logger.check('checking if %s can make exes' % str(self))
+        self.ctx.logger.check('checking if %s can make exes' % str(self))
         if self.try_link_exe():
-            logger.passed()
+            self.ctx.logger.passed()
         else:
-            raise ConfigFailed('%s exe linker failed' % str(self))
+            raise fbuild.ConfigFailed('%s exe linker failed' % str(self))
 
-        logger.check('checking if %s can link lib to exe' % str(self))
+        self.ctx.logger.check('checking if %s can link lib to exe' % str(self))
         with fbuild.temp.tempdir() as parent:
             src_lib = parent / 'lib.ml'
             with open(src_lib, 'w') as f:
@@ -263,25 +266,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 quieter=1)
 
             try:
-                stdout, stderr = execute([exe], quieter=1)
-            except ExecutionError:
-                raise ConfigFailed('failed to link %s lib to exe' %
+                stdout, stderr = self.ctx.execute([exe], quieter=1)
+            except fbuild.ExecutionError:
+                raise fbuild.ConfigFailed('failed to link %s lib to exe' %
                     str(self))
             else:
                 if stdout != b'5':
-                   raise ConfigFailed('failed to link %s lib to exe' %
+                   raise fbuild.ConfigFailed('failed to link %s lib to exe' %
                         str(self))
-                logger.passed()
+                self.ctx.logger.passed()
 
     # --------------------------------------------------------------------------
 
     def where(self):
-        stdout, stderr = execute([self.exe, '-where'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, '-where'], quieter=1)
         return Path(stdout.decode().strip())
 
     def version(self):
         """Return the version of the ocaml executable."""
-        stdout, stderr = execute([self.exe, '-version'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, '-version'], quieter=1)
         return stdout.decode().strip()
 
     # --------------------------------------------------------------------------
@@ -300,7 +303,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             preprocessor=None,
             buildroot=None,
             **kwargs):
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         libs = tuple(chain(self.libs, external_libs, libs))
 
         # we need to make sure libraries are built first before we compile
@@ -361,7 +364,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         cmd.extend(extra_srcs)
         cmd.extend(srcs)
 
-        execute(cmd, str(self),
+        self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(extra_srcs + srcs), dst),
             **kwargs)
 
@@ -413,7 +416,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         else:
             dsts = []
 
-        fbuild.db.add_external_dependencies_to_call(
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
             srcs=self.scan(src, **kwargs),
             dsts=dsts)
 
@@ -486,18 +489,18 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             preprocessor=None,
             **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
-        kwargs['buildroot'] = buildroot = buildroot or fbuild.buildroot
+        kwargs['buildroot'] = buildroot = buildroot or self.ctx.buildroot
         kwargs['includes']  = includes  = set(includes)
         srcs = [Path(src) for src in srcs]
         for src in srcs:
             parent = src.parent
             if parent:
                 includes.add(parent)
-                includes.add(parent.addroot(fbuild.buildroot))
+                includes.add(parent.addroot(self.ctx.buildroot))
             else:
                 # We're at the toplevel directory, so just add the buildroot to
                 # the includes.
-                includes.add(fbuild.buildroot)
+                includes.add(self.ctx.buildroot)
 
         # Add additional source dependencies to the call.
         deps = set()
@@ -508,9 +511,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 flags=ocamldep_flags))
 
         if deps:
-            fbuild.db.add_external_dependencies_to_call(srcs=deps)
+            fbuild.db.add_external_dependencies_to_call(self.ctx, srcs=deps)
 
-        return fbuild.scheduler.map_with_dependencies(
+        return self.ctx.scheduler.map_with_dependencies(
             partial(self.ocamldep.source_dependencies,
                 includes=includes,
                 preprocessor=preprocessor,
@@ -553,7 +556,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             buildroot=None,
             **kwargs):
         # This must be called from a cached function to work properly.
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         includes = set(includes)
         for lib in libs:
             if isinstance(lib, Path):
@@ -595,13 +598,14 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 # ------------------------------------------------------------------------------
 
 class Ocamlc(Builder):
-    def __init__(self, exe=None, *args,
+    def __init__(self, ctx, exe=None, *args,
             obj_suffix='.cmo',
             lib_suffix='.cma',
             **kwargs):
-        exe = fbuild.builders.find_program(
+        exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlc.opt', 'ocamlc'])
-        super().__init__(exe, *args,
+
+        super().__init__(ctx, exe, *args,
             obj_suffix=obj_suffix,
             lib_suffix=lib_suffix,
             **kwargs)
@@ -631,26 +635,33 @@ class Ocamlc(Builder):
 # ------------------------------------------------------------------------------
 
 class Ocamlopt(Builder):
-    def __init__(self, exe=None, *args,
+    def __init__(self, ctx, exe=None, *args,
             platform=None,
             obj_suffix='.cmx',
             lib_suffix='.cmxa',
+            ocamldep=None,
+            make_ocamldep=Ocamldep,
             ocamlc=None,
             make_ocamlc=Ocamlc,
             **kwargs):
         # We need the bytecode compiler to compile .mli files.
-        self.ocamlc = ocamlc or make_ocamlc()
-        self.native_obj_suffix = \
-            fbuild.builders.platform.obj_suffix(platform)
-        self.native_lib_suffix = \
-            fbuild.builders.platform.static_lib_suffix(platform)
+        self.ocamlc = ocamlc or make_ocamlc(ctx,
+            ocamldep=ocamldep,
+            make_ocamldep=make_ocamldep)
 
-        exe = fbuild.builders.find_program(
+        self.native_obj_suffix = \
+            fbuild.builders.platform.obj_suffix(ctx, platform)
+        self.native_lib_suffix = \
+            fbuild.builders.platform.static_lib_suffix(ctx, platform)
+
+        exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlopt.opt', 'ocamlopt'])
-        super().__init__(exe, *args,
+        super().__init__(ctx, exe, *args,
             platform=platform,
             obj_suffix=obj_suffix,
             lib_suffix=lib_suffix,
+            ocamldep=ocamldep,
+            make_ocamldep=make_ocamldep,
             **kwargs)
 
     # --------------------------------------------------------------------------
@@ -700,7 +711,7 @@ class Ocamlopt(Builder):
     def _add_compile_dependencies(self, dst, src, **kwargs):
         super()._add_compile_dependencies(dst, src, **kwargs)
 
-        fbuild.db.add_external_dependencies_to_call(
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
             dsts=(dst.replaceext(self.native_obj_suffix),))
 
     def _add_link_dependencies(self, dst, srcs, includes, libs):
@@ -721,14 +732,16 @@ class Ocamlopt(Builder):
             dsts = ()
 
         # This function must be called by a cached function.
-        fbuild.db.add_external_dependencies_to_call(srcs=srcs, dsts=dsts)
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
+            srcs=srcs,
+            dsts=dsts)
 
 # ------------------------------------------------------------------------------
 
 class Ocaml(fbuild.builders.AbstractCompilerBuilder):
     Tuple = collections.namedtuple('Tuple', 'bytecode native')
 
-    def __init__(self, *,
+    def __init__(self, ctx, *,
             ocamldep=None,
             ocamlc=None,
             ocamlopt=None,
@@ -736,13 +749,13 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
             make_ocamlc=Ocamlc,
             make_ocamlopt=Ocamlopt,
             **kwargs):
-        self.ocamldep = ocamldep or make_ocamldep()
-        self.ocamlc = make_ocamlc(
+        self.ocamldep = ocamldep or make_ocamldep(ctx)
+        self.ocamlc = make_ocamlc(ctx,
             ocamldep=ocamldep,
             exe=ocamlc,
             make_ocamldep=make_ocamldep,
             **kwargs)
-        self.ocamlopt = make_ocamlopt(
+        self.ocamlopt = make_ocamlopt(ctx,
             ocamldep=self.ocamldep,
             ocamlc=self.ocamlc,
             exe=ocamlopt,
@@ -856,8 +869,10 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
 # ------------------------------------------------------------------------------
 
 class Ocamllex(fbuild.db.PersistentObject):
-    def __init__(self, exe=None, flags=[]):
-        self.exe = fbuild.builders.find_program(
+    def __init__(self, ctx, exe=None, flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamllex.opt', 'ocamllex'])
         self.flags = flags
 
@@ -865,7 +880,7 @@ class Ocamllex(fbuild.db.PersistentObject):
     def __call__(self, src:fbuild.db.SRC, *,
             flags=[],
             buildroot=None) -> fbuild.db.DST:
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         dst = src.replaceext('.ml').addroot(buildroot)
         dst.parent.makedirs()
 
@@ -875,7 +890,7 @@ class Ocamllex(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, str(self),
+        self.ctx.execute(cmd, str(self),
             '%s -> %s' % (src, dst),
             color='yellow')
 
@@ -895,8 +910,10 @@ class Ocamllex(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Ocamlyacc(fbuild.db.PersistentObject):
-    def __init__(self, exe=None, flags=[]):
-        self.exe = fbuild.builders.find_program(
+    def __init__(self, ctx, exe=None, flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlyacc.opt', 'ocamlyacc'])
         self.flags = flags
 
@@ -904,7 +921,7 @@ class Ocamlyacc(fbuild.db.PersistentObject):
     def __call__(self, src:fbuild.db.SRC, *,
             flags=[],
             buildroot=None) -> fbuild.db.DSTS:
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         # first, copy the src file into the buildroot
         src_buildroot = src.addroot(buildroot)
         dsts = (
@@ -922,7 +939,7 @@ class Ocamlyacc(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        execute(cmd, str(self), '%s -> %s' % (src, ' '.join(dsts)),
+        self.ctx.execute(cmd, str(self), '%s -> %s' % (src, ' '.join(dsts)),
             color='yellow')
 
         return dsts

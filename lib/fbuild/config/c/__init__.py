@@ -178,7 +178,7 @@ class AbstractFieldDescriptor:
         if header:
             msg += ' in %r' % header
 
-        fbuild.logger.check(msg)
+        instance.ctx.logger.check(msg)
 
         # run the test
         try:
@@ -191,14 +191,14 @@ class AbstractFieldDescriptor:
                     'libs': instance.libs,
                     'external_libs': instance.external_libs})
         except fbuild.ExecutionError:
-            fbuild.logger.failed()
+            instance.ctx.logger.failed()
         else:
-            return self.process_stdout(stdout)
+            return self.process_stdout(instance, stdout)
 
     def format_test(self, instance):
         raise NotImplementedError
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         raise NotImplementedError
 
     def __eq__(self, other):
@@ -285,12 +285,12 @@ class function_test(AbstractFieldDescriptor):
             }
         ''') % (header, '\n    '.join(defs), call)
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         if self.stdout is None or self.stdout == stdout:
-            fbuild.logger.passed()
+            instance.ctx.logger.passed()
             return Function(self.return_type, *self.args)
 
-        fbuild.logger.failed()
+        instance.ctx.logger.failed()
 
     def __eq__(self, other):
         return \
@@ -330,12 +330,12 @@ class macro_test(AbstractFieldDescriptor):
             }
         ''') % (header, self.name, self.name)
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         if self.stdout is None or self.stdout == stdout:
-            fbuild.logger.passed()
+            instance.ctx.logger.passed()
             return Macro()
 
-        fbuild.logger.failed()
+        instance.ctx.logger.failed()
 
 # ------------------------------------------------------------------------------
 
@@ -359,12 +359,12 @@ class type_test(AbstractFieldDescriptor):
             }
         ''') % ('' if header is None else '#include <%s>' % header, self.name)
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         stdout = stdout.split()
         alignment = int(stdout[0])
         size = int(stdout[1])
 
-        fbuild.logger.passed('alignment: %s size: %s' % (alignment, size))
+        instance.ctx.logger.passed('alignment: %s size: %s' % (alignment, size))
 
         return Type(alignment, size)
 
@@ -389,13 +389,13 @@ class int_type_test(AbstractFieldDescriptor):
             }
         ''') % ('' if header is None else '#include <%s>' % header, self.name)
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         stdout = stdout.split()
         alignment = int(stdout[0])
         size = int(stdout[1])
         signed = int(stdout[2]) == 1
 
-        fbuild.logger.passed('alignment: %s size: %s signed: %s' %
+        instance.ctx.logger.passed('alignment: %s size: %s signed: %s' %
             (alignment, size, signed))
 
         return IntType(alignment, size, signed)
@@ -436,12 +436,12 @@ class struct_test(AbstractFieldDescriptor):
             }
         ''') % (header, self.name, '\n    '.join(defs))
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         if self.stdout is None or self.stdout == stdout:
-            fbuild.logger.passed()
+            instance.ctx.logger.passed()
             return Struct(*self.members)
 
-        fbuild.logger.failed()
+        instance.ctx.logger.failed()
 
     def __eq__(self, other):
         return \
@@ -475,24 +475,34 @@ class variable_test(AbstractFieldDescriptor):
             }
         ''') % (header, self.name)
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         if self.stdout is None or self.stdout == stdout:
-            fbuild.logger.passed()
+            instance.ctx.logger.passed()
             return Variable()
 
-        fbuild.logger.failed()
+        instance.ctx.logger.failed()
 
 # ------------------------------------------------------------------------------
 
-class Test(fbuild.config.Test):
+class TestMeta(fbuild.config.TestMeta):
+    def __call__(cls, builder, *args, **kwargs):
+        result, srcs, objs = builder.ctx.db.call(cls.__call_super__, builder,
+            *args, **kwargs)
+
+        return result
+
+
+class Test(fbuild.config.Test, metaclass=TestMeta):
     def __init__(self, builder, *,
             platform=None,
             flags=[],
             libpaths=[],
             libs=[],
             external_libs=[]):
+        super().__init__(builder.ctx)
+
         if platform is None:
-            platform = fbuild.builders.platform.platform()
+            platform = fbuild.builders.platform.platform(builder.ctx)
 
         self.builder = builder
         self.platform = platform
@@ -569,7 +579,7 @@ class Test(fbuild.config.Test):
 
 # ------------------------------------------------------------------------------
 
-class HeaderMeta(fbuild.config.TestMeta):
+class HeaderMeta(TestMeta):
     def __new__(cls, name, bases, attrs):
         filename = attrs.pop('header', None)
 

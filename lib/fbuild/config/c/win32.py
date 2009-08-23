@@ -9,7 +9,7 @@ class windows_h(c.Header):
     @c.cacheproperty
     def LoadLibrary(self):
         # try to get a shared compiler
-        shared = fbuild.builders.c.guess_shared()
+        shared = fbuild.builders.c.guess_shared(self.ctx)
 
         lib_code = '''
             #ifdef __cplusplus
@@ -35,7 +35,7 @@ class windows_h(c.Header):
             }
         '''
 
-        fbuild.logger.check("checking LoadLibrary in 'windows.h'")
+        self.ctx.logger.check("checking LoadLibrary in 'windows.h'")
 
         with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
@@ -46,10 +46,10 @@ class windows_h(c.Header):
                 pass
             else:
                 if self.builder.try_run(exe_code % lib, quieter=1):
-                    fbuild.logger.passed()
+                    self.ctx.logger.passed()
                     return c.Function('HMODULE', 'char*')
 
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
     def GetProcAddress(self):

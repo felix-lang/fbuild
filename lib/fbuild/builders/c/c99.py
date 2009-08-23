@@ -27,11 +27,11 @@ default_types_stdint_h = tuple('%sint%s%s_t' % (sign, attr, size)
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_types(builder):
+def config_types(ctx, builder):
     return std.get_types_data(builder, default_types)
 
 @fbuild.db.caches
-def config_complex_h(builder):
+def config_complex_h(ctx, builder):
     if not builder.check_header_exists('complex.h'):
         raise c.MissingHeader('complex.h')
 
@@ -40,7 +40,7 @@ def config_complex_h(builder):
             headers=['complex.h']))
 
 @fbuild.db.caches
-def config_stdbool_h(builder):
+def config_stdbool_h(ctx, builder):
     if not builder.check_header_exists('stdbool.h'):
         raise c.MissingHeader('stdbool.h')
 
@@ -49,7 +49,7 @@ def config_stdbool_h(builder):
             headers=['stdbool.h']))
 
 @fbuild.db.caches
-def config_stdint_h(builder):
+def config_stdint_h(ctx, builder):
     if not builder.check_header_exists('stdint.h'):
         raise c.MissingHeader('stdint.h')
 
@@ -60,7 +60,7 @@ def config_stdint_h(builder):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_stdio_h(builder):
+def config_stdio_h(ctx, builder):
     snprintf = builder.check_run('''
         #include <stdio.h>
 
@@ -122,7 +122,7 @@ def types_stdint_h(builder):
     return (t for t in default_types_stdint_h if t in types)
 
 @fbuild.db.caches
-def type_aliases_stdint_h(builder):
+def type_aliases_stdint_h(ctx, builder):
     try:
         return {t:t for t in types_stdint_h(builder)}
     except AttributeError:

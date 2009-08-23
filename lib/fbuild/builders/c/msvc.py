@@ -12,7 +12,7 @@ from fbuild.temp import tempdir, tempfile
 # ------------------------------------------------------------------------------
 
 class Cl(fbuild.db.PersistentObject):
-    def __init__(self, exe='cl', *,
+    def __init__(self, ctx, exe='cl', *,
             pre_flags=[],
             flags=[],
             includes=[],
@@ -22,7 +22,9 @@ class Cl(fbuild.db.PersistentObject):
             optimize=None,
             debug_flags=['/Zi'],
             optimize_flags=['/Ox']):
-        self.exe = fbuild.builders.find_program([exe])
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.pre_flags = pre_flags
         self.flags = flags
         self.includes = includes
@@ -95,13 +97,14 @@ class Cl(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return fbuild.execute(cmd, msg2=msg2, **kwargs)
+        return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
     def check_flags(self, flags):
         if flags:
-            fbuild.logger.check('checking %s with %s' % (self, ' '.join(flags)))
+            self.ctx.logger.check('checking %s with %s'
+                % (self, ' '.join(flags)))
         else:
-            fbuild.logger.check('checking %s' % self)
+            self.ctx.logger.check('checking %s' % self)
 
         code = 'int main(int argc, char** argv){return 0;}'
 
@@ -109,10 +112,10 @@ class Cl(fbuild.db.PersistentObject):
             try:
                 self([src], flags=flags, quieter=1, cwd=src.parent)
             except fbuild.ExecutionError:
-                fbuild.logger.failed()
+                self.ctx.logger.failed()
                 return False
 
-        fbuild.logger.passed()
+        self.ctx.logger.passed()
         return True
 
     def __str__(self):
@@ -156,7 +159,7 @@ class Compiler:
             suffix=None,
             buildroot=None,
             **kwargs):
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         src = Path(src)
 
         suffix = suffix or self.suffix
@@ -186,13 +189,15 @@ class Compiler:
 # ------------------------------------------------------------------------------
 
 class Lib(fbuild.db.PersistentObject):
-    def __init__(self, exe='lib', *,
+    def __init__(self, ctx, exe='lib', *,
             pre_flags=[],
             flags=[],
             libpaths=[],
             libs=[],
             external_libs=[]):
-        self.exe = fbuild.builders.find_program([exe])
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -207,7 +212,7 @@ class Lib(fbuild.db.PersistentObject):
             external_libs=[],
             buildroot=None,
             **kwargs):
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         dst = Path(dst).addroot(buildroot)
         dst = dst.parent / dst.name + '.lib'
         dst.parent.makedirs()
@@ -229,7 +234,7 @@ class Lib(fbuild.db.PersistentObject):
         #    else:
         #        cmd.append(lib)
 
-        fbuild.execute(cmd, str(self),
+        self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
             color='cyan',
             **kwargs)
@@ -242,13 +247,15 @@ class Lib(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Link(fbuild.db.PersistentObject):
-    def __init__(self, exe='link', *,
+    def __init__(self, ctx, exe='link', *,
             pre_flags=[],
             flags=[],
             libpaths=[],
             libs=[],
             external_libs=[]):
-        self.exe = fbuild.builders.find_program([exe])
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe])
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -329,7 +336,7 @@ class Link(fbuild.db.PersistentObject):
 
         cmd.extend(srcs)
 
-        stdout, stderr = fbuild.execute(cmd, str(self),
+        stdout, stderr = self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
             color='cyan',
             **kwargs)
@@ -337,7 +344,7 @@ class Link(fbuild.db.PersistentObject):
         return dst, stdout, stderr
 
     def _make_dst(self, dst, suffix, buildroot):
-        dst = Path(dst).addroot(buildroot or fbuild.buildroot)
+        dst = Path(dst).addroot(buildroot or self.ctx.buildroot)
         dst = dst.parent / dst.name + suffix
         dst.parent.makedirs()
 
@@ -375,7 +382,7 @@ class DllLink(Link):
         msg = '   Creating library %s and object %s\r\n' % (lib, exp)
         for line in io.StringIO(stdout.decode()):
             if line != msg:
-                fbuild.logger.write(line)
+                self.ctx.logger.write(line)
 
         return obj
 
@@ -425,7 +432,7 @@ class Builder(fbuild.builders.c.Builder):
                 for line in io.StringIO(e.stdout.decode()):
                     if not self._dep_regex.match(line) and \
                             line != src.name.splitext()[0] + '\r\n':
-                        fbuild.logger.write(line)
+                        self.ctx.logger.write(line)
             raise e
 
         # Parse the output and return the module dependencies.
@@ -444,7 +451,7 @@ class Builder(fbuild.builders.c.Builder):
                     pass
             elif quieter == 0 and stdout_quieter == 0:
                 if line != src.name + '\r\n':
-                    fbuild.logger.write(line)
+                    self.ctx.logger.write(line)
 
         fbuild.db.add_external_dependencies_to_call(srcs=deps)
 
@@ -495,7 +502,7 @@ class Builder(fbuild.builders.c.Builder):
 
 # ------------------------------------------------------------------------------
 
-def static(exe=None, *args,
+def static(ctx, exe=None, *args,
         platform=None,
         flags=[],
         compile_flags=[],
@@ -506,22 +513,22 @@ def static(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    return Builder(
-        compiler=Compiler(Cl(**kwargs),
+    return Builder(ctx,
+        compiler=Compiler(Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.static_obj_suffix(platform)),
-        lib_linker=Lib(
+        lib_linker=Lib(ctx,
             pre_flags=list(chain(link_flags, lib_link_flags)),
             libs=libs,
             libpaths=libpaths),
-        exe_linker=ExeLink(
+        exe_linker=ExeLink(ctx,
             pre_flags=list(chain(link_flags, exe_link_flags))),
         src_suffix=src_suffix,
         flags=flags)
 
 # ------------------------------------------------------------------------------
 
-def shared(exe=None, *args,
+def shared(ctx, exe=None, *args,
         platform=None,
         flags=[],
         compile_flags=[],
@@ -532,13 +539,13 @@ def shared(exe=None, *args,
         exe_link_flags=[],
         src_suffix='.c',
         **kwargs):
-    return Builder(
-        compiler=Compiler(Cl(**kwargs),
+    return Builder(ctx,
+        compiler=Compiler(Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.shared_obj_suffix(platform)),
-        lib_linker=DllLink(
+        lib_linker=DllLink(ctx,
             pre_flags=list(chain(link_flags, lib_link_flags))),
-        exe_linker=ExeLink(
+        exe_linker=ExeLink(ctx,
             pre_flags=list(chain(link_flags, exe_link_flags))),
         src_suffix=src_suffix,
         flags=flags)

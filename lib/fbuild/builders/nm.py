@@ -10,8 +10,10 @@ import fbuild.db
 # ------------------------------------------------------------------------------
 
 class Nm(fbuild.db.PersistentObject):
-    def __init__(self, exe=None):
-        self.exe = fbuild.builders.find_program([exe or 'nm'])
+    def __init__(self, ctx, exe=None):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe or 'nm'])
 
     @fbuild.db.cachemethod
     def object_dependencies(self, objs:fbuild.db.SRCS):
@@ -51,8 +53,8 @@ class Nm(fbuild.db.PersistentObject):
         cmd = [self.exe, '-gP']
         cmd.append(obj)
 
-        fbuild.logger.check(' * %s -gP' % self.exe, obj, color='yellow')
-        stdout, stderr = fbuild.execute(cmd, stdout_quieter=1)
+        self.ctx.logger.check(' * %s -gP' % self.exe, obj, color='yellow')
+        stdout, stderr = self.ctx.execute(cmd, stdout_quieter=1)
 
         # Gather the external symbols from the object files.
         defined_symbols = set()

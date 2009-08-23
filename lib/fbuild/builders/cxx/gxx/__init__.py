@@ -1,13 +1,10 @@
-import fbuild
-import fbuild.builders
 import fbuild.builders.c.gcc
 import fbuild.db
-import fbuild.record
 
 # ------------------------------------------------------------------------------
 
-def make_gxx(exe=None, default_exes=['g++', 'c++'], **kwargs):
-    return fbuild.builders.c.gcc.make_gcc(exe, default_exes, **kwargs)
+def make_gxx(ctx, exe=None, default_exes=['g++', 'c++'], **kwargs):
+    return fbuild.builders.c.gcc.make_gcc(ctx, exe, default_exes, **kwargs)
 
 # ------------------------------------------------------------------------------
 

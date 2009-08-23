@@ -7,17 +7,17 @@ import fbuild.db
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
+def substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
         -> fbuild.db.DST:
     """L{substitute} replaces the I{patterns} in the file named I{src}
     and saves the changes into file named I{dst}."""
 
-    buildroot = buildroot or fbuild.buildroot
+    buildroot = buildroot or ctx.buildroot
     src = fbuild.path.Path(src)
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    fbuild.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='cyan')
 
     with open(src, 'r') as src_file:
         code = src_file.read()
@@ -32,18 +32,18 @@ def substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def format_substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
-        -> fbuild.db.DST:
+def format_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *,
+        buildroot=None) -> fbuild.db.DST:
     """L{format_substitute} replaces the I{patterns} in the file named I{src}
     and saves the changes into file named I{dst}. It uses python's format
     patterns for finding the insertion points."""
 
-    buildroot = buildroot or fbuild.buildroot
+    buildroot = buildroot or ctx.buildroot
     src = fbuild.path.Path(src)
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    fbuild.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='cyan')
 
     with open(src, 'r') as src_file:
         code = src_file.read().format(**patterns)
@@ -56,18 +56,18 @@ def format_substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def m4_substitute(dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
+def m4_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
         -> fbuild.db.DST:
     """L{m4_substitute} replaces the I{patterns} in the file named I{src} and
     saves the changes into file named I{dst}. It uses m4-style @word@ patterns
     for find the insertion points."""
 
-    buildroot = buildroot or fbuild.buildroot
+    buildroot = buildroot or ctx.buildroot
     src = fbuild.path.Path(src)
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    fbuild.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='cyan')
 
     def replace(match):
         value = patterns[match.group(1)]

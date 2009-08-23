@@ -5,14 +5,14 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 class AbstractCompiler(fbuild.builders.java.AbstractCompiler):
-    def __init__(self, exe, *args,
+    def __init__(self, ctx, exe, *args,
             optimize=False,
             optimize_flags=['-optimise'],
             **kwargs):
         self.optimize = optimize
         self.optimize_flags = optimize_flags
 
-        super().__init__(exe, '.scala', *args, **kwargs)
+        super().__init__(ctx, exe, '.scala', *args, **kwargs)
 
         if optimize_flags and not self.check_flags(optimize_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
@@ -36,14 +36,14 @@ class AbstractCompiler(fbuild.builders.java.AbstractCompiler):
 # ------------------------------------------------------------------------------
 
 class Scala(AbstractCompiler):
-    def __init__(self, exe='scala', *args, **kwargs):
-        super().__init__(exe, *args, **kwargs)
+    def __init__(self, ctx, exe='scala', *args, **kwargs):
+        super().__init__(ctx, exe, *args, **kwargs)
 
     def __call__(self, src, *args, flags=[], buildroot=None, **kwargs):
         """Run a scala script."""
 
         src = Path(src)
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         src_buildroot = src.addroot(buildroot)
         dst = src.replaceext('.jar')
 
@@ -64,13 +64,13 @@ class Scala(AbstractCompiler):
 # ------------------------------------------------------------------------------
 
 class Scalac(AbstractCompiler):
-    def __init__(self, exe='scalac', *args, **kwargs):
-        super().__init__(exe, *args, **kwargs)
+    def __init__(self, ctx, exe='scalac', *args, **kwargs):
+        super().__init__(ctx, exe, *args, **kwargs)
 
     def __call__(self, dst, srcs, *args, buildroot=None, **kwargs):
         """Run a scala script."""
 
-        dst = Path(dst).addroot(buildroot or fbuild.buildroot)
+        dst = Path(dst).addroot(buildroot or self.ctx.buildroot)
         dst.makedirs()
 
         stdout, stderr = self._run(srcs, *args, dst=dst, **kwargs)
@@ -79,16 +79,16 @@ class Scalac(AbstractCompiler):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.java.AbstractBuilder):
-    def __init__(self, *,
+    def __init__(self, ctx, *,
             jar='jar',
             java='java',
             scala='scala',
             scalac='scalac',
             **kwargs):
-        super().__init__(jar=jar, java=java, src_suffix='.scala')
+        super().__init__(ctx, jar=jar, java=java, src_suffix='.scala')
 
-        self.scala = Scala(scala)
-        self.scalac = Scalac(scalac, **kwargs)
+        self.scala = Scala(ctx, scala)
+        self.scalac = Scalac(ctx, scalac, **kwargs)
 
     def where(self):
         """Return the scala library directory."""

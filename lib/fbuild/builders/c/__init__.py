@@ -37,31 +37,31 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.
 
-        fbuild.logger.check('checking if %s can make objects' % self)
+        self.ctx.logger.check('checking if %s can make objects' % self)
         try:
             with self.tempfile_compile('int main() { return 0; }'):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
         except fbuild.ExecutionError as e:
             raise fbuild.ConfigFailed('compiler failed: %s' % e)
 
-        fbuild.logger.check('checking if %s can make libraries' % self)
+        self.ctx.logger.check('checking if %s can make libraries' % self)
         try:
             with self.tempfile_link_lib('int foo() { return 5; }'):
-                fbuild.logger.passed()
+                self.ctx.logger.passed()
         except fbuild.ExecutionError as e:
             raise fbuild.ConfigFailed('lib linker failed: %s' % e)
 
-        fbuild.logger.check('checking if %s can make exes' % self)
+        self.ctx.logger.check('checking if %s can make exes' % self)
         try:
             with self.tempfile_link_exe('int main() { return 0; }') as exe:
                 if not self.cross_compiler:
-                    fbuild.execute([exe])
+                    self.ctx.execute([exe])
         except fbuild.ExecutionError as e:
             raise fbuild.ConfigFailed('exe linker failed: %s' % e)
         else:
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
 
-        fbuild.logger.check('checking if %s can link lib to exe' % self)
+        self.ctx.logger.check('checking if %s can link lib to exe' % self)
         with fbuild.temp.tempdir() as dirname:
             src_lib = dirname / 'templib' + self.src_suffix
             with open(src_lib, 'w') as f:
@@ -104,13 +104,13 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
             if not self.cross_compiler:
                 try:
-                    stdout, stderr = fbuild.execute([exe], quieter=1)
+                    stdout, stderr = self.ctx.execute([exe], quieter=1)
                 except fbuild.ExecutionError:
                     raise fbuild.ConfigFailed('failed to link lib to exe')
                 else:
                     if stdout != b'5':
                         raise fbuild.ConfigFailed('failed to link lib to exe')
-                    fbuild.logger.passed()
+                    self.ctx.logger.passed()
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
@@ -124,14 +124,14 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         objs = []
         src_deps = []
         dst_deps = []
-        for o, s, d in fbuild.scheduler.map(
+        for o, s, d in self.ctx.scheduler.map(
                 partial(self.compile.call, **kwargs),
                 srcs):
             objs.append(o)
             src_deps.extend(s)
             dst_deps.extend(d)
 
-        fbuild.db.add_external_dependencies_to_call(
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
             srcs=src_deps,
             dsts=dst_deps)
 
@@ -200,12 +200,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             }
         ''' % ('\n'.join('#include <%s>' % h for h in headers), statement)
 
-        fbuild.logger.check(msg or 'checking %r' % name)
+        self.ctx.logger.check(msg or 'checking %r' % name)
         if self.try_compile(code, **kwargs):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return True
         else:
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return False
 
     def check_statements(self, *items, msg='checking %r', **kwargs):
@@ -290,19 +290,19 @@ class Library(Path):
 
 # ------------------------------------------------------------------------------
 
-def _guess_builder(name, functions, *args,
+def _guess_builder(name, functions, ctx, *args,
         platform=None,
         platform_options=[],
         **kwargs):
     if platform is None:
-        platform = fbuild.builders.platform.platform(platform)
+        platform = fbuild.builders.platform.platform(ctx, platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
             for p, kw in platform_options:
                 if p <= platform:
                     kwargs.update(kw)
-            return fbuild.functools.call(function, *args, **kwargs)
+            return fbuild.functools.call(function, ctx, *args, **kwargs)
 
     raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
         (name, platform))
@@ -344,7 +344,7 @@ def guess_shared(*args, **kwargs):
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_little_endian(builder):
+def config_little_endian(ctx, builder):
     code = '''
         #include <stdio.h>
 
@@ -363,14 +363,14 @@ def config_little_endian(builder):
         }
     '''
 
-    fbuild.logger.check('checking if little endian')
+    ctx.logger.check('checking if little endian')
     try:
         stdout = 1 == int(builder.tempfile_run(code)[0])
     except fbuild.ExecutionError:
-        fbuild.logger.failed()
+        self.ctx.logger.failed()
         raise fbuild.ConfigFailed('failed to detect endianness')
 
     little_endian = int(stdout) == 1
-    fbuild.logger.passed(little_endian)
+    ctx.logger.passed(little_endian)
 
     return little_endian

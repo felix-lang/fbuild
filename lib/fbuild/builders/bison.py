@@ -6,8 +6,8 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 class Bison(fbuild.db.PersistentObject):
-    def __init__(self, exe=None, flags=[], *, suffix='.c'):
-        self.exe = fbuild.builders.find_program([exe or 'bison'])
+    def __init__(self, ctx, exe=None, flags=[], *, suffix='.c'):
+        self.exe = fbuild.builders.find_program(ctx, [exe or 'bison'])
         self.flags = flags
         self.suffix = suffix
 
@@ -18,7 +18,7 @@ class Bison(fbuild.db.PersistentObject):
             defines=False,
             flags=[],
             buildroot=None) -> fbuild.db.DST:
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         suffix = suffix or self.suffix
         dst = Path.addroot(dst or src, buildroot).replaceext(suffix)
         dst.parent.makedirs()
@@ -39,7 +39,7 @@ class Bison(fbuild.db.PersistentObject):
         cmd.extend(('-o', dst))
         cmd.append(src)
 
-        fbuild.execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
+        self.ctx.execute(cmd, self.exe, '%s -> %s' % (src, dst), color='yellow')
 
         return dst
 

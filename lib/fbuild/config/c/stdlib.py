@@ -30,7 +30,7 @@ class signal_h(signal_h):
 
         # Some implementations don't follow the standard and use "int" as the
         # return type of the signal functions.
-        fbuild.logger.check("checking signal in 'signal.h'")
+        self.ctx.logger.check("checking signal in 'signal.h'")
 
         if not self.builder.try_run('''
                 #include <signal.h>
@@ -40,7 +40,7 @@ class signal_h(signal_h):
                     return 0;
                 }
                 '''):
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return None
 
         if self.builder.try_run('''
@@ -50,13 +50,13 @@ class signal_h(signal_h):
                     return *(signal (0, 0)) (0) == 1;
                 }
                 '''):
-            fbuild.logger.passed('ok int')
+            self.ctx.logger.passed('ok int')
             return c.Function(
                 c.Function('int', 'int'),
                 'int',
                 c.Function('int', 'int'))
         else:
-            fbuild.logger.passed('ok void')
+            self.ctx.logger.passed('ok void')
             return c.Function(
                 c.Function('void', 'int'),
                 'int',

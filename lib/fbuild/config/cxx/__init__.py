@@ -58,12 +58,12 @@ class template_test(c.AbstractFieldDescriptor):
             self.name,
             ', '.join(self.test_types))
 
-    def process_stdout(self, stdout):
+    def process_stdout(self, instance, stdout):
         if self.stdout is None or self.stdout == stdout:
-            fbuild.logger.passed()
+            instance.ctx.logger.passed()
             return Template()
 
-        fbuild.logger.failed()
+        instance.ctx.logger.failed()
 
 # ------------------------------------------------------------------------------
 

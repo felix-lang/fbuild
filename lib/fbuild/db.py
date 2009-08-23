@@ -1,6 +1,7 @@
 import abc
 import functools
 import hashlib
+import io
 import itertools
 import pickle
 import time
@@ -61,10 +62,39 @@ class OPTIONAL_DST(DST):
 
 # ------------------------------------------------------------------------------
 
+class _Pickler(pickle._Pickler):
+    """Create a custom pickler that won't try to pickle the context."""
+
+    def __init__(self, ctx, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ctx = ctx
+
+    def persistent_id(self, obj):
+        if obj is self.ctx:
+            return 'ctx'
+        else:
+            return None
+
+class _Unpickler(pickle._Unpickler):
+    """Create a custom unpickler that will substitute the current context."""
+
+    def __init__(self, ctx, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ctx = ctx
+
+    def persistent_load(self, pid):
+        if pid == 'ctx':
+            return self.ctx
+        else:
+            raise pickle.UnpicklingError('unsupported persistent object')
+
+# ------------------------------------------------------------------------------
+
 class Database:
     """L{Database} persistently stores the results of argument calls."""
 
-    def __init__(self):
+    def __init__(self, ctx):
+        self._ctx = ctx
         self._functions = {}
         self._function_calls = {}
         self._files = {}
@@ -74,14 +104,19 @@ class Database:
         self._lock = threading.RLock()
 
     def save(self, filename):
+        f = io.BytesIO()
+        pickler = _Pickler(self._ctx, f)
+
         with self._lock:
-            s = pickle.dumps((
+            pickler.dump((
                 self._functions,
                 self._function_calls,
                 self._files,
                 self._call_files,
                 self._external_srcs,
                 self._external_dsts))
+
+        s = f.getvalue()
 
         # Try to save the state as atomically as possible. Unfortunately, if
         # someone presses ctrl+c while we're saving, we might corrupt the db.
@@ -103,11 +138,13 @@ class Database:
             old.remove()
 
     def load(self, filename):
-        with self._lock:
-            with open(filename, 'rb') as f:
+        with open(filename, 'rb') as f:
+            unpickler = _Unpickler(self._ctx, f)
+
+            with self._lock:
                 self._functions, self._function_calls, self._files, \
                     self._call_files, self._external_srcs, \
-                    self._external_dsts = pickle.load(f)
+                    self._external_dsts = unpickler.load()
 
     def call(self, function, *args, **kwargs):
         """Call the function and return the result, src dependencies, and dst
@@ -565,9 +602,6 @@ class Database:
 
         return file_existed
 
-# Instantiate a global instance
-database = Database()
-
 # ------------------------------------------------------------------------------
 
 class PersistentMeta(abc.ABCMeta):
@@ -577,12 +611,17 @@ class PersistentMeta(abc.ABCMeta):
     def __call_super__(cls, *args, **kwargs):
         return super().__call__(*args, **kwargs)
 
-    def __call__(cls, *args, **kwargs):
-        result, srcs, objs = database.call(cls.__call_super__, *args, **kwargs)
+    def __call__(cls, ctx, *args, **kwargs):
+        result, srcs, objs = ctx.db.call(cls.__call_super__, ctx,
+            *args, **kwargs)
+
         return result
 
 class PersistentObject(metaclass=PersistentMeta):
     """An abstract baseclass that will cache instances in the database."""
+
+    def __init__(self, ctx):
+        self.ctx = ctx
 
 # ------------------------------------------------------------------------------
 
@@ -609,8 +648,8 @@ class caches:
         result, srcs, dsts = self.call(*args, **kwargs)
         return result
 
-    def call(self, *args, **kwargs):
-        return database.call(self.function, *args, **kwargs)
+    def call(self, ctx, *args, **kwargs):
+        return ctx.db.call(self.function, ctx, *args, **kwargs)
 
 class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results.
@@ -644,7 +683,7 @@ class cachemethod_wrapper:
         return result
 
     def call(self, *args, **kwargs):
-        return database.call(self.method, *args, **kwargs)
+        return self.method.__self__.ctx.db.call(self.method, *args, **kwargs)
 
 class cacheproperty:
     """L{cacheproperty} acts like a normal I{property} but will memoize the
@@ -673,11 +712,11 @@ class cacheproperty:
         return result
 
     def call(self, instance):
-        return database.call(types.MethodType(self.method, instance))
+        return instance.ctx.db.call(types.MethodType(self.method, instance))
 
 # ------------------------------------------------------------------------------
 
-def add_external_dependencies_to_call(*, srcs=(), dsts=()):
+def add_external_dependencies_to_call(ctx, *, srcs=(), dsts=()):
     """When inside a cached method, register additional src dependencies for
     the call. This function can only be called from a cached function and will
     error out if it is called from an uncached function."""
@@ -687,7 +726,7 @@ def add_external_dependencies_to_call(*, srcs=(), dsts=()):
         while True:
             frame = fbuild.inspect.currentframe(i)
             try:
-                if frame.f_code == database._cache.__code__:
+                if frame.f_code == ctx.db._cache.__code__:
                     function_name = frame.f_locals['function_name']
                     call_id = frame.f_locals['call_id']
                     external_digests = frame.f_locals['external_digests']
@@ -696,7 +735,7 @@ def add_external_dependencies_to_call(*, srcs=(), dsts=()):
 
                     for src in srcs:
                         external_srcs.add(src)
-                        dirty, digest = database._check_call_file(
+                        dirty, digest = ctx.db._check_call_file(
                             src, function_name, call_id)
                         if dirty:
                             external_digests.append((src, digest))

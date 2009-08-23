@@ -9,10 +9,10 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def foo(src:fbuild.db.SRC, dst, *, buildroot=None) -> fbuild.db.DST:
-    dst = Path.addroot(dst, buildroot or fbuild.buildroot)
+def foo(ctx, src:fbuild.db.SRC, dst, *, buildroot=None) -> fbuild.db.DST:
+    dst = Path.addroot(dst, buildroot or ctx.buildroot)
 
-    fbuild.logger.log(' * foo: %s %s' % (src, dst), color='cyan')
+    ctx.logger.log(' * foo: %s %s' % (src, dst), color='cyan')
 
     with open(src) as f:
         x = f.read().strip()
@@ -25,15 +25,16 @@ def foo(src:fbuild.db.SRC, dst, *, buildroot=None) -> fbuild.db.DST:
 # ------------------------------------------------------------------------------
 
 class Builder:
-    def __init__(self, prefix, suffix):
+    def __init__(self, ctx, prefix, suffix):
+        self.ctx = ctx
         self.prefix = prefix
         self.suffix = suffix
 
     def __call__(self, src, dst, *, buildroot=None):
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
         dst = Path.addroot(dst, buildroot).addprefix(self.prefix) + self.suffix
 
-        fbuild.logger.log(' * Builder.__call__: %s %s' % (src, dst),
+        self.ctx.logger.log(' * Builder.__call__: %s %s' % (src, dst),
             color='cyan')
 
         with open(src) as f:
@@ -53,7 +54,9 @@ class Builder:
             self.suffix == other.suffix
 
 class C(fbuild.db.PersistentObject):
-    def __init__(self, builder):
+    def __init__(self, ctx, builder):
+        super().__init__(ctx)
+
         self.builder = builder
 
     @fbuild.db.cachemethod
@@ -62,22 +65,22 @@ class C(fbuild.db.PersistentObject):
 
 # ------------------------------------------------------------------------------
 
-def build():
+def build(ctx):
     print('calling cached functions')
-    print(foo('foo', 'foo1'))
-    print(foo('foo', 'foo2'))
-    print(foo('foo', 'foo1'))
+    print(foo(ctx, 'foo', 'foo1'))
+    print(foo(ctx, 'foo', 'foo2'))
+    print(foo(ctx, 'foo', 'foo1'))
 
     print()
     print('calling cached methods')
-    builder = Builder('prefix', '.suffix')
-    c = C(builder)
+    builder = Builder(ctx, 'prefix', '.suffix')
+    c = C(ctx, builder)
     print(c.bar('foo', 'bar1'))
     print(c.bar('foo', 'bar2'))
     print(c.bar('foo', 'bar1'))
 
     print()
     print('calling cached methods on a new instance')
-    c = C(builder)
+    c = C(ctx, builder)
     print(c.bar('foo', 'bar1'))
     print(c.bar('foo', 'bar2'))

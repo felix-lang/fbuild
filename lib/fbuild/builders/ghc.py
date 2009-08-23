@@ -13,8 +13,10 @@ import fbuild.temp
 class Ghc(fbuild.db.PersistentObject):
     """Create a ghc driver."""
 
-    def __init__(self, exe, *, flags=[]):
-        self.exe = fbuild.builders.find_program([exe if exe else 'ghc'])
+    def __init__(self, ctx, exe, *, flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe if exe else 'ghc'])
         self.flags = flags
 
         if not self.check_flags(flags):
@@ -38,15 +40,15 @@ class Ghc(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        return fbuild.execute(cmd, str(self),
+        return self.ctx.execute(cmd, str(self),
             msg2='%s -> %s' % (' '.join(srcs), dst),
             **kwargs)
 
     def check_flags(self, flags):
         if flags:
-            fbuild.logger.check('checking %s with %s' (self, ' '.join(flags)))
+            self.ctx.logger.check('checking %s with %s' (self, ' '.join(flags)))
         else:
-            fbuild.logger.check('checking %s' % self)
+            self.ctx.logger.check('checking %s' % self)
 
         code = '''
         import System.Exit
@@ -57,10 +59,10 @@ class Ghc(fbuild.db.PersistentObject):
             try:
                 self('test', [src], flags=flags, quieter=1, cwd=src.parent)
             except fbuild.ExecutionError:
-                fbuild.logger.failed()
+                self.ctx.logger.failed()
                 return False
 
-        fbuild.logger.passed()
+        self.ctx.logger.passed()
         return True
 
     def __str__(self):
@@ -80,14 +82,14 @@ class Ghc(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractExeLinker):
-    def __init__(self, *,
+    def __init__(self, ctx, *,
             ghc='ghc',
             platform=None,
             **kwargs):
-        super().__init__(src_suffix='.hs')
+        super().__init__(ctx, src_suffix='.hs')
 
-        self.ghc = Ghc(ghc, **kwargs)
-        self.obj_suffix = fbuild.builders.platform.obj_suffix(platform)
+        self.ghc = Ghc(ctx, ghc, **kwargs)
+        self.obj_suffix = fbuild.builders.platform.obj_suffix(ctx, platform)
 
     # --------------------------------------------------------------------------
 
@@ -104,7 +106,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
             **kwargs):
         """Compile a haskell file."""
 
-        buildroot = buildroot or fbuild.buildroot
+        buildroot = buildroot or self.ctx.buildroot
 
         src = fbuild.path.Path(src)
         dst = fbuild.path.Path(dst or src).replaceext(self.obj_suffix)
@@ -134,7 +136,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
 
     def uncached_link_exe(self, dst, srcs, *args, buildroot=None, **kwargs):
         """Link all the L{srcs} into an executable."""
-        dst = fbuild.path.Path(dst).addroot(buildroot or fbuild.buildroot)
+        dst = fbuild.path.Path(dst).addroot(buildroot or self.ctx.buildroot)
         dst.parent.makedirs()
 
         self.ghc(dst, srcs, *args, color='cyan', **kwargs)
@@ -148,7 +150,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
             **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
 
-        return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
+        return self.ctx.scheduler.map(partial(self.compile, **kwargs), srcs)
 
     def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
             ckwargs={},

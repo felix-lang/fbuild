@@ -93,6 +93,7 @@ class Log:
     def __init__(self, file=None, *,
             verbose=0,
             nocolor=False,
+            threadcount=1,
             show_threads=False):
         self.file = file
         self.verbose = verbose
@@ -101,6 +102,7 @@ class Log:
 
         self.maxlen = 25
         self._lock = threading.RLock()
+        self._threadcount = threadcount
         self._thread_stack = _ThreadStack()
 
     @contextlib.contextmanager
@@ -116,7 +118,7 @@ class Log:
                     self._write(msg, **kwargs)
 
     def write(self, msg, *, buffer=True, **kwargs):
-        if not buffer or fbuild.scheduler.count == 1:
+        if not buffer or self._threadcount == 1:
             with self._lock:
                 self._write(msg, **kwargs)
         else:

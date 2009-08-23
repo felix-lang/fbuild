@@ -1,10 +1,10 @@
 from optparse import make_option
 import pprint
 
+import fbuild
 import fbuild.builders.c
 import fbuild.config.c as c
 import fbuild.config.c.c99 as c99
-from fbuild import execute, logger
 from fbuild.functools import call
 from fbuild.path import Path
 from fbuild.record import Record
@@ -31,21 +31,21 @@ def pre_options(parser):
 
 # -----------------------------------------------------------------------------
 
-def make_c_builder(**kwargs):
-    static = call('fbuild.builders.c.guess_static', **kwargs)
-    shared = call('fbuild.builders.c.guess_shared', **kwargs)
+def make_c_builder(*args, **kwargs):
+    static = call('fbuild.builders.c.guess_static', *args, **kwargs)
+    shared = call('fbuild.builders.c.guess_shared', *args, **kwargs)
 
     return Record(
         static=static,
         shared=shared)
 
-def make_cxx_builder(**kwargs):
-    static = call('fbuild.builders.cxx.guess_static',
+def make_cxx_builder(*args, **kwargs):
+    static = call('fbuild.builders.cxx.guess_static', *args,
         platform_options=[
             ({'windows'}, {'flags': ['/EHsc']}),
         ],
         **kwargs)
-    shared = call('fbuild.builders.cxx.guess_shared',
+    shared = call('fbuild.builders.cxx.guess_shared', *args,
         platform_options=[
             ({'windows'}, {'flags': ['/EHsc']}),
         ],
@@ -56,81 +56,79 @@ def make_cxx_builder(**kwargs):
         shared=shared)
 
 @fbuild.db.caches
-def config_build(*, platform, cc, cxx):
-    logger.log('configuring build phase', color='cyan')
+def config_build(ctx, *, platform, cc, cxx):
+    ctx.logger.log('configuring build phase', color='cyan')
 
     return Record(
-        platform=call('fbuild.builders.platform.platform', platform),
-        c=make_c_builder(exe=cc),
-        cxx=make_cxx_builder(exe=cxx),
+        platform=call('fbuild.builders.platform.platform', ctx, platform),
+        c=make_c_builder(ctx, exe=cc),
+        cxx=make_cxx_builder(ctx, exe=cxx),
     )
 
 @fbuild.db.caches
-def config_host(build, *,
+def config_host(ctx, build, *,
         platform, cc, cxx, ocamlc, ocamlopt, ocamllex, ocamlyacc):
-    logger.log('configuring host phase', color='cyan')
+    ctx.logger.log('configuring host phase', color='cyan')
 
-    platform = call('fbuild.builders.platform.platform', platform)
+    platform = call('fbuild.builders.platform.platform', ctx, platform)
 
     if platform == build.platform:
-        logger.log("using build's c and cxx compiler")
+        ctx.logger.log("using build's c and cxx compiler")
         phase = build
     else:
         phase = Record(
             platform=platform,
-            c=make_c_builder(exe=cc),
-            cxx=make_cxx_builder(exe=cxx))
+            c=make_c_builder(ctx, exe=cc),
+            cxx=make_cxx_builder(ctx, exe=cxx))
 
-    phase.ocaml = call('fbuild.builders.ocaml.Ocaml',
+    phase.ocaml = call('fbuild.builders.ocaml.Ocaml', ctx,
         ocamlc=ocamlc,
         ocamlopt=ocamlopt,
     )
-    phase.ocamllex = call('fbuild.builders.ocaml.Ocamllex', ocamllex)
-    phase.ocamlyacc = call('fbuild.builders.ocaml.Ocamlyacc', ocamlyacc)
+    phase.ocamllex = call('fbuild.builders.ocaml.Ocamllex', ctx, ocamllex)
+    phase.ocamlyacc = call('fbuild.builders.ocaml.Ocamlyacc', ctx, ocamlyacc)
 
     return phase
 
 @fbuild.db.caches
-def config_target(host, *, platform, cc, cxx):
-    logger.log('configuring target phase', color='cyan')
+def config_target(ctx, host, *, platform, cc, cxx):
+    ctx.logger.log('configuring target phase', color='cyan')
 
-    platform = call('fbuild.builders.platform.platform', platform)
+    platform = call('fbuild.builders.platform.platform', ctx, platform)
 
     if platform == host.platform:
-        logger.log("using host's c and cxx compiler")
+        ctx.logger.log("using host's c and cxx compiler")
         phase = host
     else:
         phase = Record(
             platform=platform,
-            c=make_c_builder(exe=cc),
-            cxx=make_cxx_builder(exe=cxx))
+            c=make_c_builder(ctx, exe=cc),
+            cxx=make_cxx_builder(ctx, exe=cxx))
 
     return phase
 
 # -----------------------------------------------------------------------------
 
-def build():
-    from fbuild import options
-
+def build(ctx):
     # configure the phases
-    build = config_build(
-        platform=options.build_platform,
-        cc=options.build_cc,
-        cxx=options.build_cxx)
+    build = config_build(ctx,
+        platform=ctx.options.build_platform,
+        cc=ctx.options.build_cc,
+        cxx=ctx.options.build_cxx)
 
-    host = config_host(build,
-        platform=options.host_platform,
-        cc=options.host_cc,
-        cxx=options.host_cxx,
-        ocamlc=options.ocamlc,
-        ocamlopt=options.ocamlopt,
-        ocamllex=options.ocamllex,
-        ocamlyacc=options.ocamlyacc)
+    host = config_host(ctx, build,
+        platform=ctx.options.host_platform,
+        cc=ctx.options.host_cc,
+        cxx=ctx.options.host_cxx,
+        ocamlc=ctx.options.ocamlc,
+        ocamlopt=ctx.options.ocamlopt,
+        ocamllex=ctx.options.ocamllex,
+        ocamlyacc=ctx.options.ocamlyacc)
 
-    target = config_target(host,
-        platform=options.target_platform,
-        cc=options.target_cc,
-        cxx=options.target_cxx)
+    target = config_target(ctx, host,
+        platform=ctx.options.target_platform,
+        cc=ctx.options.target_cc,
+        cxx=ctx.options.target_cxx)
 
     types = c99.types(target.c.static)
     stdint_h = c99.stdint_h(target.c.static)
@@ -154,4 +152,4 @@ def build():
 
             obj = builder.compile(d / 'foo.c')
             exe = builder.link_exe(d / 'foo', [obj], libs=[lib])
-            execute([exe], 'running', exe)
+            ctx.execute([exe], 'running', exe)

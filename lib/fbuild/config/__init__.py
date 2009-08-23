@@ -57,6 +57,9 @@ class TestMeta(fbuild.db.PersistentMeta):
             setattr(cls, key, value)
 
 class Test(metaclass=TestMeta):
+    def __init__(self, ctx):
+        self.ctx = ctx
+
     @classmethod
     def fields(cls):
         for field_name in cls.__field_names__:

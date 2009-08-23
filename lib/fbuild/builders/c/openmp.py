@@ -1,12 +1,11 @@
 import fbuild.db
-from fbuild import ConfigFailed, logger
 from fbuild.builders.c import MissingHeader
 from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_omp_h(builder):
+def config_omp_h(ctx, builder):
     if not builder.check_header_exists('omp.h'):
         raise MissingHeader('omp.h')
 
@@ -34,20 +33,20 @@ def config_omp_h(builder):
         }
     '''
 
-    logger.check('checking if supports omp_get_thread_num')
+    ctx.logger.check('checking if supports omp_get_thread_num')
     for flags in [], ['-openmp'], ['-fopenmp'], ['/openmp']:
         if builder.try_run(code, lkwargs={'flags': flags}):
-            logger.passed('ok %r' % ' '.join(flags))
+            ctx.logger.passed('ok %r' % ' '.join(flags))
 
             return Record(flags=flags)
     else:
-        logger.failed()
-        raise ConfigFailed('failed to link openmp program')
+        ctx.logger.failed()
+        raise fbuild.ConfigFailed('failed to link openmp program')
 
 
-def config(builder):
+def config(ctx, builder):
     return Record(
         headers=Record(
-            omp_h=config_omp_h(builder),
+            omp_h=config_omp_h(ctx, builder),
         )
     )

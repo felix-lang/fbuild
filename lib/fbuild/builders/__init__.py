@@ -24,7 +24,7 @@ class MissingProgram(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def find_program(names, paths=None, *, quieter=0):
+def find_program(ctx, names, paths=None, *, quieter=0):
     """L{find_program} is a test that searches the paths for one of the
     programs in I{name}.  If one is found, it is returned.  If not, the next
     name in the list is searched for."""
@@ -48,27 +48,29 @@ def find_program(names, paths=None, *, quieter=0):
         names = new_names
 
     for name in names:
-        fbuild.logger.check('looking for program ' + name, verbose=quieter)
+        ctx.logger.check('looking for program ' + name, verbose=quieter)
 
         filename = fbuild.path.Path(name)
         if filename.exists() and filename.isfile():
-            fbuild.logger.passed('ok %s' % filename, verbose=quieter)
+            ctx.logger.passed('ok %s' % filename, verbose=quieter)
             return fbuild.path.Path(name)
         else:
             for path in paths:
                 filename = fbuild.path.Path(path, name)
                 if filename.exists() and filename.isfile():
-                    fbuild.logger.passed('ok %s' % filename, verbose=quieter)
+                    ctx.logger.passed('ok %s' % filename, verbose=quieter)
                     return fbuild.path.Path(filename)
 
-        fbuild.logger.failed(verbose=quieter)
+        ctx.logger.failed(verbose=quieter)
 
     raise MissingProgram(names)
 
 # ------------------------------------------------------------------------------
 
 class AbstractCompiler(fbuild.db.PersistentObject):
-    def __init__(self, *, src_suffix):
+    def __init__(self, *args, src_suffix, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.src_suffix = src_suffix
 
     @abc.abstractmethod
@@ -101,12 +103,12 @@ class AbstractCompiler(fbuild.db.PersistentObject):
             return False
 
     def check_compile(self, code, msg, *args, **kwargs):
-        fbuild.logger.check(msg)
+        self.ctx.logger.check(msg)
         if self.try_compile(code, *args, **kwargs):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return True
         else:
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return False
 
 # ------------------------------------------------------------------------------
@@ -141,12 +143,12 @@ class AbstractLibLinker(AbstractCompiler):
             return False
 
     def check_link_lib(self, code, msg, *args, **kwargs):
-        fbuild.logger.check(msg)
+        self.ctx.logger.check(msg)
         if self.try_link_lib(code, *args, **kwargs):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return True
         else:
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return False
 
 # ------------------------------------------------------------------------------
@@ -165,12 +167,12 @@ class AbstractRunner(fbuild.db.PersistentObject):
             return True
 
     def check_run(self, code, msg, *args, **kwargs):
-        fbuild.logger.check(msg)
+        self.ctx.logger.check(msg)
         if self.try_run(code, *args, **kwargs):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return True
         else:
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return False
 
 # ------------------------------------------------------------------------------
@@ -205,12 +207,12 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
             return False
 
     def check_link_exe(self, code, msg, *args, **kwargs):
-        fbuild.logger.check(msg)
+        self.ctx.logger.check(msg)
         if self.try_link_exe(code, *args, **kwargs):
-            fbuild.logger.passed()
+            self.ctx.logger.passed()
             return True
         else:
-            fbuild.logger.failed()
+            self.ctx.logger.failed()
             return False
 
     def tempfile_run(self, *args, quieter=1, ckwargs={}, lkwargs={}, **kwargs):
@@ -218,7 +220,7 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
                 quieter=quieter,
                 ckwargs=ckwargs,
                 **lkwargs) as exe:
-            return fbuild.execute([exe],
+            return self.ctx.execute([exe],
                 quieter=quieter,
                 cwd=exe.parent,
                 **kwargs)

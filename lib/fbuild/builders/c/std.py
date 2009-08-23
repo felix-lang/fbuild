@@ -1,7 +1,6 @@
 from itertools import chain
 
 import fbuild.db
-from fbuild import ConfigFailed, ExecutionError, logger
 from fbuild.record import Record
 from fbuild.builders.c import MissingHeader
 
@@ -26,11 +25,11 @@ default_types_stddef_h = ('size_t', 'wchar_t', 'ptrdiff_t')
 
 # -----------------------------------------------------------------------------
 
-def get_type_data(builder, typename, *args,
+def get_type_data(ctx, builder, typename, *args,
         int_type=False,
         headers=[],
         **kwargs):
-    logger.check('getting type %r info' % typename)
+    ctx.logger.check('getting type %r info' % typename)
 
     code = '''
         #include <stddef.h>
@@ -56,9 +55,10 @@ def get_type_data(builder, typename, *args,
 
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0].split()
-    except ExecutionError:
-        logger.failed()
-        raise ConfigFailed('failed to discover type data for %r' % typename)
+    except fbuild.ExecutionError:
+        ctx.logger.failed()
+        raise fbuild.ConfigFailed('failed to discover type data for %r' %
+            typename)
 
     d = {'alignment': int(data[0]), 'size': int(data[1])}
     s = 'alignment: %(alignment)s size: %(size)s'
@@ -67,23 +67,23 @@ def get_type_data(builder, typename, *args,
         d['signed'] = int(data[2]) == 1
         s += ' signed: %(signed)s'
 
-    logger.passed(s % d)
+    ctx.logger.passed(s % d)
 
     return d
 
 
-def get_types_data(builder, types, *args, **kwargs):
+def get_types_data(ctx, builder, types, *args, **kwargs):
     d = {}
     for t in types:
         try:
-            d[t] = get_type_data(builder, t, *args, **kwargs)
-        except ConfigFailed:
+            d[t] = get_type_data(ctx, builder, t, *args, **kwargs)
+        except fbuild.ConfigFailed:
             pass
 
     return d
 
 
-def get_type_conversions(builder, type_pairs, *args, **kwargs):
+def get_type_conversions(ctx, builder, type_pairs, *args, **kwargs):
     lines = []
     for t1, t2 in type_pairs:
         lines.append(
@@ -103,8 +103,9 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 
     try:
         data = builder.tempfile_run(code, *args, **kwargs)[0]
-    except ExecutionError:
-        raise ConfigFailed('failed to detect type conversions for %s' % types)
+    except fbuild.ExecutionError:
+        raise fbuild.ConfigFailed('failed to detect type conversions for %s' %
+            types)
 
     d = {}
     for line, (t1, t2) in zip(data.decode('utf-8').split('\n'), type_pairs):
@@ -116,37 +117,37 @@ def get_type_conversions(builder, type_pairs, *args, **kwargs):
 # -----------------------------------------------------------------------------
 
 @fbuild.db.caches
-def config_types(builder,
+def config_types(ctx, builder,
         types_int=default_types_int,
         types_float=default_types_float,
         types_misc=default_types_misc):
-    types = get_types_data(builder, types_int, int_type=True)
-    types.update(get_types_data(builder, types_float))
-    types.update(get_types_data(builder, types_misc))
-    types['enum'] = get_type_data(builder, 'enum enum_t {tag}')
+    types = get_types_data(ctx, builder, types_int, int_type=True)
+    types.update(get_types_data(ctx, builder, types_float))
+    types.update(get_types_data(ctx, builder, types_misc))
+    types['enum'] = get_type_data(ctx, builder, 'enum enum_t {tag}')
 
     return types
 
 @fbuild.db.caches
-def config_int_type_conversions(builder, types_int=default_types_int):
+def config_int_type_conversions(ctx, builder, types_int=default_types_int):
     pairs = [(t1, t2) for t1 in types_int for t2 in types_int]
 
-    logger.check('getting int type conversions')
+    ctx.logger.check('getting int type conversions')
     try:
-        int_type_conversions = get_type_conversions(builder, pairs)
-    except ConfigFailed as e:
-        logger.failed()
+        int_type_conversions = get_type_conversions(ctx, builder, pairs)
+    except fbuild.ConfigFailed as e:
+        ctx.logger.failed()
         raise e from e
 
-    logger.passed()
+    ctx.logger.passed()
     return int_type_conversions
 
 @fbuild.db.caches
-def config_stddef_h(builder):
+def config_stddef_h(ctx, builder):
     if not builder.check_header_exists('stddef.h'):
         raise MissingHeader('stddef.h')
 
-    types = get_types_data(builder, default_types_stddef_h, int_type=True)
+    types = get_types_data(enbv, builder, default_types_stddef_h, int_type=True)
     return Record(types=types)
 
 def config_headers(builder):
