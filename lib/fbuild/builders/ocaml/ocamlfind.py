@@ -159,12 +159,11 @@ class Ocamlc(ocaml.Ocamlc):
 # ------------------------------------------------------------------------------
 
 class Ocamlopt(ocaml.Ocamlopt):
-    """Overload ocaml.Ocamlc builder to use ocamlfind's ocamlopt."""
+    """Overload ocaml.Ocamlopt builder to use ocamlfind's ocamlopt."""
 
     def __init__(self, exe=None, *args,
             ocamlfind_cmd='ocamlopt',
             pre_flags=[],
-            ocamlc=None,
             packages=[],
             syntaxes=[],
             linkpkg=True,
