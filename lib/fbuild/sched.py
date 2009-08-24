@@ -5,6 +5,7 @@ import queue
 import sys
 import threading
 import time
+import _thread
 
 import fbuild
 
@@ -114,16 +115,7 @@ class Scheduler:
                     # no tasks done, so loop
                     continue
             else:
-                # Unfortunately, We need a busy loop to give KeyboardInterrupt
-                # a chance to get raised.
-                while True:
-                    try:
-                        task = done_queue.get(block=False)
-                    except queue.Empty:
-                        time.sleep(0.1)
-                        pass
-                    else:
-                        break
+                task = done_queue.get()
 
             count -= 1
             task.done = True
@@ -186,10 +178,15 @@ class WorkerThread(threading.Thread):
         self.__finished = True
 
     def run(self):
-        while not self.__finished:
-            with self.__logger.log_from_thread():
-                if self.run_one():
-                    break
+        try:
+            while not self.__finished:
+                with self.__logger.log_from_thread():
+                    if self.run_one():
+                        break
+        except KeyboardInterrupt:
+            # let the main thread know we got a SIGINT
+            _thread.interrupt_main()
+            raise
 
     def run_one(self, *args, **kwargs):
         queue_task = self.__ready_queue.get(*args, **kwargs)
