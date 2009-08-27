@@ -84,6 +84,8 @@ class Ocamldep(fbuild.db.PersistentObject):
             if include is None:
                 dirs = Path.getcwd().listdir()
             else:
+                include = Path(include)
+
                 if not include.exists():
                     # We can't search for dependencies in a directory that doesn't
                     # exist, so exit early.
