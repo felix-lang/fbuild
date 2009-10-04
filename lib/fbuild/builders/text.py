@@ -64,7 +64,7 @@ def autoconf_config_file(ctx, dst, src:fbuild.db.SRC, patterns, *,
 
     buildroot = buildroot or ctx.buildroot
     src = fbuild.path.Path(src)
-    dst = fbuild.path.Path.addroot(dst, buildroot)
+    dst = fbuild.path.Path(dst).addroot(buildroot)
     dst.parent.makedirs()
 
     ctx.logger.log(' * creating ' + dst, color='cyan')
