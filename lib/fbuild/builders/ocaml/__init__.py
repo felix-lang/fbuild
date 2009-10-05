@@ -187,47 +187,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.debug = debug
         self.debug_flags = debug_flags
 
-        # ----------------------------------------------------------------------
-        # Check the builder version.
-
-        if any(v is not None for v in (
-                requires_version,
-                requires_at_least_version,
-                requires_at_most_version)):
-            self.ctx.logger.check('checking %s version' % str(self))
-
-            version_str = self.version()
-
-            # Convert the version into a tuple
-            version = []
-            for i in version_str.split('.'):
-                try:
-                    version.append(int(i))
-                except ValueError:
-                    # The subversion isn't a number, so just convert it to a
-                    # string.
-                    version.append(i)
-            version = tuple(version)
-
-            if requires_version is not None and requires_version != version:
-                raise fbuild.ConfigFailed('version %s required; found %s' %
-                    ('.'.join(str(i) for i in requires_version), version_str))
-
-            if requires_at_least_version is not None and \
-                    requires_at_least_version > version:
-                raise fbuild.ConfigFailed('at least version %s required; '
-                    'found %s' % ('.'.join(str(i)
-                        for i in requires_at_least_version),
-                    version_str))
-
-            if requires_at_most_version is not None and \
-                    requires_at_most_version < version:
-                raise fbuild.ConfigFailed('at most version %s required; '
-                    'found %s' % ('.'.join(str(i)
-                        for i in requires_at_most_version),
-                    version_str))
-
-            self.ctx.logger.passed(version_str)
+        # Make sure we've got a valid version.
+        fbuild.builders.check_version(ctx, self, self.version,
+            requires_version=requires_version,
+            requires_at_least_version=requires_at_least_version,
+            requires_at_most_version=requires_at_most_version)
 
         # ----------------------------------------------------------------------
         # Check the builder to make sure it works.

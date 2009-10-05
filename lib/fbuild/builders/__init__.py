@@ -67,6 +67,59 @@ def find_program(ctx, names, paths=None, *, quieter=0):
 
 # ------------------------------------------------------------------------------
 
+def check_version(ctx, builder, version_function, *,
+        requires_version=None,
+        requires_at_least_version=None,
+        requires_at_most_version=None):
+    """Helper function to simplify checking the version of a builder."""
+    if any(v is not None for v in (
+            requires_version,
+            requires_at_least_version,
+            requires_at_most_version)):
+        ctx.logger.check('checking %s version' % builder)
+
+        version_str = version_function()
+
+        # Convert the version into a tuple
+        version = []
+        for i in version_str.split('.'):
+            try:
+                version.append(int(i))
+            except ValueError:
+                # The subversion isn't a number, so just convert it to a
+                # string.
+                version.append(i)
+        version = tuple(version)
+
+        if requires_version is not None and requires_version != version:
+            msg = 'version %s required; found %s' % (
+                '.'.join(str(i) for i in requires_version), version_str)
+
+            ctx.logger.failed(msg)
+            raise fbuild.ConfigFailed(msg)
+
+        if requires_at_least_version is not None and \
+                requires_at_least_version > version:
+            msg = 'at least version %s required; found %s' % (
+                '.'.join(str(i) for i in requires_at_least_version),
+                version_str)
+
+            ctx.logger.failed(msg)
+            raise fbuild.ConfigFailed(msg)
+
+        if requires_at_most_version is not None and \
+                requires_at_most_version < version:
+            msg = 'at most version %s required; found %s' % (
+                '.'.join(str(i) for i in requires_at_most_version),
+                version_str)
+
+            ctx.logger.failed(msg)
+            raise fbuild.ConfigFailed(msg)
+
+        ctx.logger.passed(version_str)
+
+# ------------------------------------------------------------------------------
+
 class AbstractCompiler(fbuild.db.PersistentObject):
     def __init__(self, *args, src_suffix, **kwargs):
         super().__init__(*args, **kwargs)
