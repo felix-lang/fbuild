@@ -4,6 +4,7 @@ import time
 import random
 import unittest
 
+from fbuild.console import Log
 from fbuild.sched import Scheduler
 
 import threading
@@ -14,7 +15,8 @@ class TestScheduler(unittest.TestCase):
     def setUp(self):
         self.assertEquals(threading.active_count(), 1)
 
-        self.scheduler = Scheduler(self.threads)
+        self.logger = Log()
+        self.scheduler = Scheduler(self.logger, self.threads)
 
     def tearDown(self):
         # make sure we turn off all tht threads when shutting down

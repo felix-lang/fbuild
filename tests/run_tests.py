@@ -5,7 +5,7 @@ import sys
 import doctest
 import unittest
 
-sys.path.append('../lib')
+sys.path.append(os.path.join(os.path.dirname(sys.argv[0]), '..', 'lib'))
 
 import test_fnmatch
 import test_functools
