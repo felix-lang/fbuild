@@ -46,7 +46,7 @@ class Ghc(fbuild.db.PersistentObject):
 
     def check_flags(self, flags):
         if flags:
-            self.ctx.logger.check('checking %s with %s' (self, ' '.join(flags)))
+            self.ctx.logger.check('checking %s with %s' % (self, ' '.join(flags)))
         else:
             self.ctx.logger.check('checking %s' % self)
 
@@ -57,7 +57,7 @@ class Ghc(fbuild.db.PersistentObject):
 
         with fbuild.temp.tempfile(code, suffix='.hs') as src:
             try:
-                self('test', [src], flags=flags, quieter=1, cwd=src.parent)
+                self('test', [src], quieter=1, cwd=src.parent)
             except fbuild.ExecutionError:
                 self.ctx.logger.failed()
                 return False
