@@ -36,7 +36,13 @@ class Ghc(fbuild.db.PersistentObject):
         if odir is not None:  cmd.extend(('-odir', odir))
         if hidir is not None: cmd.extend(('-hidir', hidir))
 
-        cmd.extend(self.flags)
+        # Make sure we don't repeat flags
+        new_flags = []
+        for flag in chain(self.flags, flags):
+            if flag not in new_flags:
+                new_flags.append(flag)
+        flags = new_flags
+
         cmd.extend(flags)
         cmd.extend(srcs)
 
@@ -57,7 +63,7 @@ class Ghc(fbuild.db.PersistentObject):
 
         with fbuild.temp.tempfile(code, suffix='.hs') as src:
             try:
-                self('test', [src], quieter=1, cwd=src.parent)
+                self('test', [src], flags=flags, quieter=1, cwd=src.parent)
             except fbuild.ExecutionError:
                 self.ctx.logger.failed()
                 return False
