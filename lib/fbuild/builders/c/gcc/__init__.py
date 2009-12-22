@@ -338,13 +338,13 @@ class Compiler(fbuild.db.PersistentObject):
         dst = Path(dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
-        self.gcc([src], dst,
+        stdout, stderr = self.gcc([src], dst,
             pre_flags=list(chain(['-c'], self.flags)),
             msg1=str(self),
             color='green',
             **kwargs)
 
-        return dst
+        return dst, stdout, stderr
 
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
@@ -461,7 +461,8 @@ class Builder(fbuild.builders.c.Builder):
     def uncached_compile(self, *args, **kwargs):
         """Compile a c file without caching the results.  This is needed when
         compiling temporary files."""
-        return self.compiler(*args, **kwargs)
+        obj, stdout, stderr = self.compiler(*args, **kwargs)
+        return obj
 
     def uncached_link_lib(self, *args, **kwargs):
         """Link compiled c files into a library without caching the results.
