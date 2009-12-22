@@ -149,11 +149,17 @@ class Cl(fbuild.db.PersistentObject):
 
 # ------------------------------------------------------------------------------
 
-class Compiler:
-    def __init__(self, cl, flags, *, suffix):
+class Compiler(fbuild.db.PersistentObject):
+    def __init__(self, ctx, cl, flags, *, suffix):
+        super().__init__(ctx)
+
         self.cl = cl
         self.flags = flags
         self.suffix = suffix
+
+        if flags and not cl.check_flags(flags):
+            raise fbuild.ConfigFailed('%s does not support %s flags' %
+                (cl, flags))
 
     def __call__(self, src, dst=None, *,
             suffix=None,
@@ -514,7 +520,7 @@ def static(ctx, exe=None, *args,
         src_suffix='.c',
         **kwargs):
     return Builder(ctx,
-        compiler=Compiler(Cl(ctx, **kwargs),
+        compiler=Compiler(ctx, Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.static_obj_suffix(ctx, platform)),
         lib_linker=Lib(ctx,
@@ -540,7 +546,7 @@ def shared(ctx, exe=None, *args,
         src_suffix='.c',
         **kwargs):
     return Builder(ctx,
-        compiler=Compiler(Cl(ctx, **kwargs),
+        compiler=Compiler(ctx, Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
             suffix=fbuild.builders.platform.shared_obj_suffix(ctx, platform)),
         lib_linker=DllLink(ctx,
