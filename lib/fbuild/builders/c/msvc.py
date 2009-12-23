@@ -459,7 +459,7 @@ class Builder(fbuild.builders.c.Builder):
                 if line != src.name + '\r\n':
                     self.ctx.logger.write(line)
 
-        fbuild.db.add_external_dependencies_to_call(srcs=deps)
+        fbuild.db.add_external_dependencies_to_call(self.ctx, srcs=deps)
 
         return obj
 
