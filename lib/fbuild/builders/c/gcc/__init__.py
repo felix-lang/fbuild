@@ -517,23 +517,40 @@ def static(ctx, exe=None, *args,
         link_flags=[],
         exe_link_flags=[],
         src_suffix='.c',
+        obj_suffix=None,
+        lib_prefix=None,
+        lib_suffix=None,
+        exe_suffix=None,
         cross_compiler=False,
         **kwargs):
     gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
+    # Allow the user to overload the file extensions.
+    if obj_suffix is None:
+        obj_suffix = fbuild.builders.platform.static_obj_suffix(ctx, platform)
+
+    if lib_prefix is None:
+        lib_prefix = fbuild.builders.platform.static_lib_prefix(ctx, platform)
+
+    if lib_suffix is None:
+        lib_suffix = fbuild.builders.platform.static_lib_suffix(ctx, platform)
+
+    if exe_suffix is None:
+        exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
+
     return Builder(ctx,
         compiler=make_compiler(ctx, gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.static_obj_suffix(ctx, platform)),
+            suffix=obj_suffix),
         lib_linker=make_lib_linker(ctx,
             libs=libs,
             libpaths=libpaths,
-            prefix=fbuild.builders.platform.static_lib_prefix(ctx, platform),
-            suffix=fbuild.builders.platform.static_lib_suffix(ctx, platform)),
+            prefix=lib_prefix,
+            suffix=lib_suffix),
         exe_linker=make_exe_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=fbuild.builders.platform.exe_suffix(ctx, platform)),
+            suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags,
         cross_compiler=cross_compiler)
@@ -554,22 +571,39 @@ def shared(ctx, exe=None, *args,
         lib_link_flags=['-fPIC', '-shared'],
         exe_link_flags=[],
         src_suffix='.c',
+        obj_suffix=None,
+        lib_prefix=None,
+        lib_suffix=None,
+        exe_suffix=None,
         cross_compiler=False,
         **kwargs):
     gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
+    # Allow the user to overload the file extensions.
+    if obj_suffix is None:
+        obj_suffix = fbuild.builders.platform.shared_obj_suffix(ctx, platform)
+
+    if lib_prefix is None:
+        lib_prefix = fbuild.builders.platform.shared_lib_prefix(ctx, platform)
+
+    if lib_suffix is None:
+        lib_suffix = fbuild.builders.platform.shared_lib_suffix(ctx, platform)
+
+    if exe_suffix is None:
+        exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
+
     return Builder(ctx,
         compiler=make_compiler(ctx, gcc,
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.shared_obj_suffix(ctx, platform)),
+            suffix=obj_suffix),
         lib_linker=make_lib_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, lib_link_flags)),
-            prefix=fbuild.builders.platform.shared_lib_prefix(ctx, platform),
-            suffix=fbuild.builders.platform.shared_lib_suffix(ctx, platform)),
+            prefix=lib_prefix,
+            suffix=lib_suffix),
         exe_linker=make_exe_linker(ctx, gcc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
-            suffix=fbuild.builders.platform.exe_suffix(ctx, platform)),
+            suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags,
         cross_compiler=cross_compiler)

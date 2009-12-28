@@ -196,6 +196,9 @@ class Compiler(fbuild.db.PersistentObject):
 
 class Lib(fbuild.db.PersistentObject):
     def __init__(self, ctx, exe='lib', *,
+            platform=None,
+            prefix=None,
+            suffix=None,
             pre_flags=[],
             flags=[],
             libpaths=[],
@@ -204,6 +207,10 @@ class Lib(fbuild.db.PersistentObject):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
+        self.prefix = prefix or \
+            fbuild.builders.platform.static_lib_prefix(platform)
+        self.suffix = suffix or \
+            fbuild.builders.platform.static_lib_suffix(platform)
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -220,7 +227,7 @@ class Lib(fbuild.db.PersistentObject):
             **kwargs):
         buildroot = buildroot or self.ctx.buildroot
         dst = Path(dst).addroot(buildroot)
-        dst = dst.parent / dst.name + '.lib'
+        dst = dst.parent / self.prefix + dst.name + self.suffix
         dst.parent.makedirs()
 
         cmd = [self.exe, '/nologo']
@@ -254,6 +261,8 @@ class Lib(fbuild.db.PersistentObject):
 
 class Link(fbuild.db.PersistentObject):
     def __init__(self, ctx, exe='link', *,
+            prefix=None,
+            suffix=None,
             pre_flags=[],
             flags=[],
             libpaths=[],
@@ -262,6 +271,8 @@ class Link(fbuild.db.PersistentObject):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
+        self.prefix = prefix
+        self.suffix = suffix
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -349,9 +360,9 @@ class Link(fbuild.db.PersistentObject):
 
         return dst, stdout, stderr
 
-    def _make_dst(self, dst, suffix, buildroot):
+    def _make_dst(self, dst, prefix, suffix, buildroot):
         dst = Path(dst).addroot(buildroot or self.ctx.buildroot)
-        dst = dst.parent / dst.name + suffix
+        dst = dst.parent / preifx + dst.name + suffix
         dst.parent.makedirs()
 
         return dst
@@ -360,14 +371,37 @@ class Link(fbuild.db.PersistentObject):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
 class ExeLink(Link):
+    def __init__(self, *args,
+            platform=None,
+            prefix=None,
+            suffix=None,
+            **kwargs):
+        super().__init__(*args,
+            prefix=prefix or '',
+            suffix=suffix or
+                fbuild.builders.platform.exe_suffix(platform),
+            **kwargs)
+
     def __call__(self, dst, *args, buildroot=None, **kwargs):
         obj, stdout, stderr = self._run(
-            self._make_dst(dst, '.exe', buildroot),
+            self._make_dst(dst, self.prefix, self.suffix, buildroot),
             *args, **kwargs)
 
         return obj
 
 class DllLink(Link):
+    def __init__(self, *args,
+            platform=None,
+            prefix=None,
+            suffix=None,
+            **kwargs):
+        super().__init__(*args,
+            prefix=prefix or
+                fbuild.builders.platform.shared_lib_suffix(platform),
+            suffix=suffix or
+                fbuild.builders.platform.exe_suffix(platform),
+            **kwargs)
+
     def __call__(self, dst, *args,
             buildroot=None,
             flags=[],
@@ -375,14 +409,14 @@ class DllLink(Link):
             stdout_quieter=0,
             **kwargs):
         obj, stdout, stderr = self._run(
-            self._make_dst(dst, '.dll', buildroot),
+            self._make_dst(dst, self.prefix, self.suffix, buildroot),
             flags=list(chain(flags, ['/DLL'])),
             quieter=quieter,
             stdout_quieter=1 if stdout_quieter == 0 else stdout_quieter,
             *args, **kwargs)
 
-        lib = self._make_dst(dst, '.lib', buildroot)
-        exp = self._make_dst(dst, '.exp', buildroot)
+        lib = self._make_dst(dst, self.prefix, '.lib', buildroot)
+        exp = self._make_dst(dst, self.prefix, '.exp', buildroot)
 
         # Filter out the message link.exe says when it's linking
         msg = '   Creating library %s and object %s\r\n' % (lib, exp)
@@ -518,17 +552,37 @@ def static(ctx, exe=None, *args,
         lib_link_flags=[],
         exe_link_flags=[],
         src_suffix='.c',
+        obj_suffix=None,
+        lib_prefix=None,
+        lib_suffix=None,
+        exe_suffix=None,
         **kwargs):
+    # Allow the user to overload the file extensions.
+    if obj_suffix is None:
+        obj_suffix = fbuild.builders.platform.static_obj_suffix(ctx, platform)
+
+    if lib_prefix is None:
+        lib_prefix = fbuild.builders.platform.static_lib_prefix(ctx, platform)
+
+    if lib_suffix is None:
+        lib_suffix = fbuild.builders.platform.static_lib_suffix(ctx, platform)
+
+    if exe_suffix is None:
+        exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
+
     return Builder(ctx,
         compiler=Compiler(ctx, Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.static_obj_suffix(ctx, platform)),
+            suffix=obj_suffix),
         lib_linker=Lib(ctx,
             pre_flags=list(chain(link_flags, lib_link_flags)),
             libs=libs,
-            libpaths=libpaths),
+            libpaths=libpaths,
+            lib_prefix=lib_prefix,
+            lib_suffix=lib_suffix),
         exe_linker=ExeLink(ctx,
-            pre_flags=list(chain(link_flags, exe_link_flags))),
+            pre_flags=list(chain(link_flags, exe_link_flags)),
+            exe_suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags)
 
@@ -544,14 +598,34 @@ def shared(ctx, exe=None, *args,
         lib_link_flags=[],
         exe_link_flags=[],
         src_suffix='.c',
+        obj_suffix=None,
+        lib_prefix=None,
+        lib_suffix=None,
+        exe_suffix=None,
         **kwargs):
+    # Allow the user to overload the file extensions.
+    if obj_suffix is None:
+        obj_suffix = fbuild.builders.platform.shared_obj_suffix(ctx, platform)
+
+    if lib_prefix is None:
+        lib_prefix = fbuild.builders.platform.shared_lib_prefix(ctx, platform)
+
+    if lib_suffix is None:
+        lib_suffix = fbuild.builders.platform.shared_lib_suffix(ctx, platform)
+
+    if exe_suffix is None:
+        exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
+
     return Builder(ctx,
         compiler=Compiler(ctx, Cl(ctx, **kwargs),
             flags=list(chain(flags, compile_flags)),
-            suffix=fbuild.builders.platform.shared_obj_suffix(ctx, platform)),
+            suffix=obj_suffix),
         lib_linker=DllLink(ctx,
-            pre_flags=list(chain(link_flags, lib_link_flags))),
+            pre_flags=list(chain(link_flags, lib_link_flags)),
+            lib_prefix=lib_prefix,
+            lib_suffix=lib_suffix),
         exe_linker=ExeLink(ctx,
-            pre_flags=list(chain(link_flags, exe_link_flags))),
+            pre_flags=list(chain(link_flags, exe_link_flags)),
+            exe_suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags)
