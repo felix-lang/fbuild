@@ -299,10 +299,10 @@ class Link(fbuild.db.PersistentObject):
                 new_external_libs.append(lib)
         external_libs = new_external_libs
 
-        # Since the libs could be derived from fbuild.builders.c.Library, we need
-        # to extract the extra libs and flags that they need.  Linux needs the
-        # libraries listed in a particular order.  Libraries must appear left
-        # of their dependencies in order to optimize linking.
+        # Since the libs could be derived from fbuild.builders.c.Library, we
+        # need to extract the extra libs and flags that they need.  Linux needs
+        # the libraries listed in a particular order.  Libraries must appear
+        # left of their dependencies in order to optimize linking.
         new_libs = []
         def f(lib):
             if lib in new_libs:
