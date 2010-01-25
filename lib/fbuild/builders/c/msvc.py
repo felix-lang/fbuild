@@ -208,9 +208,9 @@ class Lib(fbuild.db.PersistentObject):
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
         self.prefix = prefix or \
-            fbuild.builders.platform.static_lib_prefix(platform)
+            fbuild.builders.platform.static_lib_prefix(ctx, platform)
         self.suffix = suffix or \
-            fbuild.builders.platform.static_lib_suffix(platform)
+            fbuild.builders.platform.static_lib_suffix(ctx, platform)
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -371,15 +371,15 @@ class Link(fbuild.db.PersistentObject):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
 class ExeLink(Link):
-    def __init__(self, *args,
+    def __init__(self, ctx, *args,
             platform=None,
             prefix=None,
             suffix=None,
             **kwargs):
-        super().__init__(*args,
+        super().__init__(ctx, *args,
             prefix=prefix or '',
             suffix=suffix or
-                fbuild.builders.platform.exe_suffix(platform),
+                fbuild.builders.platform.exe_suffix(ctx, platform),
             **kwargs)
 
     def __call__(self, dst, *args, buildroot=None, **kwargs):
@@ -390,16 +390,16 @@ class ExeLink(Link):
         return obj
 
 class DllLink(Link):
-    def __init__(self, *args,
+    def __init__(self, ctx, *args,
             platform=None,
             prefix=None,
             suffix=None,
             **kwargs):
-        super().__init__(*args,
+        super().__init__(ctx, *args,
             prefix=prefix or
-                fbuild.builders.platform.shared_lib_suffix(platform),
+                fbuild.builders.platform.shared_lib_suffix(ctx, platform),
             suffix=suffix or
-                fbuild.builders.platform.exe_suffix(platform),
+                fbuild.builders.platform.exe_suffix(ctx, platform),
             **kwargs)
 
     def __call__(self, dst, *args,
