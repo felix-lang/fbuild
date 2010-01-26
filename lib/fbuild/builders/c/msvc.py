@@ -362,7 +362,7 @@ class Link(fbuild.db.PersistentObject):
 
     def _make_dst(self, dst, prefix, suffix, buildroot):
         dst = Path(dst).addroot(buildroot or self.ctx.buildroot)
-        dst = dst.parent / preifx + dst.name + suffix
+        dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
 
         return dst
@@ -578,11 +578,11 @@ def static(ctx, exe=None, *args,
             pre_flags=list(chain(link_flags, lib_link_flags)),
             libs=libs,
             libpaths=libpaths,
-            lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix),
+            prefix=lib_prefix,
+            suffix=lib_suffix),
         exe_linker=ExeLink(ctx,
             pre_flags=list(chain(link_flags, exe_link_flags)),
-            exe_suffix=exe_suffix),
+            suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags)
 
@@ -622,10 +622,10 @@ def shared(ctx, exe=None, *args,
             suffix=obj_suffix),
         lib_linker=DllLink(ctx,
             pre_flags=list(chain(link_flags, lib_link_flags)),
-            lib_prefix=lib_prefix,
-            lib_suffix=lib_suffix),
+            prefix=lib_prefix,
+            suffix=lib_suffix),
         exe_linker=ExeLink(ctx,
             pre_flags=list(chain(link_flags, exe_link_flags)),
-            exe_suffix=exe_suffix),
+            suffix=exe_suffix),
         src_suffix=src_suffix,
         flags=flags)
