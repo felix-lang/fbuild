@@ -397,9 +397,9 @@ class DllLink(Link):
             **kwargs):
         super().__init__(ctx, *args,
             prefix=prefix or
-                fbuild.builders.platform.shared_lib_suffix(ctx, platform),
+                fbuild.builders.platform.shared_lib_prefix(ctx, platform),
             suffix=suffix or
-                fbuild.builders.platform.exe_suffix(ctx, platform),
+                fbuild.builders.platform.shared_lib_suffix(ctx, platform),
             **kwargs)
 
     def __call__(self, dst, *args,
