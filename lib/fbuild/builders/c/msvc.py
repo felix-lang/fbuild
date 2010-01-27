@@ -169,7 +169,7 @@ class Compiler(fbuild.db.PersistentObject):
         src = Path(src)
 
         suffix = suffix or self.suffix
-        dst = (dst or src).addroot(buildroot).replaceext(suffix)
+        dst = Path(dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
         stdout, stderr = self.cl([src], dst,
