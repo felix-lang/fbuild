@@ -105,7 +105,7 @@ class Database:
 
     def save(self, filename):
         f = io.BytesIO()
-        pickler = _Pickler(self._ctx, f)
+        pickler = _Pickler(self._ctx, f, pickle.HIGHEST_PROTOCOL)
 
         with self._lock:
             pickler.dump((
