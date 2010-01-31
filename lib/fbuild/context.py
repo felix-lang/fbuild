@@ -1,3 +1,4 @@
+import os
 import signal
 import threading
 import time
@@ -94,6 +95,7 @@ class Context:
             stdout=fbuild.subprocess.PIPE,
             stderr=fbuild.subprocess.PIPE,
             timeout=None,
+            env=None,
             **kwargs):
         """Execute the command and return the output."""
 
@@ -107,6 +109,13 @@ class Context:
 
         if stderr_quieter is None:
             stderr_quieter = quieter
+
+        # Windows needs something in the environment, so for the moment we'll
+        # just make sure everything is passed on to the executable.
+        if env is None:
+            env = os.environ
+        else:
+            env = dict(os.environ, **env)
 
         self.logger.write('%-10s: starting %r\n' %
             (threading.current_thread().name, cmd_string),
@@ -141,6 +150,7 @@ class Context:
                 stdin=fbuild.subprocess.PIPE if input else stdin,
                 stdout=stdout,
                 stderr=stderr,
+                env=env,
                 **kwargs)
 
             try:
