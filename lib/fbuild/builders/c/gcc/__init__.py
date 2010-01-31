@@ -213,6 +213,14 @@ class Gcc(fbuild.db.PersistentObject):
                 for l in lib.libs:
                     f(l)
 
+            parent, lib = Path(lib).split()
+
+            if parent not in libpaths:
+                libpaths.append(parent)
+
+            lib = lib.name[len('lib'):]
+            lib = lib.rsplit('.', 1)[0]
+
             new_libs.append(lib)
 
         for lib in chain(self.libs, libs):
@@ -251,7 +259,7 @@ class Gcc(fbuild.db.PersistentObject):
 
         # Libraries must come last on linux in order to find symbols.
         cmd.extend('-l' + l for l in external_libs)
-        cmd.extend(libs)
+        cmd.extend('-l' + l for l in libs)
 
         return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
