@@ -31,10 +31,7 @@ class Flx(fbuild.db.PersistentObject):
             flags=[],
             cwd=None,
             **kwargs):
-        cmd = [self.exe]
-
-        if sys.platform == 'win32':
-            cmd.insert(0, 'c:\python26\python.exe')
+        cmd = [sys.executable, self.exe]
 
         if debug is None:
             debug = self.debug
