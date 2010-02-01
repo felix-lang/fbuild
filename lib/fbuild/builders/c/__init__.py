@@ -53,9 +53,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         self.ctx.logger.check('checking if %s can make exes' % self)
         try:
-            with self.tempfile_link_exe('int main() { return 0; }') as exe:
-                if not self.cross_compiler:
-                    self.ctx.execute([exe])
+            if not self.cross_compiler:
+                self.tempfile_run('int main() { return 0; }')
+            else:
+                with self.tempfile_link_exe('int main() { return 0; }'):
+                    pass
         except fbuild.ExecutionError as e:
             raise fbuild.ConfigFailed('exe linker failed: %s' % e)
         else:
