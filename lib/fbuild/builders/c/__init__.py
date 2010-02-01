@@ -192,6 +192,26 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
+    def tempfile_run(self, *args,
+            quieter=1,
+            ckwargs={},
+            lkwargs={},
+            runtime_libpaths=[],
+            **kwargs):
+        """Overload tempfile_run to add the library search path."""
+        with self.tempfile_link_exe(*args,
+                quieter=quieter,
+                ckwargs=ckwargs,
+                **lkwargs) as exe:
+            return self.ctx.execute([exe],
+                quieter=quieter,
+                cwd=exe.parent,
+                runtime_libpaths=runtime_libpaths +
+                    [l.parent for l in exe.libs],
+                **kwargs)
+
+    # -------------------------------------------------------------------------
+
     def check_statement(self, name, statement, *,
             msg=None, headers=[], **kwargs):
         code = '''
@@ -256,6 +276,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 # ------------------------------------------------------------------------------
 
 class Library(Path):
+    """Wrapper around a library path that carries extra metadata about what
+    was used to compile the library."""
+
     def __new__(cls, *args,
             flags=[],
             libpaths=[],
@@ -289,6 +312,24 @@ class Library(Path):
             self.libpaths == other.libpaths and \
             self.libs == other.libs and \
             self.external_libs == other.external_libs
+
+# ------------------------------------------------------------------------------
+
+class Executable(Path):
+    """Wrapper around an executable path that carries extra metadata about what
+    was used to link the executable."""
+
+    def __new__(cls, *args, libs=[], **kwargs):
+        self = super().__new__(cls, *args, **kwargs)
+
+        self.libs = libs
+
+        return self
+
+    def __repr__(self):
+        return 'Executable({0}{1})'.format(
+            super().__repr__(),
+            ', libs={0}'.format(self.libs) if self.libs else '')
 
 # ------------------------------------------------------------------------------
 

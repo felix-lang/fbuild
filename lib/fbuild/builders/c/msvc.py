@@ -516,7 +516,9 @@ class Builder(fbuild.builders.c.Builder):
     def uncached_link_exe(self, *args, **kwargs):
         """Link compiled c files into am executable without caching the
         results.  This is needed when linking temporary files."""
-        return self.exe_linker(*args, **kwargs)
+        exe = self.exe_linker(*args, **kwargs)
+        return fbuild.builders.c.Executable(exe,
+            libs=kwargs.get('libs', []))
 
     # --------------------------------------------------------------------------
 

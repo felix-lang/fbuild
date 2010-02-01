@@ -4,6 +4,7 @@ import threading
 import time
 
 import fbuild
+import fbuild.builders.platform
 import fbuild.console
 import fbuild.db
 import fbuild.path
@@ -83,9 +84,8 @@ class Context:
 
     # --------------------------------------------------------------------------
 
-    def execute(self, cmd,
-            msg1=None,
-            msg2=None,
+    def execute(self, cmd, msg1=None, msg2=None, *,
+            arch=None,
             color=None,
             quieter=0,
             stdout_quieter=None,
@@ -96,6 +96,7 @@ class Context:
             stderr=fbuild.subprocess.PIPE,
             timeout=None,
             env=None,
+            runtime_libpaths=None,
             **kwargs):
         """Execute the command and return the output."""
 
@@ -113,9 +114,25 @@ class Context:
         # Windows needs something in the environment, so for the moment we'll
         # just make sure everything is passed on to the executable.
         if env is None:
-            env = os.environ
+            env = dict(os.environ)
         else:
             env = dict(os.environ, **env)
+
+        # Add in the runtime library search paths.
+        if runtime_libpaths:
+            # Look up the current architecture
+            runtime_env_libpath = \
+                fbuild.builders.platform.runtime_env_libpath(self)
+
+            runtime_libpaths = os.pathsep.join(runtime_libpaths)
+            try:
+                libpaths = env[runtime_env_libpath]
+            except KeyError:
+                libpaths = runtime_libpaths
+            else:
+                libpaths += os.pathsep + runtime_libpaths
+
+            env[runtime_env_libpath] = libpaths
 
         self.logger.write('%-10s: starting %r\n' %
             (threading.current_thread().name, cmd_string),

@@ -148,3 +148,14 @@ def exe_suffix(ctx, arch=None):
         return '.exe'
     else:
         return ''
+
+# ------------------------------------------------------------------------------
+
+def runtime_env_libpath(ctx, arch=None):
+    arch = platform(ctx, arch)
+    if 'windows' in arch:
+        return 'PATH'
+    elif 'darwin' in arch:
+        return 'DYLD_LIBRARY_PATH'
+    else:
+        return 'LD_LIBRARY_PATH'
