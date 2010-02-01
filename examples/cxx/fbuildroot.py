@@ -9,7 +9,7 @@ def build(ctx):
         libs=[lib])
 
     ctx.logger.log(' * running %s:' % exe)
-    ctx.execute([exe])
+    static.run([exe])
 
     shared = fbuild.builders.cxx.guess_shared(ctx, platform_options=[
         ({'windows'}, {'flags': ['/EHsc']}),
@@ -18,4 +18,4 @@ def build(ctx):
     exe = shared.build_exe('exe_shared', ['exe.cpp'], libs=[lib])
 
     ctx.logger.log(' * running %s:' % exe)
-    ctx.execute([exe])
+    shared.run([exe])

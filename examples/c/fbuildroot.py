@@ -13,7 +13,7 @@ def build(ctx):
         includes=['lib1', 'lib2'], libs=[lib2])
 
     ctx.logger.log(' * running %s:' % exe)
-    ctx.execute([exe])
+    static.run([exe])
 
     shared = fbuild.builders.c.guess_shared(ctx)
     lib1 = shared.build_lib('shared1', ['lib1/lib1.c'], macros=['BUILD_LIB1'])
@@ -23,4 +23,4 @@ def build(ctx):
         includes=['lib1', 'lib2'], libs=[lib2])
 
     ctx.logger.log(' * running %s:' % exe)
-    ctx.execute([exe])
+    shared.run([exe])

@@ -106,7 +106,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
             if not self.cross_compiler:
                 try:
-                    stdout, stderr = self.ctx.execute([exe], quieter=1)
+                    stdout, stderr = self.run([exe], quieter=1)
                 except fbuild.ExecutionError:
                     raise fbuild.ConfigFailed('failed to link lib to exe')
                 else:
@@ -192,23 +192,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
+    def run(self, cmd, *args, runtime_libpaths=[], **kwargs):
+        """Executes a c executable."""
+        exe = cmd[0]
+        return self.ctx.execute(cmd, *args,
+            runtime_libpaths=runtime_libpaths + [l.parent for l in exe.libs],
+            **kwargs)
+
+
     def tempfile_run(self, *args,
             quieter=1,
             ckwargs={},
             lkwargs={},
-            runtime_libpaths=[],
             **kwargs):
         """Overload tempfile_run to add the library search path."""
         with self.tempfile_link_exe(*args,
                 quieter=quieter,
                 ckwargs=ckwargs,
                 **lkwargs) as exe:
-            return self.ctx.execute([exe],
-                quieter=quieter,
-                cwd=exe.parent,
-                runtime_libpaths=runtime_libpaths +
-                    [l.parent for l in exe.libs],
-                **kwargs)
+            return self.run([exe], quieter=quieter, **kwargs)
 
     # -------------------------------------------------------------------------
 
