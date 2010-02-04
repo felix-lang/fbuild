@@ -42,12 +42,16 @@ def test_test(ctx, test):
 
     return passed, total
 
-def test_module(ctx, builder, module):
+def test_module(ctx, builder, shared, module):
     tests = []
     for name in dir(module):
         test = getattr(module, name)
         if isinstance(test, type) and issubclass(test, config.Test):
-            tests.append(test(builder))
+            # dlfcn.h needs a shared builder as well
+            if name == 'dlfcn_h':
+                tests.append(test(builder, shared))
+            else:
+                tests.append(test(builder))
 
     passed = 0
     total = 0
@@ -71,19 +75,19 @@ def build(ctx):
     # c tests
     for builder in c_static, c_shared, cxx_static, cxx_shared:
         for module in (
-                import_module('fbuild.config.c.bsd'),
-                import_module('fbuild.config.c.c90'),
-                import_module('fbuild.config.c.c99'),
-                import_module('fbuild.config.c.darwin'),
-                import_module('fbuild.config.c.ieeefp_h'),
-                import_module('fbuild.config.c.linux'),
-                import_module('fbuild.config.c.malloc'),
-                import_module('fbuild.config.c.posix'),
-                import_module('fbuild.config.c.posix01'),
+                #import_module('fbuild.config.c.bsd'),
+                #import_module('fbuild.config.c.c90'),
+                #import_module('fbuild.config.c.c99'),
+                #import_module('fbuild.config.c.darwin'),
+                #import_module('fbuild.config.c.ieeefp_h'),
+                #import_module('fbuild.config.c.linux'),
+                #import_module('fbuild.config.c.malloc'),
+                #import_module('fbuild.config.c.posix'),
+                #import_module('fbuild.config.c.posix01'),
                 import_module('fbuild.config.c.posix04'),
-                import_module('fbuild.config.c.stdlib'),
+                #import_module('fbuild.config.c.stdlib'),
                 import_module('fbuild.config.c.win32')):
-            p, t = test_module(ctx, builder, module)
+            p, t = test_module(ctx, builder, c_shared, module)
             passed += p
             total += t
 

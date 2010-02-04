@@ -1,9 +1,9 @@
 import tempfile
 
-import fbuild.builders.c
 import fbuild.config.c as c
 import fbuild.config.c.c99 as c99
 import fbuild.config.c.posix01 as posix01
+import fbuild.temp
 
 # ------------------------------------------------------------------------------
 
@@ -165,6 +165,13 @@ class dlfcn_h(c.Header):
     RTLD_GLOBAL = c.macro_test()
     RTLD_LOCAL = c.macro_test()
 
+    def __init__(self, builder, shared, *args, **kwargs):
+        """Overloaded because we need a compiler that can generate
+        shared libraries in order to test dlfcn.h works."""
+        super().__init__(builder, *args, **kwargs)
+
+        self.shared = shared
+
     @property
     def dlclose(self):
         if self.dlopen:
@@ -179,10 +186,6 @@ class dlfcn_h(c.Header):
     def dlopen(self):
         if not self.header:
             return
-
-        # try to get a shared compiler
-        shared = fbuild.builders.cxx.guess_shared(self.ctx,
-            flags=self.builder.flags)
 
         lib_code = '''
             #ifdef __cplusplus
@@ -212,8 +215,9 @@ class dlfcn_h(c.Header):
 
         with fbuild.temp.tempfile(lib_code, self.builder.src_suffix) as lib_src:
             try:
-                obj = shared.uncached_compile(lib_src, quieter=1)
-                lib = shared.uncached_link_lib(lib_src.parent / 'temp', [obj],
+                obj = self.shared.uncached_compile(lib_src, quieter=1)
+                lib = self.shared.uncached_link_lib(
+                    lib_src.parent / 'temp', [obj],
                     quieter=1)
             except fbuild.ExecutionError:
                 pass
