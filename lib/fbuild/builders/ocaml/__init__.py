@@ -79,7 +79,7 @@ class Ocamldep(fbuild.db.PersistentObject):
             # deal with the exact filenames.  To do that, we'll grab the list
             # of filenames in the directory, then search for the right
             # spelling in that list.
-            
+
             # Grab the filenames in the directory.
             if include is None:
                 dirs = Path.getcwd().listdir()
@@ -87,8 +87,8 @@ class Ocamldep(fbuild.db.PersistentObject):
                 include = Path(include)
 
                 if not include.exists():
-                    # We can't search for dependencies in a directory that doesn't
-                    # exist, so exit early.
+                    # We can't search for dependencies in a directory that
+                    # doesn't exist, so exit early.
                     return False
 
                 dirs = include.listdir()
