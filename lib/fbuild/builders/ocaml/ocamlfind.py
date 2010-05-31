@@ -86,12 +86,14 @@ class Ocamlc(ocaml.Ocamlc):
             **kwargs)
 
     def where(self):
-        stdout, stderr = execute([self.exe, 'ocamlc', '-where'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, 'ocamlc', '-where'],
+            quieter=1)
         return Path(stdout.decode().strip())
 
     def version(self):
         """Return the version of the ocaml executable."""
-        stdout, stderr = execute([self.exe, 'ocamlc', '-version'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, 'ocamlc', '-version'],
+            quieter=1)
         return stdout.decode().strip()
 
     def _run(self, *args,
@@ -194,12 +196,14 @@ class Ocamlopt(ocaml.Ocamlopt):
             **kwargs)
 
     def where(self):
-        stdout, stderr = execute([self.exe, 'ocamlopt', '-where'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, 'ocamlopt', '-where'],
+            quieter=1)
         return Path(stdout.decode().strip())
 
     def version(self):
         """Return the version of the ocaml executable."""
-        stdout, stderr = execute([self.exe, 'ocamlopt', '-version'], quieter=1)
+        stdout, stderr = self.ctx.execute([self.exe, 'ocamlopt', '-version'],
+            quieter=1)
         return stdout.decode().strip()
 
     def _run(self, *args,
