@@ -126,12 +126,20 @@ class Ocamldep(fbuild.db.PersistentObject):
             if mli.exists():
                 deps.append(mli)
             else:
-                for include in includes:
-                    path = mli.name
-                    if include is not None: path = include / path
-                    if path.exists():
-                        deps.append(path)
-                    break
+                # If we generated the .ml file, then perhaps there's a
+                # pre-defined .mli file not in the buildroot.
+                buildroot = kwargs.get('buildroot') or self.ctx.buildroot
+                mli = mli.removeroot(buildroot + os.sep)
+
+                if mli.exists():
+                    deps.append(mli)
+                else:
+                    for include in includes:
+                        path = mli.name
+                        if include is not None: path = include / path
+                        if path.exists():
+                            deps.append(path)
+                        break
 
         return deps
 
