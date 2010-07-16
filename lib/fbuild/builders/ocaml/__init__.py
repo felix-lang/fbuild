@@ -365,13 +365,25 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return dst
 
 
-    def uncached_compile(self, src, dst=None, *args, pre_flags=[], **kwargs):
+    def uncached_compile(self, src, dst=None, *args,
+            buildroot=None,
+            pre_flags=[],
+            **kwargs):
         """Compile an ocaml implementation or interface file without caching
         the results.  This is needed when compiling temporary files."""
         if src.endswith('.mli'):
             obj_suffix = '.cmi'
         else:
             obj_suffix = self.obj_suffix
+
+        # Copy the source into the buildroot as if we generate a .ml, the .mli
+        # needs to also be in the buildroot for ocaml to use the .cmi file.
+        buildroot = buildroot or self.ctx.buildroot
+        src_buildroot = src.addroot(buildroot)
+        if src != src_buildroot:
+            src_buildroot.parent.makedirs()
+            src.copy(src_buildroot)
+            src = src_buildroot
 
         dst = Path(dst or src).replaceext(obj_suffix)
 
@@ -381,6 +393,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         return self._run(dst, [src],
             pre_flags=pre_flags,
             color='green',
+            buildroot=buildroot,
             *args, **kwargs)
 
     def _add_compile_dependencies(self, dst, src, **kwargs):
