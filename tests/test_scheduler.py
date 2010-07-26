@@ -1,8 +1,9 @@
-#!/usr/bin/env python3.0
+#!/usr/bin/env python3.1
 
 import time
 import random
 import unittest
+import gc
 
 from fbuild.console import Log
 from fbuild.sched import Scheduler
@@ -13,6 +14,9 @@ import threading
 
 class TestScheduler(unittest.TestCase):
     def setUp(self):
+        # Make sure any latent contexts are cleaned up before we run.
+        gc.collect()
+
         self.assertEquals(threading.active_count(), 1)
 
         self.logger = Log()

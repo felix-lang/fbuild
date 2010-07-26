@@ -629,14 +629,15 @@ class caches:
     """L{caches} decorates a function and caches the results.  The first
     argument of the function must be an instance of L{database}.
 
+    >>> ctx = fbuild.context.make_default_context()
     >>> @caches
-    ... def test():
+    ... def test(ctx):
     ...     print('running test')
     ...     return 5
-    >>> test()
+    >>> test(ctx)
     running test
     5
-    >>> test()
+    >>> test(ctx)
     5
     """
 
@@ -654,12 +655,15 @@ class caches:
 class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results.
 
+    >>> ctx = fbuild.context.make_default_context([])
     >>> class C:
+    ...     def __init__(self, ctx):
+    ...         self.ctx = ctx
     ...     @cachemethod
     ...     def test(self):
     ...         print('running test')
     ...         return 5
-    >>> c = C()
+    >>> c = C(ctx)
     >>> c.test()
     running test
     5
@@ -690,12 +694,15 @@ class cacheproperty:
     result in the store.  The first argument of the function it wraps must be a
     store or a class that has has an attribute named I{store}.
 
+    >>> ctx = fbuild.context.make_default_context([])
     >>> class C:
+    ...     def __init__(self, ctx):
+    ...         self.ctx = ctx
     ...     @cacheproperty
     ...     def test(self):
     ...         print('running test')
     ...         return 5
-    >>> c = C()
+    >>> c = C(ctx)
     >>> c.test
     running test
     5

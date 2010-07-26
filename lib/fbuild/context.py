@@ -219,3 +219,15 @@ class Context:
             raise fbuild.ExecutionError(cmd, stdout, stderr, returncode)
 
         return stdout, stderr
+
+# ------------------------------------------------------------------------------
+
+def make_default_context(args=[]):
+    """Make a default context, usually for tests."""
+
+    import fbuild.options
+
+    parser = fbuild.options.make_parser()
+    options, args = parser.parse_args(args)
+
+    return Context(options, args)
