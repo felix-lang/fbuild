@@ -36,7 +36,7 @@ def parse_args(argv):
     else:
         parser = pre_options(parser) or parser
 
-    options, args = parser.parse_args(argv)
+    options, args = parser.parse_args(argv[1:])
 
     # -------------------------------------------------------------------------
     # Let the fbuildroot modify the optparse parser after parsing.
