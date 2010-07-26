@@ -1,5 +1,13 @@
 from optparse import OptionParser, make_option
 
+import fbuild.target
+
+# ------------------------------------------------------------------------------
+
+class OptionParser(OptionParser):
+    def format_epilog(self, formatter):
+        return self.epilog
+
 # ------------------------------------------------------------------------------
 
 def make_parser():
@@ -8,10 +16,13 @@ def make_parser():
     instead of tree evaluation.
     """
 
+    epilog = '\nTargets:\n{}\n'.format(fbuild.target.help_string())
+
     parser = OptionParser(
         version=fbuild.__version__,
-        usage='%prog [options]',
-        description=description)
+        usage='%prog [options] target1 [target2 target3 ...]',
+        description=description,
+        epilog=epilog)
 
     parser.add_options([
         make_option('-v', '--verbose',

@@ -72,14 +72,29 @@ def build(ctx):
             raise fbuild.Error('file %r not cached' % ctx.options.clear_file)
         return 0
 
-    # finally, do the actual build
-    fbuildroot.build(ctx)
+    # We'll use the arguments as our targets.
+    targets = ctx.args or ['build']
+
+    # Step through each target and execute it.
+    for target_name in targets:
+        target = fbuild.target.find(target_name)
+
+        target.function(ctx)
 
     return 0
 
 # ------------------------------------------------------------------------------
 
 def main(argv=None):
+    # Register a couple functions as targets.
+    for name in ('configure', 'build'):
+        try:
+            fbuild.target.register(name=name)(getattr(fbuildroot, name))
+        except AttributeError:
+            pass
+
+    # --------------------------------------------------------------------------
+
     ctx = parse_args(sys.argv if argv is None else argv)
 
     # If the fbuildroot doesn't exist, error out. We do this now so that
