@@ -1,3 +1,3 @@
-char* bar() {
+const char* bar() {
 	return "world";
 }

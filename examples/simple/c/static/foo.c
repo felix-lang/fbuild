@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-char* bar();
+const char* bar();
 
 int main(int argc, char** argv) {
 	printf("hello %s\n", bar());
