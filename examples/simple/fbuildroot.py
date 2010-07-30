@@ -152,4 +152,14 @@ def build(ctx):
 
             obj = builder.compile(d / 'foo.c')
             exe = builder.link_exe(d / 'foo', [obj], libs=[lib])
-            ctx.execute([exe], 'running', exe)
+
+            # Linux and Darwin needs the shared library path set in order to
+            # properly run.
+            if 'linux' in target.platform:
+                env = {'LD_LIBRARY_PATH': lib.parent}
+            elif 'darwin' in target.platform:
+                env = {'DYLD_LIBRARY_PATH': lib.parent}
+            else:
+                env = None
+
+            ctx.execute([exe], 'running', exe, env=env)
