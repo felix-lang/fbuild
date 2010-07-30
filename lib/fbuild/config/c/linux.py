@@ -20,11 +20,7 @@ class sys_epoll_h(c.Test):
     EPOLL_CTL_ADD = c.macro_test()
     EPOLL_CTL_DEL = c.macro_test()
     EPOLL_CTL_MOD = c.macro_test()
-    epoll_data = c.struct_test(
-        ('void*', 'ptr'),
-        ('int', 'fd'),
-        ('uint32_t', 'u32'),
-        ('uint32_t', 'u64'))
+    epoll_data_t = c.type_test()
     epoll_event = c.struct_test(
         ('uint32_t', 'events'),
         ('epoll_data_t', 'data'))
@@ -35,5 +31,13 @@ class sys_epoll_h(c.Test):
             return (-1 == efd) ? 1 : 0;
         }
         ''')
-    epoll_ctl = c.function_test('int', 'int', 'int', 'struct epoll_event*')
+    epoll_ctl = c.function_test('int', 'int', 'int', 'int', 'struct epoll_event*', test='''
+        #include <stdio.h>
+        #include <sys/epoll.h>
+        int main(int argc, char** argv) {
+            int efd = epoll_create(20);
+            struct epoll_event event;
+            return epoll_ctl(efd, EPOLL_CTL_ADD, fileno(stdin), &event) == 0 ? 0 : 1;
+        }
+        ''')
     epoll_wait = c.function_test('int', 'int', 'struct epoll_event*', 'int', 'int')

@@ -372,7 +372,7 @@ class macro_test(AbstractFieldDescriptor):
         return textwrap.dedent('''
             %s
             #ifndef %s
-            #error %s
+            #error %s is not defined
             #endif
             int main() {
                 return 0;

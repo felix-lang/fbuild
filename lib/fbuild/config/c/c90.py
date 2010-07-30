@@ -422,7 +422,7 @@ class stdio_h(c.Test):
     FILE = c.type_test()
     FILENAME_MAX = c.macro_test()
     FOPEN_MAX = c.macro_test()
-    fpos_t = c.int_type_test()
+    fpos_t = c.type_test()
     L_tmpnam = c.macro_test()
     NULL = c.macro_test()
     SEEK_CUR = c.macro_test()

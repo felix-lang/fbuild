@@ -61,8 +61,10 @@ def test_module(ctx, builder, shared, module):
     return passed, total
 
 def build(ctx):
-    c_static = fbuild.builders.c.guess_static(ctx)
-    c_shared = fbuild.builders.c.guess_shared(ctx)
+    # C needs libm included for some math routines, but C++ links against libm
+    # automatically.
+    c_static = fbuild.builders.c.guess_static(ctx, external_libs=['m'])
+    c_shared = fbuild.builders.c.guess_shared(ctx, external_libs=['m'])
     cxx_static = fbuild.builders.cxx.guess_static(ctx, platform_options=[
         ({'windows'}, {'flags': ['/EHsc']}),
     ])

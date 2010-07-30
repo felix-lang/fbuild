@@ -328,11 +328,40 @@ class inttypes_h(c.Test):
     SCNxMAX = c.macro_test()
     SCNxPTR = c.macro_test()
     imaxabs = c.function_test('intmax_t', 'intmax_t')
-    imaxdiv = c.function_test('imaxdiv_t', 'intmax_t', 'intmax_t')
+    imaxdiv = c.function_test('imaxdiv_t', 'intmax_t', 'intmax_t',
+        default_args=(4, 2))
     strtoimax = c.function_test('intmax_t', 'const char*', 'char**', 'int')
     strtoumax = c.function_test('uintmax_t', 'const char*', 'char**', 'int')
-    wcstoimax = c.function_test('intmax_t', 'const wchar_t*', 'wchar_t**', 'int')
-    wcstoumax = c.function_test('uintmax_t', 'const wchar_t*', 'wchar_t**', 'int')
+    wcstoimax = c.function_test('intmax_t', 'const wchar_t*', 'wchar_t**', 'int', test='''
+        #include <wchar.h>
+        #include <inttypes.h>
+        int main() {
+            wchar_t* s1 = L"15";
+            wchar_t* s2 = L"abc";
+            wchar_t* endp;
+            intmax_t d = wcstoimax(s1, &endp, 8);
+            if (s1 != endp && *endp == L'\\0' && d == 13) {
+                d = wcstoimax(s2, &endp, 10);
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
+    wcstoumax = c.function_test('uintmax_t', 'const wchar_t*', 'wchar_t**', 'int', test='''
+        #include <wchar.h>
+        #include <inttypes.h>
+        int main() {
+            wchar_t* s1 = L"15";
+            wchar_t* s2 = L"abc";
+            wchar_t* endp;
+            uintmax_t d = wcstoumax(s1, &endp, 8);
+            if (s1 != endp && *endp == L'\\0' && d == 13) {
+                d = wcstoumax(s2, &endp, 10);
+                return s1 == endp || *endp != '\\0' ? 0 : 1;
+            }
+            return 1;
+        }
+        ''')
 
 # ------------------------------------------------------------------------------
 
@@ -429,7 +458,7 @@ class math_h(c90.math_h):
     expm1f = c.function_test('float', 'float')
     expm1l = c.function_test('long double', 'long double')
     frexpf = c.function_test('float', 'float', 'int*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             int d0;
             float d1 = frexpf(0.f, &d0);
@@ -437,7 +466,7 @@ class math_h(c90.math_h):
         }
         ''')
     frexpl = c.function_test('long double', 'long double', 'int*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             int d0;
             long double d1 = frexpl(0.l, &d0);
@@ -463,7 +492,7 @@ class math_h(c90.math_h):
     logbf = c.function_test('float', 'float')
     logbl = c.function_test('long double', 'long double')
     modff = c.function_test('float', 'float', 'float*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             float d0;
             float d1 = modff(0.f, &d0);
@@ -471,7 +500,7 @@ class math_h(c90.math_h):
         }
         ''')
     modfl = c.function_test('long double', 'long double', 'long double*', test='''
-        #include <stdio.h>
+        #include <math.h>
         int main() {
             long double d0;
             long double d1 = modfl(0.l, &d0);
@@ -900,7 +929,8 @@ class stdlib_h(c90.stdlib_h):
         }
         ''')
     llabs = c.function_test('long long int', 'long long int')
-    lldiv = c.function_test('lldiv_t', 'long long int', 'long long int')
+    lldiv = c.function_test('lldiv_t', 'long long int', 'long long int',
+        default_args=(4, 2))
 
 # ------------------------------------------------------------------------------
 
@@ -994,12 +1024,14 @@ class wchar_h(c.Test):
     WCHAR_MIN = c.macro_test()
     WEOF = c.macro_test()
     fwprintf = c.function_test('int', 'FILE*', 'const wchar_t*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             return fwprintf(stdout, L"%d %d", 5, 6) ? 0 : 1;
         }
         ''', stdout=b'5 6')
     fwscanf = c.function_test('int', 'FILE*', 'const wchar_t*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             int x = 0, y = 0;
@@ -1029,6 +1061,8 @@ class wchar_h(c.Test):
         }
         ''')
     vfwprintf = c.function_test('int', 'FILE*', 'const wchar_t*', 'va_list', test='''
+        #include <stdarg.h>
+        #include <stdio.h>
         #include <wchar.h>
         int f(wchar_t* s, ...) {
             va_list ap;
@@ -1041,6 +1075,7 @@ class wchar_h(c.Test):
         ''', stdout=b'5 6')
     vfwscanf = c.function_test('int', 'FILE*', 'const wchar_t*', 'va_list', test='''
         #include <stdarg.h>
+        #include <stdio.h>
         #include <wchar.h>
         #ifdef _WIN32
         #include <windows.h>
@@ -1153,12 +1188,14 @@ class wchar_h(c.Test):
         }
         ''', stdin=b'5 6')
     fgetwc = c.function_test('wint_t', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             return fgetwc(stdin) == L'5' ? 0 : 1;
         }
         ''', stdin=b'5')
     fgetws = c.function_test('wchar_t*', 'wchar_t*', 'int', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             wchar_t s[50] = {0};
@@ -1170,19 +1207,28 @@ class wchar_h(c.Test):
         }
         ''', stdin=b'5 6')
     fputwc = c.function_test('wint_t', 'wchar_t', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             return fputwc(L'5', stdout) == L'5' ? 0 : 1;
         }
         ''', stdout=b'5')
     fputws = c.function_test('int', 'const wchar_t*', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
-            return fputws(L"5 6", stdout);
+            return fputws(L"5 6", stdout) ? 0 : 1;
         }
         ''', stdout=b'5 6')
-    fwide = c.function_test('int', 'FILE*', 'int', default_args=('stdout', 0))
+    fwide = c.function_test('FILE*', 'int', 'int', test='''
+        #include <stdio.h>
+        #include <wchar.h>
+        int main() {
+            return fwide(stdout, 0) == 0 ? 0 : 1;
+        }
+        ''')
     getwc = c.function_test('wint_t', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             return getwc(stdin) == 'c' ? 0 : 1;
@@ -1195,6 +1241,7 @@ class wchar_h(c.Test):
         }
         ''', stdin=b'c')
     putwc = c.function_test('wint_t', 'wchar_t', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             return putwc(L'5', stdout) == L'5' ? 0 : 1;
@@ -1207,6 +1254,7 @@ class wchar_h(c.Test):
         }
         ''', stdout=b'5')
     ungetwc = c.function_test('wint_t', 'wint_t', 'FILE*', test='''
+        #include <stdio.h>
         #include <wchar.h>
         int main() {
             if (ungetwc(L'5', stdin) != L'5') return 1;
@@ -1513,9 +1561,10 @@ class wchar_h(c.Test):
         }
         ''')
     wcsftime = c.function_test('size_t', 'wchar_t*', 'size_t', 'const wchar_t*', 'const struct tm*', test='''
+        #include <time.h>
         #include <wchar.h>
         int main() {
-            struct tm t = { 0, 0, 0, 1, 0, 70, 4, 0, 0 };
+            struct tm t = { 0 };
             wchar_t s[50] = {0};
             return wcsftime(s, 50, L" ", &t) == 1 ? 0 : 1;
         }
@@ -1523,7 +1572,8 @@ class wchar_h(c.Test):
     btowc = c.function_test('wint_t', 'int')
     wctob = c.function_test('int', 'wint_t')
     mbsinit = c.function_test('int', 'const mbstate_t*')
-    mbrlen = c.function_test('size_t', 'const char*', 'size_t', 'mbstate_t*')
+    mbrlen = c.function_test('size_t', 'const char*', 'size_t', 'mbstate_t*',
+        default_args=('""', 0, 'NULL'))
     mbrtowc = c.function_test('size_t', 'wchar_t*', 'const char*', 'size_t', 'mbstate_t*', test='''
         #include <wchar.h>
         int main() {
