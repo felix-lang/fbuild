@@ -5,7 +5,9 @@ import fbuild.temp
 
 # ------------------------------------------------------------------------------
 
-class windows_h(c.Header):
+class windows_h(c.Test):
+    header = c.header_test('windows.h')
+
     @c.cacheproperty
     def LoadLibrary(self):
         # try to get a shared compiler

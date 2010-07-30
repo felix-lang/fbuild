@@ -164,17 +164,21 @@ class AbstractFieldDescriptor:
 
     def __call__(self, instance):
         # We couldn't find a previous call to this function, so regenerate it.
-        if not isinstance(instance, Header):
-            header = None
-        else:
+        if not isinstance(self, header_test) and hasattr(instance, 'header'):
             # If the header is undefined in the instance then don't try to
             # compute this function.
             header = instance.header
             if header is None:
                 return None
+        else:
+            header = None
         formatted_test = self.test if self.test else self.format_test(header)
 
-        msg = 'checking %s' % self.name
+        if isinstance(self, header_test):
+            msg = 'checking header %r' % self.filename
+        else:
+            msg = 'checking %s' % self.name
+
         if header:
             msg += ' in %r' % header
 
@@ -222,6 +226,51 @@ class AbstractFieldDescriptor:
             self.stdout,
             self.timeout,
         ))
+
+# ------------------------------------------------------------------------------
+
+class header_test(AbstractFieldDescriptor):
+    """L{header_test} is a descriptor that tests for the header on the first
+    access. If it exists, the header filename is memoized in the object and
+    returned. Otherwise, memoise and return None."""
+
+    def __init__(self, filename, **kwargs):
+        super().__init__(**kwargs)
+        self.filename = filename
+
+    def format_test(self, header=None):
+        if header is None:
+            header = ''
+        else:
+            header = '#include <%s>' % header
+
+        return textwrap.dedent('''
+            %s
+            #include <%s>
+            int main() {
+                return 0;
+            }
+        ''') % (header, self.filename)
+
+    def process_stdout(self, instance, stdout):
+        if self.stdout is None or self.stdout == stdout:
+            instance.ctx.logger.passed()
+            return self.filename
+
+        instance.ctx.logger.failed()
+
+    def __eq__(self, other):
+        return \
+            super().__eq__(other) and \
+            self.filename == other.filename
+
+    def __hash__(self):
+        return hash((
+            super().__hash__(),
+            self.filename,
+        ))
+
+# ------------------------------------------------------------------------------
 
 class function_test(AbstractFieldDescriptor):
     """L{function_test} is a descriptor that tests for the function on the
@@ -576,33 +625,3 @@ class Test(fbuild.config.Test, metaclass=TestMeta):
                 f = getattr(self, name)
                 if isinstance(f, Variable):
                     yield field.method.name, f
-
-# ------------------------------------------------------------------------------
-
-class HeaderMeta(TestMeta):
-    def __new__(cls, name, bases, attrs):
-        filename = attrs.pop('header', None)
-
-        new_class = super().__new__(cls, name, bases, attrs)
-
-        # Don't do anything if haven't instantiated HeaderMeta yet.
-        if not any(isinstance(base, HeaderMeta) for base in bases):
-            return new_class
-
-        # Create a header property that will dynamically evaluate the header
-        # when it's accessed.  If the header name wasn't specified, default to
-        # replacing the last '_' in the filename with a '.'.
-        if filename is None:
-            filename = '.'.join(name.rsplit('_', 1))
-
-        def header(self):
-            if self.builder.check_header_exists(filename):
-                return filename
-            return None
-        new_class.header = cacheproperty(header)
-
-        return new_class
-
-class Header(Test, metaclass=HeaderMeta):
-    # This will be converted into a property in the metaclass.
-    header = None

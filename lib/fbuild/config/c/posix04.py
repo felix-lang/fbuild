@@ -7,7 +7,9 @@ import fbuild.temp
 
 # ------------------------------------------------------------------------------
 
-class aio_h(c.Header):
+class aio_h(c.Test):
+    header = c.header_test('aio.h')
+
     aiocb = c.struct_test(
         ('int', 'aio_fildes'),
         ('off_t', 'aio_offset'),
@@ -36,8 +38,8 @@ class aio_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class arpa_inet_h(c.Header):
-    header = 'arpa/inet.h'
+class arpa_inet_h(c.Test):
+    header = c.header_test('arpa/inet.h')
 
     in_port_t = c.type_test()
     in_addr_t = c.type_test()
@@ -63,7 +65,9 @@ complex_h = c99.complex_h
 
 # ------------------------------------------------------------------------------
 
-class cpio_h(c.Header):
+class cpio_h(c.Test):
+    header = c.header_test('cpio.h')
+
     C_IRUSR = c.variable_test()
     C_IWUSR = c.variable_test()
     C_IXUSR = c.variable_test()
@@ -96,7 +100,9 @@ class ctype_h(c99.ctype_h):
 
 # ------------------------------------------------------------------------------
 
-class dirent_h(c.Header):
+class dirent_h(c.Test):
+    header = c.header_test('dirent.h')
+
     DIR = c.type_test()
     dirent = c.struct_test(
         ('ino_t', 'd_ino'),
@@ -159,7 +165,9 @@ class dirent_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class dlfcn_h(c.Header):
+class dlfcn_h(c.Test):
+    header = c.header_test('dlfcn.h')
+
     RTLD_LAZY = c.macro_test()
     RTLD_NOW = c.macro_test()
     RTLD_GLOBAL = c.macro_test()
@@ -323,7 +331,9 @@ class errno_h(c99.errno_h):
 
 # ------------------------------------------------------------------------------
 
-class fcntl_h(c.Header):
+class fcntl_h(c.Test):
+    header = c.header_test('fcntl.h')
+
     F_DUPFD = c.variable_test()
     F_GETFD = c.variable_test()
     F_SETFD = c.variable_test()
@@ -394,31 +404,31 @@ float_h = c99.float_h
 
 # ------------------------------------------------------------------------------
 
-class fmtmsg_h(c.Header):
-    pass
+class fmtmsg_h(c.Test):
+    header = c.header_test('fmtmsg.h')
 
 # ------------------------------------------------------------------------------
 
-class fnmatch_h(c.Header):
-    pass
+class fnmatch_h(c.Test):
+    header = c.header_test('fnmatch.h')
 
-class ftw_h(c.Header):
-    pass
-
-# ------------------------------------------------------------------------------
-
-class glob_h(c.Header):
-    pass
+class ftw_h(c.Test):
+    header = c.header_test('ftw.h')
 
 # ------------------------------------------------------------------------------
 
-class grp_h(c.Header):
-    pass
+class glob_h(c.Test):
+    header = c.header_test('glob.h')
 
 # ------------------------------------------------------------------------------
 
-class iconv_h(c.Header):
-    pass
+class grp_h(c.Test):
+    header = c.header_test('grp.h')
+
+# ------------------------------------------------------------------------------
+
+class iconv_h(c.Test):
+    header = c.header_test('iconv.h')
 
 # ------------------------------------------------------------------------------
 
@@ -431,8 +441,8 @@ iso646_h = c99.iso646_h
 
 # ------------------------------------------------------------------------------
 
-class langinfo_h(c.Header):
-    pass
+class langinfo_h(c.Test):
+    header = c.header_test('langinfo.h')
 
 # ------------------------------------------------------------------------------
 
@@ -453,31 +463,33 @@ class locale_h(c99.locale_h):
 class math_h(c99.math_h):
     pass
 
-class monetary_h(c.Header):
-    pass
+class monetary_h(c.Test):
+    header = c.header_test('monetary.h')
 
-class mqueue_h(c.Header):
-    pass
+class mqueue_h(c.Test):
+    header = c.header_test('mqueue.h')
 
-class ndbm_h(c.Header):
-    pass
+class ndbm_h(c.Test):
+    header = c.header_test('ndbm.h')
 
-class netdb_h(c.Header):
-    pass
+class netdb_h(c.Test):
+    header = c.header_test('netdb.h')
 
-class netinet_in_h(c.Header):
-    pass
+class netinet_in_h(c.Test):
+    header = c.header_test('netinet/in.h')
 
-class netinet_tcp_h(c.Header):
-    pass
+class netinet_tcp_h(c.Test):
+    header = c.header_test('netinet/tcp.h')
 
-class nl_types_h(c.Header):
-    pass
+class nl_types_h(c.Test):
+    header = c.header_test('nl_types.h')
 
-class poll_h(c.Header):
-    pass
+class poll_h(c.Test):
+    header = c.header_test('poll.h')
 
-class pthread_h(c.Header):
+class pthread_h(c.Test):
+    header = c.header_test('pthread.h')
+
     PTHREAD_BARRIER_SERIAL_THREAD = c.macro_test()
     PTHREAD_CANCEL_ASYNCHRONOUS = c.macro_test()
     PTHREAD_CANCEL_ENABLE = c.macro_test()
@@ -856,20 +868,20 @@ class pthread_h(c.Header):
 
     pthread_testcancel = c.function_test('void', 'void')
 
-class pwd_h(c.Header):
-    pass
+class pwd_h(c.Test):
+    header = c.header_test('pwd.h')
 
-class regex_h(c.Header):
-    pass
+class regex_h(c.Test):
+    header = c.header_test('regex.h')
 
-class sched_h(c.Header):
-    pass
+class sched_h(c.Test):
+    header = c.header_test('sched.h')
 
-class search_h(c.Header):
-    pass
+class search_h(c.Test):
+    header = c.header_test('search.h')
 
-class semaphore_h(c.Header):
-    pass
+class semaphore_h(c.Test):
+    header = c.header_test('semaphore.h')
 
 class setjmp_h(c99.setjmp_h):
     sigjmp_buf = c.type_test()
@@ -893,8 +905,8 @@ class setjmp_h(c99.setjmp_h):
 class signal_h(c99.signal_h):
     pass
 
-class spawn_h(c.Header):
-    pass
+class spawn_h(c.Test):
+    header = c.header_test('spawn.h')
 
 class stdarg_h(c99.stdarg_h):
     pass
@@ -937,17 +949,17 @@ class string_h(c99.string_h):
         }
         ''')
 
-class strings_h(c.Header):
-    pass
+class strings_h(c.Test):
+    header = c.header_test('strings.h')
 
-class stropts_h(c.Header):
-    pass
+class stropts_h(c.Test):
+    header = c.header_test('stropts.h')
 
-class sys_ipc_h(c.Header):
-    header = 'sys/ipc.h'
+class sys_ipc_h(c.Test):
+    header = c.header_test('sys/ipc.h')
 
-class sys_mman_h(c.Header):
-    header = 'sys/mman.h'
+class sys_mman_h(c.Test):
+    header = c.header_test('sys/mman.h')
 
     MAP_FAILED = c.macro_test()
     MAP_FIXED = c.macro_test()
@@ -990,27 +1002,27 @@ class sys_mman_h(c.Header):
     shm_open = c.function_test('int', 'const char*', 'int', 'mode_t')
     shm_unlink = c.function_test('int', 'const char*')
 
-class sys_msg_h(c.Header):
-    header = 'sys/msg.h'
+class sys_msg_h(c.Test):
+    header = c.header_test('sys/msg.h')
 
-class sys_resource_h(c.Header):
-    header = 'sys/resource.h'
+class sys_resource_h(c.Test):
+    header = c.header_test('sys/resource.h')
 
     getrlimit = c.function_test('int', 'int', 'struct rlimit*')
     getrusage = c.function_test('int', 'int', 'struct rusage*')
     setrlimit = c.function_test('int', 'int', 'struct rlimit*')
 
-class sys_select_h(c.Header):
-    header = 'sys/select.h'
+class sys_select_h(c.Test):
+    header = c.header_test('sys/select.h')
 
-class sys_sem_h(c.Header):
-    header = 'sys/sem.h'
+class sys_sem_h(c.Test):
+    header = c.header_test('sys/sem.h')
 
-class sys_shm_h(c.Header):
-    header = 'sys/shm.h'
+class sys_shm_h(c.Test):
+    header = c.header_test('sys/shm.h')
 
-class sys_socket_h(c.Header):
-    header = 'sys/socket.h'
+class sys_socket_h(c.Test):
+    header = c.header_test('sys/socket.h')
 
     socklen_t = c.int_type_test()
     sa_family_t = c.int_type_test()
@@ -1103,14 +1115,14 @@ class sys_socket_h(c.Header):
         }
         ''')
 
-class sys_stat_h(c.Header):
-    header = 'sys/stat.h'
+class sys_stat_h(c.Test):
+    header = c.header_test('sys/stat.h')
 
-class sys_statvfs_h(c.Header):
-    header = 'sys/statvfs.h'
+class sys_statvfs_h(c.Test):
+    header = c.header_test('sys/statvfs.h')
 
-class sys_time_h(c.Header):
-    header = 'sys/time.h'
+class sys_time_h(c.Test):
+    header = c.header_test('sys/time.h')
 
     gettimeofday = c.function_test('int', 'struct timeval*', 'void*', test='''
         #include <sys/time.h>
@@ -1127,65 +1139,67 @@ class sys_time_h(c.Header):
         int main() { return 0; }
         ''')
 
-class sys_timeb_h(c.Header):
-    header = 'sys/timeb.h'
+class sys_timeb_h(c.Test):
+    header = c.header_test('sys/timeb.h')
 
-class sys_times_h(c.Header):
-    header = 'sys/times.h'
+class sys_times_h(c.Test):
+    header = c.header_test('sys/times.h')
 
-class sys_types_h(c.Header):
-    header = 'sys/types.h'
+class sys_types_h(c.Test):
+    header = c.header_test('sys/types.h')
 
     pid_t = c.type_test()
     size_t = c.type_test()
 
-class sys_uio_h(c.Header):
-    header = 'sys/uio.h'
+class sys_uio_h(c.Test):
+    header = c.header_test('sys/uio.h')
 
-class sys_un_h(c.Header):
-    header = 'sys/un.h'
+class sys_un_h(c.Test):
+    header = c.header_test('sys/un.h')
 
-class sys_utsname_h(c.Header):
-    header = 'sys/utsname.h'
+class sys_utsname_h(c.Test):
+    header = c.header_test('sys/utsname.h')
 
-class sys_wait_h(c.Header):
-    header = 'sys/wait.h'
+class sys_wait_h(c.Test):
+    header = c.header_test('sys/wait.h')
 
-class syslog_h(c.Header):
-    pass
+class syslog_h(c.Test):
+    header = c.header_test('syslog.h')
 
-class tar_h(c.Header):
-    pass
+class tar_h(c.Test):
+    header = c.header_test('tar.h')
 
-class termios_h(c.Header):
-    pass
+class termios_h(c.Test):
+    header = c.header_test('termios.h')
 
 tgmath_h = c99.tgmath_h
 
 class time_h(c99.time_h):
     pass
 
-class trace_h(c.Header):
-    pass
+class trace_h(c.Test):
+    header = c.header_test('trace.h')
 
-class ucontext_h(c.Header):
-    pass
+class ucontext_h(c.Test):
+    header = c.header_test('ucontext.h')
 
-class ulimit_h(c.Header):
-    pass
+class ulimit_h(c.Test):
+    header = c.header_test('ulimit.h')
 
-class unistd_h(c.Header):
+class unistd_h(c.Test):
+    header = c.header_test('unistd.h')
+
     getcwd = c.function_test('char*', 'char*', 'size_t')
     getpagesize = c.function_test('int', 'void')
     isatty = c.function_test('int', 'int')
     sysconf = c.function_test('long', 'int', default_args=('0',))
     ttyname = c.function_test('char*', 'int')
 
-class utime_h(c.Header):
-    pass
+class utime_h(c.Test):
+    header = c.header_test('utime.h')
 
-class utmpx_h(c.Header):
-    pass
+class utmpx_h(c.Test):
+    header = c.header_test('utmpx.h')
 
 class wchar_h(c99.wchar_h):
     pass
@@ -1193,5 +1207,5 @@ class wchar_h(c99.wchar_h):
 class wctype_h(c99.wctype_h):
     pass
 
-class wordexp_h(c.Header):
-    pass
+class wordexp_h(c.Test):
+    header = c.header_test('wordexp.h')

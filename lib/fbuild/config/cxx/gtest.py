@@ -2,5 +2,5 @@ import fbuild.config.cxx as cxx
 
 # ------------------------------------------------------------------------------
 
-class gtest_h(cxx.Header):
-    header = 'gtest/gtest.h'
+class gtest_h(cxx.Test):
+    header = cxx.header_test('gtest/gtest.h')

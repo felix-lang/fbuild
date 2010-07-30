@@ -2,8 +2,8 @@ import fbuild.config.c as c
 
 # ------------------------------------------------------------------------------
 
-class sys_epoll_h(c.Header):
-    header = 'sys/epoll.h'
+class sys_epoll_h(c.Test):
+    header = c.header_test('sys/epoll.h')
 
     EPOLLIN = c.macro_test()
     EPOLLPRI = c.macro_test()

@@ -4,12 +4,14 @@ import fbuild.config.c as c
 
 # ------------------------------------------------------------------------------
 
-class malloc_h(c.Header):
+class malloc_h(c.Test):
+    header = c.header_test('malloc.h')
+
     alloca = c.function_test('void*', 'size_t')
     malloc = c.function_test('void*', 'size_t')
 
-class malloc_malloc_h(c.Header):
-    header = 'malloc/malloc.h'
+class malloc_malloc_h(c.Test):
+    header = c.header_test('malloc/malloc.h')
 
     malloc_zone_statistics = c.function_test(
         'void', 'malloc_zone_t*', 'malloc_statistics_t*',
@@ -22,5 +24,7 @@ class malloc_malloc_h(c.Header):
         }
         ''')
 
-class alloca_h(c.Header):
+class alloca_h(c.Test):
+    header = c.header_test('alloca.h')
+
     alloca = c.function_test('void*', 'size_t')

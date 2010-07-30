@@ -75,17 +75,27 @@ def build(ctx):
     # c tests
     for builder in c_static, c_shared, cxx_static, cxx_shared:
         for module in (
-                #import_module('fbuild.config.c.bsd'),
-                #import_module('fbuild.config.c.c90'),
-                #import_module('fbuild.config.c.c99'),
-                #import_module('fbuild.config.c.darwin'),
-                #import_module('fbuild.config.c.ieeefp_h'),
-                #import_module('fbuild.config.c.linux'),
-                #import_module('fbuild.config.c.malloc'),
-                #import_module('fbuild.config.c.posix'),
-                #import_module('fbuild.config.c.posix01'),
+                import_module('fbuild.config.c.bsd'),
+                import_module('fbuild.config.c.c90'),
+                import_module('fbuild.config.c.c99'),
+                import_module('fbuild.config.c.darwin'),
+                import_module('fbuild.config.c.gmp'),
+                import_module('fbuild.config.c.gnu'),
+                import_module('fbuild.config.c.gsl'),
+                import_module('fbuild.config.c.ieeefp_h'),
+                import_module('fbuild.config.c.linux'),
+                import_module('fbuild.config.c.malloc'),
+                import_module('fbuild.config.c.mpi'),
+                import_module('fbuild.config.c.openmp'),
+                import_module('fbuild.config.c.openssl'),
+                import_module('fbuild.config.c.pari'),
+                import_module('fbuild.config.c.posix'),
+                import_module('fbuild.config.c.posix01'),
                 import_module('fbuild.config.c.posix04'),
-                #import_module('fbuild.config.c.stdlib'),
+                import_module('fbuild.config.c.readline'),
+                import_module('fbuild.config.c.sdl'),
+                import_module('fbuild.config.c.solaris'),
+                import_module('fbuild.config.c.stdlib'),
                 import_module('fbuild.config.c.win32')):
             p, t = test_module(ctx, builder, c_shared, module)
             passed += p
@@ -94,12 +104,12 @@ def build(ctx):
     # c++ tests
     for builder in cxx_static, cxx_shared:
         for module in (
-                import_module('fbuild.config.cxx.cxx03'),
                 import_module('fbuild.config.cxx.cmath'),
-                import_module('fbuild.config.cxx.iterator'),
+                import_module('fbuild.config.cxx.cxx03'),
+                import_module('fbuild.config.cxx.gnu'),
                 import_module('fbuild.config.cxx.gtest'),
-                import_module('fbuild.config.cxx.gnu')):
-            p, t = test_module(ctx, builder, module)
+                import_module('fbuild.config.cxx.iterator')):
+            p, t = test_module(ctx, builder, cxx_shared, module)
             passed += p
             total += t
 

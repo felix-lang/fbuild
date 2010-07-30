@@ -2,11 +2,15 @@ import fbuild.config.c as c
 
 # ------------------------------------------------------------------------------
 
-class libgen_h(c.Header):
+class libgen_h(c.Test):
+    header = c.header_test('libgen.h')
+
     basename = c.function_test('char*', 'char*')
     dirname = c.function_test('char*', 'char*')
 
-class stdlib_h(c.Header):
+class stdlib_h(c.Test):
+    header = c.header_test('stdlib.h')
+
     ecvt = c.function_test('char*', 'double', 'int', 'int*', 'int*', test='''
         #include <stdlib.h>
         int main() {
@@ -43,13 +47,17 @@ class stdlib_h(c.Header):
         }
         ''')
 
-class strings_h(c.Header):
+class strings_h(c.Test):
+    header = c.header_test('strings.h')
+
     bcmp = c.function_test('int', 'const void*', 'const void*', 'size_t')
     bcopy = c.function_test('void', 'const void*', 'void*', 'size_t',
         default_args=(0, 0, 0))
     bzero = c.function_test('void', 'void*', 'size_t')
 
-class unistd_h(c.Header):
+class unistd_h(c.Test):
+    header = c.header_test('unistd.h')
+
     brk = c.function_test('void*', 'void*')
     getwd = c.function_test('char*', 'char*', test='''
         #include <unistd.h>

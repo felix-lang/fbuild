@@ -5,7 +5,9 @@ import fbuild.config.c as c
 
 # ------------------------------------------------------------------------------
 
-class ieeefp_h(c.Header):
+class ieeefp_h(c.Test):
+    header = c.header_test('ieeefp.h')
+
     fp_rnd = c.type_test()
     fpclass_t = c.type_test()
 

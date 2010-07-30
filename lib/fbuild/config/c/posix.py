@@ -86,8 +86,6 @@ class string_h(string_h):
         self.ctx.logger.failed()
 
 class sys_mman_h(sys_mman_h):
-    header = 'sys/mman.h'
-
     MADV_DOFORK = c.macro_test()
     MADV_DONTFORK = c.macro_test()
     MADV_DONTNEED = c.macro_test()
@@ -129,8 +127,6 @@ class sys_mman_h(sys_mman_h):
     minherit = c.function_test('void*', 'size_t', 'int')
 
 class sys_socket_h(sys_socket_h):
-    header = 'sys/socket.h'
-
     @c.cacheproperty
     def accept(self):
         if not self.header:
@@ -330,8 +326,6 @@ class sys_socket_h(sys_socket_h):
         self.ctx.logger.failed()
 
 class sys_types_h(sys_types_h):
-    header = 'sys/types.h'
-
     u_int32_t = c.type_test()
     u_int64_t = c.type_test()
 

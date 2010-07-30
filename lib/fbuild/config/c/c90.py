@@ -105,7 +105,9 @@ class types(c.Test):
 
 # ------------------------------------------------------------------------------
 
-class assert_h(c.Header):
+class assert_h(c.Test):
+    header = c.header_test('assert.h')
+
     @c.cacheproperty
     def assert_(self):
         self.ctx.logger.check("checking assert in 'assert.h'")
@@ -154,7 +156,9 @@ class assert_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class ctype_h(c.Header):
+class ctype_h(c.Test):
+    header = c.header_test('ctype.h')
+
     isalnum = c.function_test('int', 'int')
     isalpha = c.function_test('int', 'int')
     iscntrl = c.function_test('int', 'int')
@@ -171,14 +175,18 @@ class ctype_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class errno_h(c.Header):
+class errno_h(c.Test):
+    header = c.header_test('errno.h')
+
     EDOM = c.macro_test()
     ERANGE = c.macro_test()
     errno = c.variable_test()
 
 # -----------------------------------------------------------------------------
 
-class float_h(c.Header):
+class float_h(c.Test):
+    header = c.header_test('float.h')
+
     DBL_DIG = c.macro_test()
     DBL_EPSILON = c.macro_test()
     DBL_MANT_DIG = c.macro_test()
@@ -211,7 +219,9 @@ class float_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class limits_h(c.Header):
+class limits_h(c.Test):
+    header = c.header_test('limits.h')
+
     CHAR_BIT = c.macro_test()
     CHAR_MAX = c.macro_test()
     CHAR_MIN = c.macro_test()
@@ -231,7 +241,9 @@ class limits_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class locale_h(c.Header):
+class locale_h(c.Test):
+    header = c.header_test('locale.h')
+
     LC_ALL = c.macro_test()
     LC_COLLATE = c.macro_test()
     LC_CTYPE = c.macro_test()
@@ -263,7 +275,9 @@ class locale_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class math_h(c.Header):
+class math_h(c.Test):
+    header = c.header_test('math.h')
+
     HUGE_VAL = c.macro_test()
     acos = c.function_test('double', 'double')
     asin = c.function_test('double', 'double')
@@ -304,7 +318,9 @@ class math_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class setjmp_h(c.Header):
+class setjmp_h(c.Test):
+    header = c.header_test('setjmp.h')
+
     jmp_buf = c.type_test()
 
     longjmp = c.function_test('void', 'jmp_buf', 'int', test='''
@@ -325,7 +341,9 @@ class setjmp_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class signal_h(c.Header):
+class signal_h(c.Test):
+    header = c.header_test('signal.h')
+
     sig_atomic_t = c.type_test()
     SIG_DFL = c.macro_test()
     SIG_ERR = c.macro_test()
@@ -356,7 +374,9 @@ class signal_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class stdarg_h(c.Header):
+class stdarg_h(c.Test):
+    header = c.header_test('stdarg.h')
+
     va_list = c.type_test()
     va_start = c.macro_test(test='''
         #include <stdarg.h>
@@ -380,7 +400,9 @@ class stdarg_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class stddef_h(c.Header):
+class stddef_h(c.Test):
+    header = c.header_test('stddef.h')
+
     NULL = c.macro_test()
     offsetof = c.macro_test()
     ptrdiff_t = c.int_type_test()
@@ -389,7 +411,9 @@ class stddef_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class stdio_h(c.Header):
+class stdio_h(c.Test):
+    header = c.header_test('stdio.h')
+
     _IOFBF = c.macro_test()
     _IOLBF = c.macro_test()
     _IONBF = c.macro_test()
@@ -715,7 +739,9 @@ class stdio_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class stdlib_h(c.Header):
+class stdlib_h(c.Test):
+    header = c.header_test('stdlib.h')
+
     EXIT_FAILURE = c.macro_test()
     EXIT_SUCCESS = c.macro_test()
     MB_CUR_MAX = c.macro_test()
@@ -896,9 +922,9 @@ class stdlib_h(c.Header):
         }
         ''')
     abs = c.function_test('int', 'int')
-    div = c.function_test('div_t', 'int', 'int')
+    div = c.function_test('div_t', 'int', 'int', default_args=(4, 2))
     labs = c.function_test('long int', 'long int')
-    ldiv = c.function_test('ldiv_t', 'long int', 'long int')
+    ldiv = c.function_test('ldiv_t', 'long int', 'long int', default_args=(4, 2))
     mblen = c.function_test('int', 'const char*', 'size_t', default_args=('""', 0))
     mbtowc = c.function_test('int', 'wchar_t*', 'const char*', 'size_t', test='''
         #include <stdlib.h>
@@ -933,7 +959,9 @@ class stdlib_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class string_h(c.Header):
+class string_h(c.Test):
+    header = c.header_test('string.h')
+
     NULL = c.macro_test()
     size_t = c.int_type_test()
     memcpy = c.function_test('void*', 'void*', 'const void*', 'size_t', test='''
@@ -1141,7 +1169,9 @@ class string_h(c.Header):
 
 # -----------------------------------------------------------------------------
 
-class time_h(c.Header):
+class time_h(c.Test):
+    header = c.header_test('time.h')
+
     CLK_TCK = c.macro_test()
     NULL = c.macro_test()
     clock_t = c.int_type_test()

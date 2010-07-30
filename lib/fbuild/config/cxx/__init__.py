@@ -6,6 +6,7 @@ import fbuild.config.c.c90 as c90
 
 # ------------------------------------------------------------------------------
 
+header_test = c.header_test
 function_test = c.function_test
 macro_test = c.macro_test
 type_test = c.type_test
@@ -67,9 +68,7 @@ class template_test(c.AbstractFieldDescriptor):
 
 # ------------------------------------------------------------------------------
 
-Test = c.Test
-
-class HeaderMeta(c.HeaderMeta):
+class TestMeta(c.TestMeta):
     def __new__(cls, name, bases, attrs):
         namespace = attrs.pop('namespace', None)
 
@@ -83,5 +82,5 @@ class HeaderMeta(c.HeaderMeta):
 
         return new_class
 
-class Header(c.Header, metaclass=HeaderMeta):
+class Test(c.Test, metaclass=TestMeta):
     namespace = None

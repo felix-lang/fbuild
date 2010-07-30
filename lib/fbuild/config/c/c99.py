@@ -19,7 +19,9 @@ assert_h = c90.assert_h
 
 # ------------------------------------------------------------------------------
 
-class complex_h(c.Header):
+class complex_h(c.Test):
+    header = c.header_test('complex.h')
+
     complex = c.macro_test()
     _Complex_I = c.macro_test()
     imaginary = c.macro_test()
@@ -113,7 +115,9 @@ class errno_h(c90.errno_h):
 
 # ------------------------------------------------------------------------------
 
-class fenv_h(c.Header):
+class fenv_h(c.Test):
+    header = c.header_test('fenv.h')
+
     fenv_t = c.type_test()
     fexcept_t = c.type_test()
     FE_DIVBYZERO = c.macro_test()
@@ -165,7 +169,9 @@ class float_h(c90.float_h):
 
 # ------------------------------------------------------------------------------
 
-class inttypes_h(c.Header):
+class inttypes_h(c.Test):
+    header = c.header_test('inttypes.h')
+
     imaxdiv_t = c.type_test()
     PRId8 = c.macro_test()
     PRId16 = c.macro_test()
@@ -330,7 +336,9 @@ class inttypes_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class iso646_h(c.Header):
+class iso646_h(c.Test):
+    header = c.header_test('iso646.h')
+
     and_ = c.macro_test(name='and')
     and_eq = c.macro_test()
     bitand = c.macro_test()
@@ -606,7 +614,9 @@ class stdarg_h(c90.stdarg_h):
 
 # ------------------------------------------------------------------------------
 
-class stdbool_h(c.Header):
+class stdbool_h(c.Test):
+    header = c.header_test('stdbool.h')
+
     bool = c.int_type_test()
     true = c.macro_test()
     false = c.macro_test()
@@ -619,7 +629,9 @@ stddef_h = c90.stddef_h
 
 # ------------------------------------------------------------------------------
 
-class stdint_h(c.Header):
+class stdint_h(c.Test):
+    header = c.header_test('stdint.h')
+
     int8_t = c.int_type_test()
     int16_t = c.int_type_test()
     int32_t = c.int_type_test()
@@ -897,7 +909,9 @@ string_h = c90.string_h
 
 # ------------------------------------------------------------------------------
 
-class tgmath_h(c.Header):
+class tgmath_h(c.Test):
+    header = c.header_test('tgmath.h')
+
     acos = c.macro_test()
     asin = c.macro_test()
     atan = c.macro_test()
@@ -967,7 +981,9 @@ class time_h(c90.time_h):
 
 # ------------------------------------------------------------------------------
 
-class wchar_h(c.Header):
+class wchar_h(c.Test):
+    header = c.header_test('wchar.h')
+
     wchar_t = c.int_type_test()
     size_t = c.int_type_test()
     mbstate_t = c.type_test()
@@ -1543,7 +1559,9 @@ class wchar_h(c.Header):
 
 # ------------------------------------------------------------------------------
 
-class wctype_h(c.Header):
+class wctype_h(c.Test):
+    header = c.header_test('wctype.h')
+
     wint_t = c.type_test()
     wctrans_t = c.type_test()
     wctype_t = c.type_test()

@@ -6,12 +6,14 @@ import fbuild.config.cxx as cxx
 class types(c90.types):
     bool = cxx.int_type_test()
 
-class iterator(cxx.Header):
+class iterator(cxx.Test):
+    header = cxx.header_test('iterator')
     namespace = 'std'
 
     iterator = cxx.template_test(test_types=['int', 'int', 'int'])
 
-class cmath(cxx.Header):
+class cmath(cxx.Test):
+    header = cxx.header_test('cmath')
     namespace = 'std'
 
     HUGE_VAL = cxx.macro_test()

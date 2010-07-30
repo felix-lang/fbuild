@@ -2,7 +2,9 @@ import fbuild.config.c as c
 
 # ------------------------------------------------------------------------------
 
-class execinfo_h(c.Header):
+class execinfo_h(c.Test):
+    header = c.header_test('execinfo.h')
+
     backtrace = c.function_test('int', 'void**', 'int', test='''
         #include <execinfo.h>
         int main() {
@@ -16,13 +18,13 @@ class execinfo_h(c.Header):
         test=backtrace.test)
     backtrace_symbols_fd = c.function_test('void', 'void* const*', 'int', 'int')
 
-class sys_dir_h(c.Header):
-    header = 'sys/dir.h'
+class sys_dir_h(c.Test):
+    header = c.header_test('sys/dir.h')
 
     DIR = c.type_test()
 
-class sys_event_h(c.Header):
-    header = 'sys/event.h'
+class sys_event_h(c.Test):
+    header = c.header_test('sys/event.h')
 
     kqueue = c.function_test('int', 'void', test='''
         #include <sys/types.h>      // from the kqueue manpage
@@ -35,8 +37,8 @@ class sys_event_h(c.Header):
         }
         ''')
 
-class sys_ndir_h(c.Header):
-    header = 'sys/ndir.h'
+class sys_ndir_h(c.Test):
+    header = c.header_test('sys/ndir.h')
 
-class sys_param_h(c.Header):
-    header = 'sys/param.h'
+class sys_param_h(c.Test):
+    header = c.header_test('sys/param.h')
