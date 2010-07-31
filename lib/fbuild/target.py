@@ -1,6 +1,8 @@
 import functools
 import operator
 
+import fbuild
+
 # ------------------------------------------------------------------------------
 
 class Target:
@@ -29,7 +31,7 @@ def find(target_name):
     try:
         return _targets[target_name]
     except KeyError:
-        raise Error('invalid target %r' % target_name)
+        raise fbuild.Error('invalid target %r' % target_name)
 
 def help_string():
     """Construct and return a description of all the targets."""
