@@ -112,8 +112,10 @@ class Gcc(fbuild.db.PersistentObject):
             libs=[],
             external_libs=[],
             debug=None,
+            profile=None,
             optimize=None,
             debug_flags=['-g'],
+            profile_flags=['-pg'],
             optimize_flags=['-O2']):
         super().__init__(ctx)
 
@@ -124,8 +126,10 @@ class Gcc(fbuild.db.PersistentObject):
         self.macros = macros
         self.warnings = warnings
         self.debug = debug
+        self.profile = profile
         self.optimize = optimize
         self.debug_flags = debug_flags
+        self.profile_flags = profile_flags
         self.optimize_flags = optimize_flags
         self.libpaths = libpaths
         self.libs = libs
@@ -135,6 +139,9 @@ class Gcc(fbuild.db.PersistentObject):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
         if debug_flags and not self.check_flags(debug_flags):
+            raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        if profile_flags and not self.check_flags(profile_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
         if optimize_flags and not self.check_flags(optimize_flags):
@@ -150,6 +157,7 @@ class Gcc(fbuild.db.PersistentObject):
             libs=[],
             external_libs=[],
             debug=None,
+            profile=None,
             optimize=None,
             **kwargs):
         # Make sure we don't repeat includes
@@ -239,6 +247,9 @@ class Gcc(fbuild.db.PersistentObject):
         if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
 
+        if (profile is None and self.profile) or profile:
+            cmd.extend(self.profile_flags)
+
         if (optimize is None and self.optimize) or optimize:
             cmd.extend(self.optimize_flags)
 
@@ -295,6 +306,7 @@ class Gcc(fbuild.db.PersistentObject):
             self.debug == other.debug and \
             self.optimize == other.optimize and \
             self.debug_flags == other.debug_flags and \
+            self.profile_flags == other.profile_flags and \
             self.optimize_flags == other.optimize_flags and \
             self.libpaths == other.libpaths and \
             self.libs == other.libs and \
@@ -310,6 +322,7 @@ class Gcc(fbuild.db.PersistentObject):
             self.debug,
             self.optimize,
             self.debug_flags,
+            self.profile_flags,
             self.optimize_flags,
             self.libpaths,
             self.libs,

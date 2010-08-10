@@ -16,6 +16,16 @@ class Ocamlc(ocamlfind.Ocamlc):
             make_ocamldep=make_ocamldep,
             **kwargs)
 
+class Ocamlcp(ocamlfind.Ocamlcp):
+    def __init__(self, *args,
+            ocamlfind_cmd='batteries/ocamlcp',
+            make_ocamldep=Ocamldep,
+            **kwargs):
+        super().__init__(*args,
+            ocamlfind_cmd=ocamlfind_cmd,
+            make_ocamldep=make_ocamldep,
+            **kwargs)
+
 class Ocamlopt(ocamlfind.Ocamlopt):
     def __init__(self, *args,
             ocamlfind_cmd='batteries/ocamlopt',
@@ -32,10 +42,12 @@ class Ocaml(ocamlfind.Ocaml):
     def __init__(self, *args,
             make_ocamldep=Ocamldep,
             make_ocamlc=Ocamlc,
+            make_ocamlcp=Ocamlcp,
             make_ocamlopt=Ocamlopt,
             **kwargs):
         super().__init__(*args,
             make_ocamldep=make_ocamldep,
             make_ocamlc=make_ocamlc,
+            make_ocamlcp=make_ocamlcp,
             make_ocamlopt=make_ocamlopt,
             **kwargs)

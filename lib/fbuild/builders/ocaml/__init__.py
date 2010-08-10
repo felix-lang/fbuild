@@ -173,7 +173,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             pre_flags=[],
             flags=[],
             debug=False,
+            optimize=False,
             debug_flags=['-g'],
+            optimize_flags=[],
             ocamldep=None,
             make_ocamldep=Ocamldep,
             requires_version=None,
@@ -193,7 +195,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.pre_flags = pre_flags
         self.flags = flags
         self.debug = debug
+        self.optimize = optimize
         self.debug_flags = debug_flags
+        self.optimize_flags = optimize_flags
 
         # Make sure we've got a valid version.
         fbuild.builders.check_version(ctx, self, self.version,
@@ -270,6 +274,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             pre_flags=[],
             flags=[],
             debug=None,
+            optimize=None,
             custom=False,
             cc=None,
             c_libs=[],
@@ -298,11 +303,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         cmd.extend(self.pre_flags)
         cmd.extend(pre_flags)
 
-        if debug is None:
-            debug = self.debug
-
-        if debug:
+        if (debug is None and self.debug) or debug:
             cmd.extend(self.debug_flags)
+
+        if (optimize is None and self.optimize) or optimize:
+            cmd.extend(self.optimize_flags)
 
         includes = set(includes)
         includes.update(self.includes)
@@ -580,18 +585,16 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             self.obj_suffix == other.obj_suffix and \
             self.lib_suffix == other.lib_suffix and \
             self.exe_suffix == other.exe_suffix and \
-            self.debug_flags == other.debug_flags
+            self.debug_flags == other.debug_flags and \
+            self.optimize_flags == other.optimize_flags
 
 # ------------------------------------------------------------------------------
 
-class Ocamlc(Builder):
-    def __init__(self, ctx, exe=None, *args,
+class BytecodeBuilder(Builder):
+    def __init__(self, ctx, exe, *args,
             obj_suffix='.cmo',
             lib_suffix='.cma',
             **kwargs):
-        exe = fbuild.builders.find_program(ctx,
-            [exe] if exe else ['ocamlc.opt', 'ocamlc'])
-
         super().__init__(ctx, exe, *args,
             obj_suffix=obj_suffix,
             lib_suffix=lib_suffix,
@@ -621,6 +624,37 @@ class Ocamlc(Builder):
 
 # ------------------------------------------------------------------------------
 
+class Ocamlc(BytecodeBuilder):
+    def __init__(self, ctx, exe=None, *args, **kwargs):
+        exe = fbuild.builders.find_program(ctx,
+            [exe] if exe else ['ocamlc.opt', 'ocamlc'])
+
+        super().__init__(ctx, exe, *args, **kwargs)
+
+# ------------------------------------------------------------------------------
+
+class Ocamlcp(BytecodeBuilder):
+    def __init__(self, ctx, exe=None, *args, profile_flags=[], **kwargs):
+        exe = fbuild.builders.find_program(ctx,
+            [exe] if exe else ['ocamlcp.opt', 'ocamlcp'])
+
+        self.profile_flags = profile_flags
+
+        super().__init__(ctx, exe, *args, **kwargs)
+
+    def _run(self, *args, flags=[], profile_flags=None, **kwargs):
+        """Add the profile flags."""
+        if profile_flags is None:
+            profile_flags = self.profile_flags
+
+        return super()._run(*args, flags=flags + profile_flags, **kwargs)
+
+    def __eq__(self, other):
+        return super().__eq__(other) and \
+            self.profile_flags == other.profile_flags
+
+# ------------------------------------------------------------------------------
+
 class Ocamlopt(Builder):
     def __init__(self, ctx, exe=None, *args,
             platform=None,
@@ -630,8 +664,11 @@ class Ocamlopt(Builder):
             make_ocamldep=Ocamldep,
             ocamlc=None,
             make_ocamlc=Ocamlc,
+            profile=False,
+            profile_flags=['-p'],
             **kwargs):
         # We need the bytecode compiler to compile .mli files.
+        # Note we purposely don't pass the profile to ocamlc.
         self.ocamlc = ocamlc or make_ocamlc(ctx,
             ocamldep=ocamldep,
             make_ocamldep=make_ocamldep)
@@ -640,6 +677,9 @@ class Ocamlopt(Builder):
             fbuild.builders.platform.obj_suffix(ctx, platform)
         self.native_lib_suffix = \
             fbuild.builders.platform.static_lib_suffix(ctx, platform)
+
+        self.profile = profile
+        self.profile_flags = profile_flags
 
         exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlopt.opt', 'ocamlopt'])
@@ -672,6 +712,18 @@ class Ocamlopt(Builder):
         f(src)
 
         return deps
+
+    # --------------------------------------------------------------------------
+
+    def _run(self, *args, flags=[], profile=None, profile_flags=None, **kwargs):
+        """Add the profile flags if requested."""
+        if (profile is None and self.profile) or profile:
+            if profile_flags is None:
+                profile_flags = self.profile_flags
+
+            flags = flags + self.profile_flags
+
+        return super()._run(*args, flags=flags, **kwargs)
 
     # --------------------------------------------------------------------------
 
@@ -723,6 +775,12 @@ class Ocamlopt(Builder):
             srcs=srcs,
             dsts=dsts)
 
+    # --------------------------------------------------------------------------
+
+    def __eq__(self, other):
+        return super().__eq__(other) and \
+            self.profile_flags == other.profile_flags
+
 # ------------------------------------------------------------------------------
 
 class Ocaml(fbuild.builders.AbstractCompilerBuilder):
@@ -731,23 +789,36 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
     def __init__(self, ctx, *,
             ocamldep=None,
             ocamlc=None,
+            ocamlcp=None,
             ocamlopt=None,
             make_ocamldep=Ocamldep,
             make_ocamlc=Ocamlc,
+            make_ocamlcp=Ocamlcp,
             make_ocamlopt=Ocamlopt,
+            profile=False,
             **kwargs):
         self.ocamldep = ocamldep or make_ocamldep(ctx)
+
+        # ocamlc doesn't take profile flags.
         self.ocamlc = make_ocamlc(ctx,
             ocamldep=ocamldep,
             exe=ocamlc,
             make_ocamldep=make_ocamldep,
             **kwargs)
+
+        self.ocamlcp = make_ocamlcp(ctx,
+            ocamldep=ocamldep,
+            exe=ocamlcp,
+            make_ocamldep=make_ocamldep,
+            **kwargs)
+
         self.ocamlopt = make_ocamlopt(ctx,
             ocamldep=self.ocamldep,
             ocamlc=self.ocamlc,
             exe=ocamlopt,
             make_ocamldep=make_ocamldep,
             make_ocamlc=make_ocamlc,
+            profile=profile,
             **kwargs)
 
     # --------------------------------------------------------------------------
