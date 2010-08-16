@@ -138,13 +138,13 @@ class Gcc(fbuild.db.PersistentObject):
         if not self.check_flags(flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
-        if debug_flags and not self.check_flags(debug_flags):
+        if debug and debug_flags and not self.check_flags(debug_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
-        if profile_flags and not self.check_flags(profile_flags):
+        if profile and profile_flags and not self.check_flags(profile_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
-        if optimize_flags and not self.check_flags(optimize_flags):
+        if optimize and optimize_flags and not self.check_flags(optimize_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
     def __call__(self, srcs, dst=None, *,
