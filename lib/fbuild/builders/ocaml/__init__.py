@@ -476,6 +476,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, *,
             includes=[],
+            libs=[],
+            external_libs=[],
             buildroot=None,
             ocamldep_flags=[],
             preprocessor=None,
@@ -483,6 +485,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         """Compile all the L{srcs} in parallel."""
         kwargs['buildroot'] = buildroot = buildroot or self.ctx.buildroot
         kwargs['includes']  = includes  = set(includes)
+
+        # Add the library parents to the search paths
+        includes.update(lib.parent for lib in libs)
+        includes.update(lib.parent for lib in external_libs)
+
         srcs = [Path(src) for src in srcs]
         for src in srcs:
             parent = src.parent
@@ -535,6 +542,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     def _build_link(self, function, dst, srcs, *,
+            objs=[],
             includes=[],
             cflags=[],
             ckwargs={},
@@ -555,11 +563,12 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 includes.add(lib.parent)
                 includes.add(lib.parent.removeroot(buildroot + os.sep))
 
-        objs = self.build_objects(srcs,
+        objs = list(objs)
+        objs.extend(self.build_objects(srcs,
             includes=includes,
             flags=list(chain(flags, cflags)),
             buildroot=buildroot,
-            **dict(kwargs, **ckwargs))
+            **dict(kwargs, **ckwargs)))
 
         return function(dst, objs,
             includes=includes,
