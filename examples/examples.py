@@ -8,6 +8,11 @@ parser = optparse.OptionParser()
 parser.add_option('--clean',
     action='store_true',
     help='clean build files first')
+parser.add_option('-j', '--jobs',
+    metavar='N',
+    type='int',
+    default=1,
+    help='Allow N jobs at once')
 
 options, args = parser.parse_args()
 
@@ -26,8 +31,10 @@ for d in os.listdir(examples_dir):
 
     print('running example:', d)
     print()
-    subprocess.call('%s %s' %
-        (sys.executable, os.path.join('..', '..', 'fbuild-light')),
+    subprocess.call('%s %s -j %i' % (
+            sys.executable,
+            os.path.join('..', '..', 'fbuild-light'),
+            options.jobs),
         cwd=d, shell=True)
     print()
     print('-' * 50)
