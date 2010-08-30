@@ -181,6 +181,10 @@ class Context:
                 # Make sure if we get a keyboard interrupt to kill the process.
                 p.kill(group=True)
                 raise
+            else:
+                # Detect Ctrl-C in subprocess.
+                if returncode == -signal.SIGINT:
+                    raise KeyboardInterrupt
         except OSError as e:
             # flush the logger
             self.logger.log('command failed: ' + cmd_string, color='red')
