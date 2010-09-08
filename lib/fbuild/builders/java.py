@@ -1,3 +1,4 @@
+import os
 import io
 import re
 from functools import partial
@@ -83,7 +84,7 @@ class Java(fbuild.db.PersistentObject):
     def run_class(self, cls, *args, classpaths=[], **kwargs):
         cmd = [self.exe]
 
-        cmd.extend(('-cp', ':'.join(chain(self.classpaths, classpaths))))
+        cmd.extend(('-cp', os.pathsep.join(chain(self.classpaths, classpaths))))
         cmd.append(cls)
 
         return self.ctx.execute(cmd, *args, **kwargs)
