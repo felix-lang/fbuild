@@ -225,7 +225,7 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
 
     # --------------------------------------------------------------------------
 
-    _dep_regex = re.compile(r'\[wrote (.*)\]\n')
+    _dep_regex = re.compile(r'\[wrote (.*)\]')
 
     def _run(self, builder, src, dst=None, *,
             flags=[],
