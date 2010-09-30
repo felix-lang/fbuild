@@ -450,7 +450,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             libs=[],
             external_libs=[],
             pre_flags=[],
-            pack=None,
             **kwargs):
         """Link compiled ocaml files into a library without caching the
         results.  This is needed when linking temporary files."""
@@ -509,10 +508,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 preprocessor=preprocessor,
                 flags=ocamldep_flags))
 
-        if deps:
-            fbuild.db.add_external_dependencies_to_call(self.ctx, srcs=deps)
-
-        return self.ctx.scheduler.map_with_dependencies(
+        objs = self.ctx.scheduler.map_with_dependencies(
             partial(self.ocamldep.source_dependencies,
                 includes=includes,
                 preprocessor=preprocessor,
@@ -522,6 +518,49 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 preprocessor=preprocessor,
                 **kwargs),
             srcs)
+
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
+            srcs=[],
+            dsts=[obj.replaceext('.cmi') for obj in objs])
+
+        return objs
+
+    # --------------------------------------------------------------------------
+
+    @fbuild.db.cachemethod
+    def build_pack(self, dst, srcs:fbuild.db.SRCS, *,
+            buildroot=None,
+            objs=[],
+            pre_flags=[],
+            **kwargs) -> fbuild.db.DST:
+        """Compile all the L{srcs} into a packed object."""
+
+        buildroot = buildroot or self.ctx.buildroot
+        dst = Path(dst).addroot(buildroot) + self.obj_suffix
+        dst.parent.makedirs()
+
+        for_pack = dst.name.splitext()[0]
+        for_pack = for_pack[0].upper() + for_pack[1:]
+
+        objs = list(objs)
+        objs = self.build_objects(srcs,
+            for_pack=for_pack,
+            pre_flags=pre_flags,
+            **kwargs)
+
+        pre_flags = list(pre_flags)
+        pre_flags.append('-pack')
+
+        dst = self._run(dst, objs,
+            color='green',
+            pre_flags=pre_flags,
+            **kwargs)
+
+        fbuild.db.add_external_dependencies_to_call(self.ctx,
+            srcs=objs + [obj.replaceext('.cmi') for obj in objs],
+            dsts=[dst, dst.replaceext('.cmi')])
+
+        return dst
 
     # --------------------------------------------------------------------------
 
