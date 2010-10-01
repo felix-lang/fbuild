@@ -548,6 +548,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             pre_flags=pre_flags,
             **kwargs)
 
+        # We need to filter out any .cmi files.
+        objs = [obj for obj in objs if not obj.endswith('.cmi')]
+
         pre_flags = list(pre_flags)
         pre_flags.append('-pack')
 
@@ -582,6 +585,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     def _build_link(self, function, dst, srcs, *,
             objs=[],
+            pack=None,
             includes=[],
             cflags=[],
             ckwargs={},
@@ -602,12 +606,20 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 includes.add(lib.parent)
                 includes.add(lib.parent.removeroot(buildroot + os.sep))
 
-        objs = list(objs)
-        objs.extend(self.build_objects(srcs,
-            includes=includes,
-            flags=list(chain(flags, cflags)),
-            buildroot=buildroot,
-            **dict(kwargs, **ckwargs)))
+        if pack is None:
+            objs = list(objs)
+            objs.extend(self.build_objects(srcs,
+                includes=includes,
+                flags=list(chain(flags, cflags)),
+                buildroot=buildroot,
+                **dict(kwargs, **ckwargs)))
+        else:
+            objs = [self.build_pack(pack, srcs,
+                objs=objs,
+                includes=includes,
+                flags=list(chain(flags, cflags)),
+                buildroot=buildroot,
+                **dict(kwargs, **ckwargs))]
 
         return function(dst, objs,
             includes=includes,
