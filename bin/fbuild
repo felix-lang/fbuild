@@ -56,7 +56,7 @@ def build(ctx):
     # Exit early if we're just viewing the state.
     if ctx.options.dump_state:
         # print out the entire state
-        pprint.pprint(fbuild.db.database.__dict__)
+        pprint.pprint(ctx.db.__dict__)
         return 0
 
     # Exit early if we're just clearing a function.
