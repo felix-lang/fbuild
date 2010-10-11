@@ -79,7 +79,27 @@ class Scheduler:
                         # ignore missing dependencies
                         pass
 
-        return [n.result for n in self._evaluate(nodes.values())]
+        # Evaluate the functions.
+        self._evaluate(nodes.values())
+
+        # Sort the functions in a depth first order. Otherwise, the order of
+        # the function evaluation could change between calls.
+        visited = set()
+        results = []
+
+        def f(node):
+            if node in visited:
+                return
+            visited.add(node)
+
+            for n in node.dependencies:
+                f(n)
+            results.append(node.result)
+
+        for src in srcs:
+            f(nodes[src])
+
+        return results
 
     def _evaluate(self, tasks):
         tasks = list(tasks)
