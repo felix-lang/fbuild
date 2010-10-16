@@ -31,7 +31,7 @@ class Flx(fbuild.db.PersistentObject):
             flags=[],
             cwd=None,
             **kwargs):
-        cmd = [sys.executable, self.exe]
+        cmd = [self.exe]
 
         if debug is None:
             debug = self.debug
@@ -81,7 +81,7 @@ class Flx(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Felix(fbuild.builders.AbstractCompiler):
-    def __init__(self, ctx, exe='flx.py', *,
+    def __init__(self, ctx, exe='flx', *,
             platform=None,
             includes=[],
             static=False,
