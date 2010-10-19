@@ -128,7 +128,7 @@ def main(argv=None):
         raise
     else:
         # No exception occurred, so let us be good and shut down the scheduler.
-        ctx.shutdown()
+        ctx.scheduler.shutdown()
     finally:
         ctx.save_configuration()
 

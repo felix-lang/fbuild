@@ -53,9 +53,6 @@ class Context:
             # We aren't reconfiguring, so load the old database.
             self.db.load(self.options.state_file)
 
-    def shutdown(self):
-        self.scheduler.shutdown()
-
     def save_configuration(self):
         # Optionally do `not` save the database.
         if not self.options.do_not_save_database:
