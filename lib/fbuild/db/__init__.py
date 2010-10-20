@@ -2,10 +2,8 @@ import abc
 import functools
 import hashlib
 import itertools
-import pickle
-import sys
+import pprint
 import threading
-import time
 import types
 
 import fbuild
@@ -215,6 +213,10 @@ class Database:
         all_dsts = dsts.union(external_dsts)
         all_dsts.update(return_dsts)
         return result, all_srcs, all_dsts
+
+    def dump_database(self):
+        """Print the database."""
+        pprint.pprint(self._backend.__dict__)
 
     # Create an in-process cache of the function digests, since they shouldn't
     # change while we're running.

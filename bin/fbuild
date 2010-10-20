@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.1
 
 import os
-import pprint
 import sys
 
 # Make sure the current working directory is in the search path so we can find
@@ -56,7 +55,7 @@ def build(ctx):
     # Exit early if we're just viewing the state.
     if ctx.options.dump_state:
         # print out the entire state
-        pprint.pprint(ctx.db.__dict__)
+        ctx.db.dump_database()
         return 0
 
     # Exit early if we're just clearing a function.
