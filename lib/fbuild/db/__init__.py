@@ -132,25 +132,11 @@ class Database:
         # Compute the function digest.
         function_digest = self._digest_function(function, args, kwargs)
 
-        # Bind the arguments so that we can look up normal args by name.
-        bound = fbuild.functools.bind_args(function, args, kwargs)
-
-        # Check if any of the files changed.
-        return_type = None
-        srcs = set()
-        dsts = set()
-        for akey, avalue in function.__annotations__.items():
-            if akey == 'return':
-                return_type = avalue
-            elif issubclass(avalue, SRC):
-                srcs.update(avalue.convert(bound[akey]))
-            elif issubclass(avalue, DST):
-                dsts.update(avalue.convert(bound[akey]))
-
-        # Make sure none of the arguments are a generator.
-        for arg in itertools.chain(args, kwargs.values()):
-            assert not fbuild.inspect.isgenerator(arg), \
-                "Cannot store generator in database"
+        # Find the call filenames for the function.
+        bound, srcs, dsts, return_type = self._find_call_filenames(
+            function,
+            args,
+            kwargs)
 
         function_dirty, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
@@ -278,6 +264,26 @@ class Database:
                 self._digest_function_cache[function] = digest
 
         return digest
+
+    def _find_call_filenames(self, function, args, kwargs):
+        """Return the filenames needed for the function."""
+
+        # Bind the arguments so that we can look up normal args by name.
+        bound = fbuild.functools.bind_args(function, args, kwargs)
+
+        # Check if any of the files changed.
+        return_type = None
+        srcs = set()
+        dsts = set()
+        for akey, avalue in function.__annotations__.items():
+            if akey == 'return':
+                return_type = avalue
+            elif issubclass(avalue, SRC):
+                srcs.update(avalue.convert(bound[akey]))
+            elif issubclass(avalue, DST):
+                dsts.update(avalue.convert(bound[akey]))
+
+        return bound, srcs, dsts, return_type
 
     def add_external_dependencies_to_call(self, *, srcs=(), dsts=()):
         """When inside a cached method, register additional src
