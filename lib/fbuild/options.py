@@ -84,6 +84,10 @@ def make_parser():
             action='store_true',
             default=False,
             help='do not save the results of the database for testing.'),
+        make_option('--explain-database',
+            action='store_true',
+            default=False,
+            help='explain why a function was not cached.'),
     ])
 
     return parser

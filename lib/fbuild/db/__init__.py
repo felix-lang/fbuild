@@ -66,12 +66,13 @@ class OPTIONAL_DST(DST):
 class Database:
     """L{Database} persistently stores the results of argument calls."""
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, explain=False):
         def handle_rpc(msg):
             method, args, kwargs = msg
             return method(*args, **kwargs)
 
         self._ctx = ctx
+        self._explain = explain
         self._backend = fbuild.db.pickle_backend.PickleBackend(ctx)
         self._rpc = fbuild.rpc.RPC(handle_rpc)
         self._rpc.daemon = True
@@ -158,6 +159,8 @@ class Database:
                     (function_name, function_digest, bound, srcs, dsts),
                     {}))
 
+        dirty_dsts = set()
+
         # Check if we have a result. If not, then we're dirty.
         if not (function_dirty or \
                 call_id is None or \
@@ -176,6 +179,7 @@ class Database:
                     dsts,
                     external_dsts):
                 if not fbuild.path.Path(dst).exists():
+                    dirty_dsts.add(dst)
                     break
             else:
                 # The call was not dirty, so return the cached value.
@@ -183,6 +187,31 @@ class Database:
                 all_dsts = dsts.union(external_dsts)
                 all_dsts.update(return_dsts)
                 return old_result, all_srcs, all_dsts
+
+        if self._explain:
+            # Explain why we are going to run the function.
+            if function_dirty:
+                self._ctx.logger.log('function %s is dirty' % function_name)
+
+            if call_id is None:
+                self._ctx.logger.log(
+                    'function %s has not been called with these arguments' %
+                    function_name)
+
+            if call_file_digests:
+                self._ctx.logger.log('dirty source files:')
+                for src, digest in call_file_digests:
+                    self._ctx.logger.log('\t%s %s' % (digest, src))
+
+            if external_digests:
+                self._ctx.logger.log('dirty external digests:')
+                for src, digest in external_digests:
+                    self._ctx.logger.log('\t%s %s' % (digest, src))
+
+            if dirty_dsts:
+                self._ctx.logger.log('destination files do not exist:')
+                for dst in dirty_dsts:
+                    self._ctx.logger.log('\t%s' % dst)
 
         # Clear external srcs and dsts since they'll be recomputed inside
         # the function.

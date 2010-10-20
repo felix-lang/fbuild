@@ -25,7 +25,7 @@ class Context:
             threadcount=options.threadcount,
             show_threads=options.show_threads)
 
-        self.db = fbuild.db.Database(self)
+        self.db = fbuild.db.Database(self, options.explain_database)
         self.scheduler = fbuild.sched.Scheduler(self.logger, options.threadcount)
 
         self.options = options
