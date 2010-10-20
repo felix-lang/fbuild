@@ -108,26 +108,10 @@ class Database:
             for arg in itertools.chain(args, kwargs.values())), \
             "Cannot store generator in database"
 
-        if not fbuild.inspect.ismethod(function):
-            function_name = function.__module__ + '.' + function.__name__
-        else:
-            # If we're caching a PersistentObject creation, use the class's
-            # name as our function name.
-            if function.__name__ == '__call_super__' and \
-                    isinstance(function.__self__, PersistentMeta):
-                function_name = '%s.%s' % (
-                    function.__self__.__module__,
-                    function.__self__.__name__)
-            else:
-                function_name = '%s.%s.%s' % (
-                    function.__module__,
-                    function.__self__.__class__.__name__,
-                    function.__name__)
-            args = (function.__self__,) + args
-            function = function.__func__
-
-        if not fbuild.inspect.isroutine(function):
-            function = function.__call__
+        function_name, function, args, kwargs = self._find_function_name(
+            function,
+            args,
+            kwargs)
 
         # Compute the function digest.
         function_digest = self._digest_function(function, args, kwargs)
@@ -232,6 +216,32 @@ class Database:
     def dump_database(self):
         """Print the database."""
         pprint.pprint(self._backend.__dict__)
+
+    def _find_function_name(self, function, args, kwargs):
+        """Extract the function name from the function."""
+
+        if not fbuild.inspect.ismethod(function):
+            function_name = function.__module__ + '.' + function.__name__
+        else:
+            # If we're caching a PersistentObject creation, use the class's
+            # name as our function name.
+            if function.__name__ == '__call_super__' and \
+                    isinstance(function.__self__, PersistentMeta):
+                function_name = '%s.%s' % (
+                    function.__self__.__module__,
+                    function.__self__.__name__)
+            else:
+                function_name = '%s.%s.%s' % (
+                    function.__module__,
+                    function.__self__.__class__.__name__,
+                    function.__name__)
+            args = (function.__self__,) + args
+            function = function.__func__
+
+        if not fbuild.inspect.isroutine(function):
+            function = function.__call__
+
+        return function_name, function, args, kwargs
 
     # Create an in-process cache of the function digests, since they shouldn't
     # change while we're running.
