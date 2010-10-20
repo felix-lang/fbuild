@@ -144,6 +144,10 @@ class PickleBackend:
 
     def save_function(self, function_name, digest):
         """Insert or update the function's digest."""
+
+        assert isinstance(function_name, str)
+        assert isinstance(digest, str)
+
         # Since the function changed, clear out all the related data.
         self.clear_function(function_name)
 
@@ -235,6 +239,11 @@ class PickleBackend:
 
     def save_call(self, function_name, call_id, bound, result):
         """Insert or update the function call."""
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int))
+        assert isinstance(function_name, str)
+        assert isinstance(bound, dict)
+
         try:
             datas = self._function_calls[function_name]
         except KeyError:
@@ -288,6 +297,15 @@ class PickleBackend:
             dsts,
             digests):
         """Insert or update the externall specified call files."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, int)
+        assert isinstance(function_name, str)
+        assert all(isinstance(src, str) for src in srcs)
+        assert all(isinstance(dst, str) for dst in dsts)
+        assert all(isinstance(src, str) and isinstance(digest, str)
+            for src, digest in digests)
+
         self._external_srcs.setdefault(function_name, {})[call_id] = srcs
         self._external_dsts.setdefault(function_name, {})[call_id] = dsts
 
@@ -349,6 +367,13 @@ class PickleBackend:
 
     def save_call_file(self, call_id, function_name, filename, digest):
         """Insert or update the call file."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, int)
+        assert isinstance(function_name, str)
+        assert isinstance(filename, str)
+        assert isinstance(digest, str)
+
         self._call_files. \
             setdefault(filename, {}).\
             setdefault(function_name, {})[call_id] = digest
@@ -358,6 +383,10 @@ class PickleBackend:
     def add_file(self, filename):
         """Insert or update the file information. Returns True if the content
         of the file is different from what was in the table."""
+
+        # Make sure we got the right types.
+        assert isinstance(filename, str)
+
         mtime = fbuild.path.Path(filename).getmtime()
         try:
             data = old_mtime, old_digest = self._files[filename]
