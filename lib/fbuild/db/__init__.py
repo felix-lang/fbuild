@@ -301,7 +301,7 @@ class Database:
                         for src in srcs:
                             external_srcs.add(src)
                             dirty, digest = self._rpc.call((
-                                self._backend._check_call_file,
+                                self._backend.check_call_file,
                                 (call_id, function_name, src),
                                 {}))
                             if dirty:

@@ -70,20 +70,17 @@ class PickleBackend:
         """Queries all the information needed to cache a function."""
 
         # Check if the function changed.
-        function_dirty = self._check_function(function_name, function_digest)
+        function_dirty = self.check_function(function_name, function_digest)
 
         # Check if this is a new call and get the index.
-        call_id, old_result = self._check_call(function_name, bound)
+        call_id, old_result = self.find_call(function_name, bound)
 
         # Add the source files to the database.
-        call_file_digests = self._check_call_files(
-            call_id,
-            function_name,
-            srcs)
+        call_file_digests = self.check_call_files(call_id, function_name, srcs)
 
         # Check extra external call files.
         external_dirty, external_srcs, external_dsts, external_digests = \
-            self._check_external_files(function_name, call_id)
+            self.check_external_files(function_name, call_id)
 
         return (
             function_dirty,
@@ -110,21 +107,14 @@ class PickleBackend:
 
         # Lock the db since we're updating data structures.
         if function_dirty:
-            self._update_function(function_name, function_digest)
+            self.save_function(function_name, function_digest)
 
         # Get the real call_id to use in the call files.
-        call_id = self._update_call(
-            function_name,
-            call_id,
-            bound,
-            result)
+        call_id = self.save_call(function_name, call_id, bound, result)
 
-        self._update_call_files(
-            call_id,
-            function_name,
-            call_file_digests)
+        self.save_call_files(call_id, function_name, call_file_digests)
 
-        self._update_external_files(
+        self.save_external_files(
             function_name,
             call_id,
             external_srcs,
@@ -133,34 +123,38 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def _check_function(self, function_name, function_digest):
-        """Returns whether or not the function is dirty. Returns True or false
-        as well as the function's digest."""
+    def find_function(self, function_name):
+        """Returns the function record or None if it does not exist."""
         try:
-            old_digest = self._functions[function_name]
+            return self._functions[function_name]
         except KeyError:
             # This is the first time we've seen this function.
-            return True
+            return None
+
+
+    def check_function(self, function_name, function_digest):
+        """Returns whether or not the function is dirty. Returns True or false
+        as well as the function's digest."""
+        old_digest = self.find_function(function_name)
 
         # Check if the function changed. If it didn't, assume that the function
         # didn't change either (although any sub-functions could have).
-        if function_digest == old_digest:
-            return False
+        return old_digest is None or function_digest != old_digest
 
-        return True
 
-    def _update_function(self, function, digest):
+    def save_function(self, function_name, digest):
         """Insert or update the function's digest."""
         # Since the function changed, clear out all the related data.
-        self.clear_function(function)
+        self.clear_function(function_name)
 
-        self._functions[function] = digest
+        self._functions[function_name] = digest
 
-    def clear_function(self, name):
+
+    def clear_function(self, function_name):
         """Clear the function from the database."""
         function_existed = False
         try:
-            del self._functions[name]
+            del self._functions[function_name]
         except KeyError:
             pass
         else:
@@ -169,21 +163,21 @@ class PickleBackend:
         # Since the function was removed, all of this function's
         # calls are dirty, so delete them.
         try:
-            del self._function_calls[name]
+            del self._function_calls[function_name]
         except KeyError:
             pass
         else:
             function_existed |= True
 
         try:
-            del self._external_srcs[name]
+            del self._external_srcs[function_name]
         except KeyError:
             pass
         else:
             function_existed |= True
 
         try:
-            del self._external_dsts[name]
+            del self._external_dsts[function_name]
         except KeyError:
             pass
         else:
@@ -196,7 +190,7 @@ class PickleBackend:
         remove_keys = []
         for key, value in self._call_files.items():
             try:
-                del value[name]
+                del value[function_name]
             except KeyError:
                 pass
             else:
@@ -218,9 +212,10 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def _check_call(self, function, bound):
-        """Check if the function has been called before. Return the index if
-        the call was cached, or None."""
+    def find_call(self, function, bound):
+        """Returns the function call index and result or None if it does not
+        exist."""
+
         try:
             datas = self._function_calls[function]
         except KeyError:
@@ -237,14 +232,15 @@ class PickleBackend:
         # Turns out we haven't called it with these args.
         return None, None
 
-    def _update_call(self, function, call_id, bound, result):
+
+    def save_call(self, function_name, call_id, bound, result):
         """Insert or update the function call."""
         try:
-            datas = self._function_calls[function]
+            datas = self._function_calls[function_name]
         except KeyError:
             # The function be new or may have been cleared. So ignore the
             # call_id and just create a new list.
-            self._function_calls[function] = [(bound, result)]
+            self._function_calls[function_name] = [(bound, result)]
             return 0
         else:
             if call_id is None:
@@ -256,24 +252,7 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def _check_call_files(self, call_id, function_name, filenames):
-        """Returns all of the dirty call files."""
-        digests = []
-        for filename in filenames:
-            d, digest = self._check_call_file(call_id, function_name, filename)
-            if d:
-                digests.append((filename, digest))
-
-        return digests
-
-    def _update_call_files(self, call_id, function_name, digests):
-        """Insert or update the call files."""
-        for src, digest in digests:
-            self._update_call_file(call_id, function_name, src, digest)
-
-    # --------------------------------------------------------------------------
-
-    def _check_external_files(self, call_id, function_name):
+    def check_external_files(self, call_id, function_name):
         """Returns all of the externally specified call files, and the dirty
         list."""
         external_dirty = False
@@ -285,7 +264,7 @@ class PickleBackend:
         else:
             for src in srcs:
                 try:
-                    d, digest = self._check_call_file(
+                    d, digest = self.check_call_file(
                         call_id,
                         function_name,
                         src)
@@ -302,9 +281,9 @@ class PickleBackend:
 
         return external_dirty, srcs, dsts, digests
 
-    def _update_external_files(self,
-            call_id,
+    def save_external_files(self,
             function_name,
+            call_id,
             srcs,
             dsts,
             digests):
@@ -313,15 +292,32 @@ class PickleBackend:
         self._external_dsts.setdefault(function_name, {})[call_id] = dsts
 
         for src, digest in digests:
-            self._update_call_file(call_id, function_name, src, digest)
+            self.save_call_file(call_id, function_name, src, digest)
 
     # --------------------------------------------------------------------------
 
-    def _check_call_file(self, call_id, function_name, filename):
+    def check_call_files(self, call_id, function_name, filenames):
+        """Returns all of the dirty call files."""
+        digests = []
+        for filename in filenames:
+            d, digest = self.check_call_file(call_id, function_name, filename)
+            if d:
+                digests.append((filename, digest))
+
+        return digests
+
+    def save_call_files(self, call_id, function_name, digests):
+        """Insert or update the call files."""
+        for src, digest in digests:
+            self.save_call_file(call_id, function_name, src, digest)
+
+    # --------------------------------------------------------------------------
+
+    def check_call_file(self, call_id, function_name, filename):
         """Returns if the call file is dirty and the file's digest."""
 
         # Compute the digest of the file.
-        dirty, (mtime, digest) = self._add_file(filename)
+        dirty, (mtime, digest) = self.add_file(filename)
 
         # If we don't have a valid call_id, then it's a new call.
         if call_id is None:
@@ -351,7 +347,7 @@ class PickleBackend:
             # The digest's different, so we're dirty.
             return True, digest
 
-    def _update_call_file(self, call_id, function_name, filename, digest):
+    def save_call_file(self, call_id, function_name, filename, digest):
         """Insert or update the call file."""
         self._call_files. \
             setdefault(filename, {}).\
@@ -359,7 +355,7 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def _add_file(self, filename):
+    def add_file(self, filename):
         """Insert or update the file information. Returns True if the content
         of the file is different from what was in the table."""
         mtime = fbuild.path.Path(filename).getmtime()
@@ -398,7 +394,6 @@ class PickleBackend:
         # Returns True since the file changed.
         return True, data
 
-    # --------------------------------------------------------------------------
 
     def clear_file(self, filename):
         """Remove the file from the database."""
