@@ -27,9 +27,13 @@ class RPC(threading.Thread):
         self._handler = handler
         self._queue = queue.Queue()
         self._events = threading.local()
+        self._started = threading.Event()
+        self._running = False
 
     def call(self, *args, **kwargs):
         """Call the function inside the rpc thread."""
+
+        assert self._running, "RPC thread died!"
 
         # Create an object to hold the result of the function call.
         result = _Result()
@@ -57,8 +61,16 @@ class RPC(threading.Thread):
         else:
             return result.result
 
+    def start(self, *args, **kwargs):
+        super().start(*args, **kwargs)
+
+        self._started.wait()
+
     def run(self):
         """Run the rpc thread."""
+
+        self._started.set()
+        self._running = True
 
         try:
             while True:
@@ -74,8 +86,15 @@ class RPC(threading.Thread):
                 finally:
                     # ... and let the queue know we finished.
                     self._queue.task_done()
+        except KeyboardInterrupt:
+            # let the main thread know we got a SIGINT
+            import _thread
+            _thread.interrupt_main()
+            raise
         except BaseException as err:
             raise
+        finally:
+            self._running = False
 
     def _process(self, msg):
         # Break up the message.
@@ -96,8 +115,9 @@ class RPC(threading.Thread):
     def join(self, *args, **kwargs):
         """Inform the thread to shut down."""
 
-        # Shut down the queue first.
-        self._queue.put(_NULL)
-        self._queue.join()
+        if self._running:
+            # Shut down the queue first.
+            self._queue.put(_NULL)
+            self._queue.join()
 
-        super().join(*args, **kwargs)
+            super().join(*args, **kwargs)
