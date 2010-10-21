@@ -408,7 +408,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         else:
             dsts = []
 
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             srcs=self.scan(src, **kwargs),
             dsts=dsts)
 
@@ -519,7 +519,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 **kwargs),
             srcs)
 
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             srcs=[],
             dsts=[obj.replaceext('.cmi') for obj in objs])
 
@@ -559,7 +559,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             pre_flags=pre_flags,
             **kwargs)
 
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             srcs=objs + [obj.replaceext('.cmi') for obj in objs],
             dsts=[dst, dst.replaceext('.cmi')])
 
@@ -810,7 +810,7 @@ class Ocamlopt(Builder):
     def _add_compile_dependencies(self, dst, src, **kwargs):
         super()._add_compile_dependencies(dst, src, **kwargs)
 
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             dsts=(dst.replaceext(self.native_obj_suffix),))
 
     def _add_link_dependencies(self, dst, srcs, includes, libs):
@@ -831,7 +831,7 @@ class Ocamlopt(Builder):
             dsts = ()
 
         # This function must be called by a cached function.
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             srcs=srcs,
             dsts=dsts)
 

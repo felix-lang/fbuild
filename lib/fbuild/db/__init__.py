@@ -250,6 +250,41 @@ class Database:
 
         return digest
 
+    def add_external_dependencies_to_call(self, *, srcs=(), dsts=()):
+        """When inside a cached method, register additional src
+        dependencies for the call. This function can only be called from
+        a cached function and will error out if it is called from an
+        uncached function."""
+
+        # Hack in additional dependencies
+        i = 2
+        try:
+            while True:
+                frame = fbuild.inspect.currentframe(i)
+                try:
+                    if frame.f_code == self.call.__code__:
+                        function_name = frame.f_locals['function_name']
+                        call_id = frame.f_locals['call_id']
+                        external_digests = frame.f_locals['external_digests']
+                        external_srcs = frame.f_locals['external_srcs']
+                        external_dsts = frame.f_locals['external_dsts']
+
+                        for src in srcs:
+                            external_srcs.add(src)
+                            dirty, digest = self._rpc.call((
+                                self._backend._check_call_file,
+                                (call_id, function_name, src),
+                                {}))
+                            if dirty:
+                                external_digests.append((src, digest))
+
+                        external_dsts.update(dsts)
+                    i += 1
+                finally:
+                    del frame
+        except ValueError:
+            pass
+
 # ------------------------------------------------------------------------------
 
 
@@ -369,38 +404,3 @@ class cacheproperty:
 
     def call(self, instance):
         return instance.ctx.db.call(types.MethodType(self.method, instance))
-
-# ------------------------------------------------------------------------------
-
-def add_external_dependencies_to_call(ctx, *, srcs=(), dsts=()):
-    """When inside a cached method, register additional src dependencies for
-    the call. This function can only be called from a cached function and will
-    error out if it is called from an uncached function."""
-    # Hack in additional dependencies
-    i = 2
-    try:
-        while True:
-            frame = fbuild.inspect.currentframe(i)
-            try:
-                if frame.f_code == ctx.db.call.__code__:
-                    function_name = frame.f_locals['function_name']
-                    call_id = frame.f_locals['call_id']
-                    external_digests = frame.f_locals['external_digests']
-                    external_srcs = frame.f_locals['external_srcs']
-                    external_dsts = frame.f_locals['external_dsts']
-
-                    for src in srcs:
-                        external_srcs.add(src)
-                        dirty, digest = ctx.db._rpc.call((
-                            ctx.db._backend._check_call_file,
-                            (call_id, function_name, src),
-                            {}))
-                        if dirty:
-                            external_digests.append((src, digest))
-
-                    external_dsts.update(dsts)
-                i += 1
-            finally:
-                del frame
-    except ValueError:
-        pass

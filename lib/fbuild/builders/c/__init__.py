@@ -133,7 +133,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             src_deps.extend(s)
             dst_deps.extend(d)
 
-        fbuild.db.add_external_dependencies_to_call(self.ctx,
+        self.ctx.db.add_external_dependencies_to_call(
             srcs=src_deps,
             dsts=dst_deps)
 

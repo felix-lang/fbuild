@@ -475,7 +475,7 @@ class Builder(fbuild.builders.c.Builder):
         s = m.group(1)
         if s is not None:
             deps = s.decode().split()
-            fbuild.db.add_external_dependencies_to_call(self.ctx, srcs=deps)
+            self.ctx.db.add_external_dependencies_to_call(srcs=deps)
 
         return obj
 
