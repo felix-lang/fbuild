@@ -131,6 +131,7 @@ def main(argv=None):
         ctx.scheduler.shutdown()
     finally:
         ctx.save_configuration()
+        ctx.db.shutdown()
 
     return result
 

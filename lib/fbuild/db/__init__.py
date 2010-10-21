@@ -4,14 +4,16 @@ import hashlib
 import io
 import itertools
 import pickle
-import time
+import sys
 import threading
+import time
 import types
 
 import fbuild
 import fbuild.functools
 import fbuild.inspect
 import fbuild.path
+import fbuild.rpc
 
 # ------------------------------------------------------------------------------
 
@@ -94,57 +96,31 @@ class Database:
     """L{Database} persistently stores the results of argument calls."""
 
     def __init__(self, ctx):
+        def handle_rpc(msg):
+            method, args, kwargs = msg
+            return method(*args, **kwargs)
+
         self._ctx = ctx
-        self._functions = {}
-        self._function_calls = {}
-        self._files = {}
-        self._call_files = {}
-        self._external_srcs = {}
-        self._external_dsts = {}
-        self._lock = threading.RLock()
+        self._backend = DatabaseBackend(ctx)
+        self._rpc = fbuild.rpc.RPC(handle_rpc)
+        self._rpc.daemon = True
+        self.start()
 
-    def save(self, filename):
-        f = io.BytesIO()
-        pickler = _Pickler(self._ctx, f, pickle.HIGHEST_PROTOCOL)
+    def start(self):
+        """Start the server thread."""
+        self._rpc.start()
 
-        with self._lock:
-            pickler.dump((
-                self._functions,
-                self._function_calls,
-                self._files,
-                self._call_files,
-                self._external_srcs,
-                self._external_dsts))
+    def shutdown(self, *args, **kwargs):
+        """Inform and wait for the L{DatabaseThread} to shut down."""
+        self._rpc.join(*args, **kwargs)
 
-        s = f.getvalue()
+    def save(self, *args, **kwargs):
+        """Save the database to the file."""
+        return self._rpc.call((self._backend.save, args, kwargs))
 
-        # Try to save the state as atomically as possible. Unfortunately, if
-        # someone presses ctrl+c while we're saving, we might corrupt the db.
-        # So, we'll write to a temp file, then move the old state file out of
-        # the way, then rename the temp file to the filename.
-        path = fbuild.path.Path(filename)
-        tmp = path + '.tmp'
-        old = path + '.old'
-
-        with open(tmp, 'wb') as f:
-            f.write(s)
-
-        if path.exists():
-            path.rename(old)
-
-        tmp.rename(path)
-
-        if old.exists():
-            old.remove()
-
-    def load(self, filename):
-        with open(filename, 'rb') as f:
-            unpickler = _Unpickler(self._ctx, f)
-
-            with self._lock:
-                self._functions, self._function_calls, self._files, \
-                    self._call_files, self._external_srcs, \
-                    self._external_dsts = unpickler.load()
+    def load(self, *args, **kwargs):
+        """Load the database from the file."""
+        return self._rpc.call((self._backend.load, args, kwargs))
 
     def call(self, function, *args, **kwargs):
         """Call the function and return the result, src dependencies, and dst
@@ -154,6 +130,12 @@ class Database:
         throw away all of the cached values if any of the optionally specified
         "srcs" are also modified.  Finally, if any of the filenames in "dsts"
         do not exist, re-run the function no matter what."""
+
+        # Make sure none of the arguments are a generator.
+        assert all(not fbuild.inspect.isgenerator(arg)
+            for arg in itertools.chain(args, kwargs.values())), \
+            "Cannot store generator in database"
+
         if not fbuild.inspect.ismethod(function):
             function_name = function.__module__ + '.' + function.__name__
         else:
@@ -175,6 +157,9 @@ class Database:
         if not fbuild.inspect.isroutine(function):
             function = function.__call__
 
+        # Compute the function digest.
+        function_digest = self._digest_function(function, args, kwargs)
+
         # Bind the arguments so that we can look up normal args by name.
         bound = fbuild.functools.bind_args(function, args, kwargs)
 
@@ -190,45 +175,17 @@ class Database:
             elif issubclass(avalue, DST):
                 dsts.update(avalue.convert(bound[akey]))
 
-        return self._cache(function_name, function, args, kwargs, bound,
-            srcs, dsts, return_type)
-
-    def clear_function(self, function):
-        """Remove the function name from the database."""
-        # This is a simple wrapper in order to grab the lock.
-        with self._lock:
-            return self._clear_function(function)
-
-    def clear_file(self, filename):
-        """Remove the file from the database."""
-        # This is a simple wrapper in order to grab the lock.
-        with self._lock:
-            return self._clear_file(filename)
-
-    # --------------------------------------------------------------------------
-
-    def _cache(self, function_name, function, args, kwargs, bound, srcs, dsts,
-            return_type):
         # Make sure none of the arguments are a generator.
         for arg in itertools.chain(args, kwargs.values()):
             assert not fbuild.inspect.isgenerator(arg), \
                 "Cannot store generator in database"
 
-        with self._lock:
-            # Check if the function changed.
-            function_dirty, function_digest = \
-                self._check_function(function, function_name, args, kwargs)
-
-            # Check if this is a new call and get the index.
-            call_id, old_result = self._check_call(function_name, bound)
-
-            # Add the source files to the database.
-            call_file_digests = \
-                self._check_call_files(srcs, function_name, call_id)
-
-            # Check extra external call files.
+        function_dirty, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
-                self._check_external_files(function_name, call_id)
+                self._rpc.call((
+                    self._backend.prepare,
+                    (function_name, function_digest, bound, srcs, dsts),
+                    {}))
 
         # Check if we have a result. If not, then we're dirty.
         if not (function_dirty or \
@@ -243,7 +200,10 @@ class Database:
             else:
                 return_dsts = ()
 
-            for dst in itertools.chain(return_dsts, dsts, external_dsts):
+            for dst in itertools.chain(
+                    return_dsts,
+                    dsts,
+                    external_dsts):
                 if not fbuild.path.Path(dst).exists():
                     break
             else:
@@ -265,19 +225,13 @@ class Database:
         assert not fbuild.inspect.isgenerator(result), \
             "Cannot store generator in database"
 
-        # Lock the db since we're updating data structures.
-        with self._lock:
-            if function_dirty:
-                self._update_function(function_name, function_digest)
-
-            # Get the real call_id to use in the call files.
-            call_id = self._update_call(function_name, call_id, bound, result)
-
-            self._update_call_files(call_file_digests, function_name, call_id)
-            self._update_external_files(function_name, call_id,
-                external_srcs,
-                external_dsts,
-                external_digests)
+        # Save the results in the database.
+        self._rpc.call((
+            self._backend.cache,
+            (function_dirty, function_name, function_digest,
+                call_id, bound, result, call_file_digests, external_srcs,
+                external_dsts, external_digests),
+            {}))
 
         if return_type is not None and issubclass(return_type, DST):
             return_dsts = return_type.convert(result)
@@ -321,22 +275,152 @@ class Database:
 
         return digest
 
-    def _check_function(self, function, name, args, kwargs):
+# ------------------------------------------------------------------------------
+
+class DatabaseBackend:
+    def __init__(self, ctx):
+        super().__init__()
+
+        self._ctx = ctx
+        self._functions = {}
+        self._function_calls = {}
+        self._files = {}
+        self._call_files = {}
+        self._external_srcs = {}
+        self._external_dsts = {}
+
+    def save(self, filename):
+        """Save the database to the file."""
+
+        f = io.BytesIO()
+        pickler = _Pickler(self._ctx, f, pickle.HIGHEST_PROTOCOL)
+
+        pickler.dump((
+            self._functions,
+            self._function_calls,
+            self._files,
+            self._call_files,
+            self._external_srcs,
+            self._external_dsts))
+
+        s = f.getvalue()
+
+        # Try to save the state as atomically as possible. Unfortunately, if
+        # someone presses ctrl+c while we're saving, we might corrupt the db.
+        # So, we'll write to a temp file, then move the old state file out of
+        # the way, then rename the temp file to the filename.
+        path = fbuild.path.Path(filename)
+        tmp = path + '.tmp'
+        old = path + '.old'
+
+        with open(tmp, 'wb') as f:
+            f.write(s)
+
+        if path.exists():
+            path.rename(old)
+
+        tmp.rename(path)
+
+        if old.exists():
+            old.remove()
+
+    def load(self, filename):
+        """Load the database from the file."""
+
+        with open(filename, 'rb') as f:
+            unpickler = _Unpickler(self._ctx, f)
+
+            self._functions, self._function_calls, self._files, \
+                self._call_files, self._external_srcs, \
+                self._external_dsts = unpickler.load()
+
+    def prepare(self,
+            function_name,
+            function_digest,
+            bound,
+            srcs,
+            dsts):
+        """Queries all the information needed to cache a function."""
+
+        # Check if the function changed.
+        function_dirty = self._check_function(function_name, function_digest)
+
+        # Check if this is a new call and get the index.
+        call_id, old_result = self._check_call(function_name, bound)
+
+        # Add the source files to the database.
+        call_file_digests = self._check_call_files(
+            call_id,
+            function_name,
+            srcs)
+
+        # Check extra external call files.
+        external_dirty, external_srcs, external_dsts, external_digests = \
+            self._check_external_files(function_name, call_id)
+
+        return (
+            function_dirty,
+            call_id,
+            old_result,
+            call_file_digests,
+            external_dirty,
+            external_srcs,
+            external_dsts,
+            external_digests)
+
+    def cache(self,
+            function_dirty,
+            function_name,
+            function_digest,
+            call_id,
+            bound,
+            result,
+            call_file_digests,
+            external_srcs,
+            external_dsts,
+            external_digests):
+        """Saves the function call into the database."""
+
+        # Lock the db since we're updating data structures.
+        if function_dirty:
+            self._update_function(function_name, function_digest)
+
+        # Get the real call_id to use in the call files.
+        call_id = self._update_call(
+            function_name,
+            call_id,
+            bound,
+            result)
+
+        self._update_call_files(
+            call_id,
+            function_name,
+            call_file_digests)
+
+        self._update_external_files(
+            function_name,
+            call_id,
+            external_srcs,
+            external_dsts,
+            external_digests)
+
+    # --------------------------------------------------------------------------
+
+    def _check_function(self, function_name, function_digest):
         """Returns whether or not the function is dirty. Returns True or false
         as well as the function's digest."""
-        digest = self._digest_function(function, args, kwargs)
         try:
-            old_digest = self._functions[name]
+            old_digest = self._functions[function_name]
         except KeyError:
             # This is the first time we've seen this function.
-            return True, digest
+            return True
 
         # Check if the function changed. If it didn't, assume that the function
         # didn't change either (although any sub-functions could have).
-        if digest == old_digest:
-            return False, digest
+        if function_digest == old_digest:
+            return False
 
-        return True, digest
+        return True
 
     def _update_function(self, function, digest):
         """Insert or update the function's digest."""
@@ -345,8 +429,8 @@ class Database:
 
         self._functions[function] = digest
 
-    def _clear_function(self, name):
-        """Actually clear the function from the database."""
+    def clear_function(self, name):
+        """Clear the function from the database."""
         function_existed = False
         try:
             del self._functions[name]
@@ -445,36 +529,39 @@ class Database:
 
     # --------------------------------------------------------------------------
 
-    def _check_call_files(self, filenames, function, call_id):
+    def _check_call_files(self, call_id, function_name, filenames):
         """Returns all of the dirty call files."""
         digests = []
         for filename in filenames:
-            d, digest = self._check_call_file(filename, function, call_id)
+            d, digest = self._check_call_file(call_id, function_name, filename)
             if d:
                 digests.append((filename, digest))
 
         return digests
 
-    def _update_call_files(self, digests, function, call_id):
+    def _update_call_files(self, call_id, function_name, digests):
         """Insert or update the call files."""
         for src, digest in digests:
-            self._update_call_file(src, function, call_id, digest)
+            self._update_call_file(call_id, function_name, src, digest)
 
     # --------------------------------------------------------------------------
 
-    def _check_external_files(self, function, call_id):
+    def _check_external_files(self, call_id, function_name):
         """Returns all of the externally specified call files, and the dirty
         list."""
         external_dirty = False
         digests = []
         try:
-            srcs = self._external_srcs[function][call_id]
+            srcs = self._external_srcs[function_name][call_id]
         except KeyError:
             srcs = set()
         else:
             for src in srcs:
                 try:
-                    d, digest = self._check_call_file(src, function, call_id)
+                    d, digest = self._check_call_file(
+                        call_id,
+                        function_name,
+                        src)
                 except OSError:
                     external_dirty = True
                 else:
@@ -482,24 +569,30 @@ class Database:
                         digests.append((src, digest))
 
         try:
-            dsts = self._external_dsts[function][call_id]
+            dsts = self._external_dsts[function_name][call_id]
         except KeyError:
             dsts = set()
 
         return external_dirty, srcs, dsts, digests
 
-    def _update_external_files(self, function, call_id, srcs, dsts, digests):
+    def _update_external_files(self,
+            call_id,
+            function_name,
+            srcs,
+            dsts,
+            digests):
         """Insert or update the externall specified call files."""
-        self._external_srcs.setdefault(function, {})[call_id] = srcs
-        self._external_dsts.setdefault(function, {})[call_id] = dsts
+        self._external_srcs.setdefault(function_name, {})[call_id] = srcs
+        self._external_dsts.setdefault(function_name, {})[call_id] = dsts
 
         for src, digest in digests:
-            self._update_call_file(src, function, call_id, digest)
+            self._update_call_file(call_id, function_name, src, digest)
 
     # --------------------------------------------------------------------------
 
-    def _check_call_file(self, filename, function, call_id):
+    def _check_call_file(self, call_id, function_name, filename):
         """Returns if the call file is dirty and the file's digest."""
+
         # Compute the digest of the file.
         dirty, (mtime, digest) = self._add_file(filename)
 
@@ -516,7 +609,7 @@ class Database:
 
         # We've called this before, lets see if we can find the file.
         try:
-            old_digest = datas[function][call_id]
+            old_digest = datas[function_name][call_id]
         except KeyError:
             # This is the first time we've seen this file, so store it and
             # return True.
@@ -531,11 +624,11 @@ class Database:
             # The digest's different, so we're dirty.
             return True, digest
 
-    def _update_call_file(self, filename, function, call_id, digest):
+    def _update_call_file(self, call_id, function_name, filename, digest):
         """Insert or update the call file."""
         self._call_files. \
             setdefault(filename, {}).\
-            setdefault(function, {})[call_id] = digest
+            setdefault(function_name, {})[call_id] = digest
 
     # --------------------------------------------------------------------------
 
@@ -548,10 +641,9 @@ class Database:
         except KeyError:
             # This is the first time we've seen this file, so store it in the
             # table and return that this is new data.
-            with self._lock:
-                data = self._files[filename] = (
-                    mtime,
-                    fbuild.path.Path.digest(filename))
+            data = self._files[filename] = (
+                mtime,
+                fbuild.path.Path.digest(filename))
             return True, data
 
         # If the file was modified less than 1.0 seconds ago, recompute the
@@ -563,27 +655,26 @@ class Database:
         # The mtime changed, but maybe the content didn't.
         digest = fbuild.path.Path.digest(filename)
 
-        with self._lock:
-            # If the file's contents didn't change, just return.
-            if digest == old_digest:
-                # The timestamp did change, so update the row.
-                self._files[filename] = (mtime, old_digest)
-                return False, data
+        # If the file's contents didn't change, just return.
+        if digest == old_digest:
+            # The timestamp did change, so update the row.
+            self._files[filename] = (mtime, old_digest)
+            return False, data
 
-            # Since the function changed, all of the calls that used this
-            # function are dirty.
-            self._clear_file(filename)
+        # Since the function changed, all of the calls that used this
+        # function are dirty.
+        self.clear_file(filename)
 
-            # Now, add the file back to the database.
-            data = self._files[filename] = (mtime, digest)
+        # Now, add the file back to the database.
+        data = self._files[filename] = (mtime, digest)
 
         # Returns True since the file changed.
         return True, data
 
     # --------------------------------------------------------------------------
 
-    def _clear_file(self, filename):
-        """Actually clear the file from the database."""
+    def clear_file(self, filename):
+        """Remove the file from the database."""
         file_existed = False
         try:
             del self._files[filename]
@@ -733,7 +824,7 @@ def add_external_dependencies_to_call(ctx, *, srcs=(), dsts=()):
         while True:
             frame = fbuild.inspect.currentframe(i)
             try:
-                if frame.f_code == ctx.db._cache.__code__:
+                if frame.f_code == ctx.db.call.__code__:
                     function_name = frame.f_locals['function_name']
                     call_id = frame.f_locals['call_id']
                     external_digests = frame.f_locals['external_digests']
@@ -742,8 +833,10 @@ def add_external_dependencies_to_call(ctx, *, srcs=(), dsts=()):
 
                     for src in srcs:
                         external_srcs.add(src)
-                        dirty, digest = ctx.db._check_call_file(
-                            src, function_name, call_id)
+                        dirty, digest = ctx.db._rpc.call((
+                            ctx.db._backend._check_call_file,
+                            (call_id, function_name, src),
+                            {}))
                         if dirty:
                             external_digests.append((src, digest))
 
