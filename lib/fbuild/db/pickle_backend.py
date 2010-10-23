@@ -260,57 +260,6 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def check_external_files(self, call_id, fun_name):
-        """Returns all of the externally specified call files, and the dirty
-        list."""
-
-        # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_name, str)
-
-        external_dirty = False
-        digests = []
-        try:
-            srcs = self._external_srcs[fun_name][call_id]
-        except KeyError:
-            srcs = set()
-        else:
-            for src in srcs:
-                try:
-                    d, digest = self.check_call_file(call_id, fun_name, src)
-                except OSError:
-                    external_dirty = True
-                else:
-                    if d:
-                        digests.append((src, digest))
-
-        try:
-            dsts = self._external_dsts[fun_name][call_id]
-        except KeyError:
-            dsts = set()
-
-        return external_dirty, srcs, dsts, digests
-
-
-    def save_external_files(self, fun_name, call_id, srcs, dsts, digests):
-        """Insert or update the externall specified call files."""
-
-        # Make sure we got the right types.
-        assert isinstance(call_id, int)
-        assert isinstance(fun_name, str)
-        assert all(isinstance(src, str) for src in srcs)
-        assert all(isinstance(dst, str) for dst in dsts)
-        assert all(isinstance(src, str) and isinstance(digest, str)
-            for src, digest in digests)
-
-        self._external_srcs.setdefault(fun_name, {})[call_id] = srcs
-        self._external_dsts.setdefault(fun_name, {})[call_id] = dsts
-
-        for src, digest in digests:
-            self.save_call_file(call_id, fun_name, src, digest)
-
-    # --------------------------------------------------------------------------
-
     def check_call_files(self, call_id, fun_name, file_names):
         """Returns all of the dirty call files."""
 
@@ -384,6 +333,57 @@ class PickleBackend:
         self._call_files. \
             setdefault(file_name, {}).\
             setdefault(fun_name, {})[call_id] = digest
+
+    # --------------------------------------------------------------------------
+
+    def check_external_files(self, call_id, fun_name):
+        """Returns all of the externally specified call files, and the dirty
+        list."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int))
+        assert isinstance(fun_name, str)
+
+        external_dirty = False
+        digests = []
+        try:
+            srcs = self._external_srcs[fun_name][call_id]
+        except KeyError:
+            srcs = set()
+        else:
+            for src in srcs:
+                try:
+                    d, digest = self.check_call_file(call_id, fun_name, src)
+                except OSError:
+                    external_dirty = True
+                else:
+                    if d:
+                        digests.append((src, digest))
+
+        try:
+            dsts = self._external_dsts[fun_name][call_id]
+        except KeyError:
+            dsts = set()
+
+        return external_dirty, srcs, dsts, digests
+
+
+    def save_external_files(self, fun_name, call_id, srcs, dsts, digests):
+        """Insert or update the externall specified call files."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, int)
+        assert isinstance(fun_name, str)
+        assert all(isinstance(src, str) for src in srcs)
+        assert all(isinstance(dst, str) for dst in dsts)
+        assert all(isinstance(src, str) and isinstance(digest, str)
+            for src, digest in digests)
+
+        self._external_srcs.setdefault(fun_name, {})[call_id] = srcs
+        self._external_dsts.setdefault(fun_name, {})[call_id] = dsts
+
+        for src, digest in digests:
+            self.save_call_file(call_id, fun_name, src, digest)
 
     # --------------------------------------------------------------------------
 
