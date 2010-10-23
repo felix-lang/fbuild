@@ -1,14 +1,15 @@
 import io
 import pickle
-import time
 
+import fbuild.db.backend
 import fbuild.path
 
 # ------------------------------------------------------------------------------
 
-class PickleBackend:
+class PickleBackend(fbuild.db.backend.Backend):
     def __init__(self, ctx):
-        self._ctx = ctx
+        super().__init__(ctx)
+
         self._functions = {}
         self._function_calls = {}
         self._files = {}
@@ -61,60 +62,6 @@ class PickleBackend:
                 self._call_files, self._external_srcs, \
                 self._external_dsts = unpickler.load()
 
-    def prepare(self, fun_name, fun_digest, bound, srcs, dsts):
-        """Queries all the information needed to cache a function."""
-
-        # Check if the function changed.
-        fun_dirty = self.check_function(fun_name, fun_digest)
-
-        # Check if this is a new call and get the index.
-        call_id, old_result = self.find_call(fun_name, bound)
-
-        # Add the source files to the database.
-        call_file_digests = self.check_call_files(call_id, fun_name, srcs)
-
-        # Check extra external call files.
-        external_dirty, external_srcs, external_dsts, external_digests = \
-            self.check_external_files(call_id, fun_name)
-
-        return (
-            fun_dirty,
-            call_id,
-            old_result,
-            call_file_digests,
-            external_dirty,
-            external_srcs,
-            external_dsts,
-            external_digests)
-
-    def cache(self,
-            fun_dirty,
-            fun_name,
-            fun_digest,
-            call_id,
-            bound,
-            result,
-            call_file_digests,
-            external_srcs,
-            external_dsts,
-            external_digests):
-        """Saves the function call into the database."""
-
-        # Lock the db since we're updating data structures.
-        if fun_dirty:
-            self.save_function(fun_name, fun_digest)
-
-        # Get the real call_id to use in the call files.
-        call_id = self.save_call(fun_name, call_id, bound, result)
-
-        self.save_call_files(call_id, fun_name, call_file_digests)
-
-        self.save_external_files(
-            fun_name,
-            call_id,
-            external_srcs,
-            external_dsts,
-            external_digests)
 
     # --------------------------------------------------------------------------
 
@@ -129,21 +76,6 @@ class PickleBackend:
         except KeyError:
             # This is the first time we've seen this function.
             return None
-
-
-    def check_function(self, fun_name, fun_digest):
-        """Returns whether or not the function is dirty. Returns True or false
-        as well as the function's digest."""
-
-        # Make sure we got the right types.
-        assert isinstance(fun_name, str)
-        assert isinstance(fun_digest, str)
-
-        old_digest = self.find_function(fun_name)
-
-        # Check if the function changed. If it didn't, assume that the function
-        # didn't change either (although any sub-functions could have).
-        return old_digest is None or fun_digest != old_digest
 
 
     def save_function(self, fun_name, fun_digest):
@@ -260,66 +192,16 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def check_call_files(self, call_id, fun_name, file_names):
-        """Returns all of the dirty call files."""
-
-        # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_name, str)
-
-        digests = []
-        for file_name in file_names:
-            d, digest = self.check_call_file(call_id, fun_name, file_name)
-            if d:
-                digests.append((file_name, digest))
-
-        return digests
-
-    def save_call_files(self, call_id, fun_name, digests):
-        """Insert or update the call files."""
-
-        # Make sure we got the right types.
-        assert isinstance(call_id, int)
-        assert isinstance(fun_name, str)
-
-        for src, digest in digests:
-            self.save_call_file(call_id, fun_name, src, digest)
-
-    # --------------------------------------------------------------------------
-
-    def check_call_file(self, call_id, fun_name, file_name):
-        """Returns if the call file is dirty and the file's digest."""
-
-        # Compute the digest of the file.
-        dirty, (mtime, digest) = self.add_file(file_name)
-
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return True, digest
+    def find_call_file(self, call_id, fun_name, file_name):
+        """Returns the digest of the file from the last time we called this
+        function, or None if it does not exist."""
 
         try:
-            datas = self._call_files[file_name]
+            return self._call_files[file_name][fun_name][call_id]
         except KeyError:
-            # This is the first time we've seen this call, so store it and
-            # return True.
-            return True, digest
+            # This is the first time we've seen this file with this call.
+            return None
 
-        # We've called this before, lets see if we can find the file.
-        try:
-            old_digest = datas[fun_name][call_id]
-        except KeyError:
-            # This is the first time we've seen this file, so store it and
-            # return True.
-            return True, digest
-
-        # Now, check if the file changed from the previous run. If it did then
-        # return True.
-        if digest == old_digest:
-            # We're okay, so return if the file's been updated.
-            return dirty, digest
-        else:
-            # The digest's different, so we're dirty.
-            return True, digest
 
     def save_call_file(self, call_id, fun_name, file_name, digest):
         """Insert or update the call file."""
@@ -336,36 +218,22 @@ class PickleBackend:
 
     # --------------------------------------------------------------------------
 
-    def check_external_files(self, call_id, fun_name):
-        """Returns all of the externally specified call files, and the dirty
-        list."""
-
-        # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_name, str)
-
-        external_dirty = False
-        digests = []
-        try:
-            srcs = self._external_srcs[fun_name][call_id]
-        except KeyError:
-            srcs = set()
-        else:
-            for src in srcs:
-                try:
-                    d, digest = self.check_call_file(call_id, fun_name, src)
-                except OSError:
-                    external_dirty = True
-                else:
-                    if d:
-                        digests.append((src, digest))
+    def find_external_srcs(self, call_id, fun_name):
+        """Returns all of the externally specified call src files"""
 
         try:
-            dsts = self._external_dsts[fun_name][call_id]
+            return self._external_srcs[fun_name][call_id]
         except KeyError:
-            dsts = set()
+            return set()
 
-        return external_dirty, srcs, dsts, digests
+
+    def find_external_dsts(self, call_id, fun_name):
+        """Returns all of the externally specified call dst files"""
+
+        try:
+            return self._external_dsts[fun_name][call_id]
+        except KeyError:
+            return set()
 
 
     def save_external_files(self, fun_name, call_id, srcs, dsts, digests):
@@ -382,53 +250,29 @@ class PickleBackend:
         self._external_srcs.setdefault(fun_name, {})[call_id] = srcs
         self._external_dsts.setdefault(fun_name, {})[call_id] = dsts
 
-        for src, digest in digests:
-            self.save_call_file(call_id, fun_name, src, digest)
+        self.save_call_files(call_id, fun_name, digests)
 
     # --------------------------------------------------------------------------
 
-    def add_file(self, file_name):
-        """Insert or update the file information. Returns True if the content
-        of the file is different from what was in the table."""
+    def find_file(self, file_name):
+        """Returns the mtime and digest of the file, or None if it does not
+        exist."""
+
+        try:
+            return self._files[file_name]
+        except KeyError:
+            return None, None
+
+
+    def save_file(self, file_name, mtime, digest):
+        """Insert or update the file."""
 
         # Make sure we got the right types.
         assert isinstance(file_name, str)
+        assert isinstance(mtime, float)
+        assert isinstance(digest, str)
 
-        mtime = fbuild.path.Path(file_name).getmtime()
-        try:
-            data = old_mtime, old_digest = self._files[file_name]
-        except KeyError:
-            # This is the first time we've seen this file, so store it in the
-            # table and return that this is new data.
-            data = self._files[file_name] = (
-                mtime,
-                fbuild.path.Path.digest(file_name))
-            return True, data
-
-        # If the file was modified less than 1.0 seconds ago, recompute the
-        # hash since it still could have changed even with the same mtime. If
-        # True, then assume the file has not been modified.
-        if mtime == old_mtime and time.time() - mtime > 1.0:
-            return False, data
-
-        # The mtime changed, but maybe the content didn't.
-        digest = fbuild.path.Path.digest(file_name)
-
-        # If the file's contents didn't change, just return.
-        if digest == old_digest:
-            # The timestamp did change, so update the row.
-            self._files[file_name] = (mtime, old_digest)
-            return False, data
-
-        # Since the function changed, all of the calls that used this
-        # function are dirty.
-        self.delete_file(file_name)
-
-        # Now, add the file back to the database.
-        data = self._files[file_name] = (mtime, digest)
-
-        # Returns True since the file changed.
-        return True, data
+        self._files[file_name] = (mtime, digest)
 
 
     def delete_file(self, file_name):
