@@ -276,3 +276,45 @@ class Backend:
     def delete_file(self, filename):
         """Remove the file from the database."""
         raise NotImplementedError
+
+# ------------------------------------------------------------------------------
+
+class Pickler(pickle.Pickler):
+    """Create a custom pickler that won't try to pickle the context."""
+
+    def __init__(self, ctx, *args, **kwargs):
+        super().__init__(*args, protocol=pickle.HIGHEST_PROTOCOL, **kwargs)
+        self.ctx = ctx
+
+    def persistent_id(self, obj):
+        if obj is self.ctx:
+            return 'ctx'
+        else:
+            return None
+
+class Unpickler(pickle.Unpickler):
+    """Create a custom unpickler that will substitute the current context."""
+
+    def __init__(self, ctx, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ctx = ctx
+
+    def persistent_load(self, pid):
+        if pid == 'ctx':
+            return self.ctx
+        else:
+            raise pickle.UnpicklingError('unsupported persistent object')
+
+
+def pickle_dumps(ctx, obj):
+    f = io.BytesIO()
+    pickler = Pickler(ctx, f)
+    pickler.dump(obj)
+
+    return f.getvalue()
+
+
+def pickle_loads(ctx, string):
+    f = io.BytesIO(string)
+    unpickler = Unpickler(ctx, f)
+    return unpickler.load()

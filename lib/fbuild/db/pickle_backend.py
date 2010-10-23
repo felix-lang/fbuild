@@ -21,7 +21,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Save the database to the file."""
 
         f = io.BytesIO()
-        pickler = _Pickler(self._ctx, f, pickle.HIGHEST_PROTOCOL)
+        pickler = fbuild.db.backend.Pickler(self._ctx, f)
 
         pickler.dump((
             self._functions,
@@ -56,7 +56,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Load the database from the file."""
 
         with open(filename, 'rb') as f:
-            unpickler = _Unpickler(self._ctx, f)
+            unpickler = fbuild.db.backend.Unpickler(self._ctx, f)
 
             self._functions, self._function_calls, self._files, \
                 self._call_files, self._external_srcs, \
@@ -288,31 +288,3 @@ class PickleBackend(fbuild.db.backend.Backend):
             del self._call_files[file_name]
         except KeyError:
             pass
-
-# ------------------------------------------------------------------------------
-
-class _Pickler(pickle._Pickler):
-    """Create a custom pickler that won't try to pickle the context."""
-
-    def __init__(self, ctx, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.ctx = ctx
-
-    def persistent_id(self, obj):
-        if obj is self.ctx:
-            return 'ctx'
-        else:
-            return None
-
-class _Unpickler(pickle._Unpickler):
-    """Create a custom unpickler that will substitute the current context."""
-
-    def __init__(self, ctx, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.ctx = ctx
-
-    def persistent_load(self, pid):
-        if pid == 'ctx':
-            return self.ctx
-        else:
-            raise pickle.UnpicklingError('unsupported persistent object')
