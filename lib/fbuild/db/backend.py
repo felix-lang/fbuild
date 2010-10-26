@@ -12,13 +12,13 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def save(self, file_name):
-        """Save the database to the file."""
+    def connect(self, *args, **kwargs):
+        """Connect to the database."""
         raise NotImplementedError
 
 
-    def load(self, file_name):
-        """Load the database from the file."""
+    def close(self, *args, **kwargs):
+        """Connect to the database backend."""
         raise NotImplementedError
 
     # --------------------------------------------------------------------------

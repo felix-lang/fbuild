@@ -47,11 +47,13 @@ class Context:
         self.options.state_file.parent.makedirs()
 
     def load_configuration(self):
-        # Optionally do `not` load the old database.
-        if not self.options.force_configuration and \
+        # Optionally do `not` load the old database by deleting the old state
+        # file.
+        if self.options.force_configuration and \
                 self.options.state_file.exists():
-            # We aren't reconfiguring, so load the old database.
-            self.db.load(self.options.state_file)
+            self.options.state_file.remove()
+
+        self.db.connect(self.options.state_file)
 
     def save_configuration(self):
         # Optionally do `not` save the database.
@@ -60,7 +62,7 @@ class Context:
             # db.
             prev_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
             try:
-                self.db.save(self.options.state_file)
+                self.db.close()
             finally:
                 signal.signal(signal.SIGINT, prev_handler)
 

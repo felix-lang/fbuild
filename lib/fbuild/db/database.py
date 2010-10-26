@@ -24,7 +24,7 @@ class Database:
 
         self._ctx = ctx
         self._explain = explain
-        self._backend = fbuild.db.pickle_backend.PickleBackend(ctx)
+        self._backend = None
         self._rpc = fbuild.rpc.RPC(handle_rpc)
         self._rpc.daemon = True
         self.start()
@@ -37,13 +37,19 @@ class Database:
         """Inform and wait for the L{DatabaseThread} to shut down."""
         self._rpc.join(*args, **kwargs)
 
-    def save(self, *args, **kwargs):
-        """Save the database to the file."""
-        return self._rpc.call((self._backend.save, args, kwargs))
+    def connect(self, *args, **kwargs):
+        """Connect to the database backend."""
+        assert self._backend is None, 'Already connected to the backend.'
 
-    def load(self, *args, **kwargs):
-        """Load the database from the file."""
-        return self._rpc.call((self._backend.load, args, kwargs))
+        self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
+
+        return self._rpc.call((self._backend.connect, args, kwargs))
+
+    def close(self, *args, **kwargs):
+        """Close the connection to the backend."""
+        result = self._rpc.call((self._backend.close, args, kwargs))
+        self._backend = None
+        return result
 
     def call(self, function, *args, **kwargs):
         """Call the function and return the result, src dependencies, and dst
