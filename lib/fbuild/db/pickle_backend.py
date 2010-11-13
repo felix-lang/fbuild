@@ -125,6 +125,10 @@ class PickleBackend:
 
     def find_function(self, function_name):
         """Returns the function record or None if it does not exist."""
+
+        # Make sure we got the right types.
+        assert isinstance(function_name, str)
+
         try:
             return self._functions[function_name]
         except KeyError:
@@ -135,6 +139,11 @@ class PickleBackend:
     def check_function(self, function_name, function_digest):
         """Returns whether or not the function is dirty. Returns True or false
         as well as the function's digest."""
+
+        # Make sure we got the right types.
+        assert isinstance(function_name, str)
+        assert isinstance(function_digest, str)
+
         old_digest = self.find_function(function_name)
 
         # Check if the function changed. If it didn't, assume that the function
@@ -145,6 +154,7 @@ class PickleBackend:
     def save_function(self, function_name, digest):
         """Insert or update the function's digest."""
 
+        # Make sure we got the right types.
         assert isinstance(function_name, str)
         assert isinstance(digest, str)
 
@@ -156,6 +166,10 @@ class PickleBackend:
 
     def clear_function(self, function_name):
         """Clear the function from the database."""
+
+        # Make sure we got the right types.
+        assert isinstance(function_name, str)
+
         function_existed = False
         try:
             del self._functions[function_name]
@@ -220,6 +234,10 @@ class PickleBackend:
         """Returns the function call index and result or None if it does not
         exist."""
 
+        # Make sure we got the right types.
+        assert isinstance(function, str)
+        assert isinstance(bound, dict)
+
         try:
             datas = self._function_calls[function]
         except KeyError:
@@ -239,6 +257,7 @@ class PickleBackend:
 
     def save_call(self, function_name, call_id, bound, result):
         """Insert or update the function call."""
+
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), int))
         assert isinstance(function_name, str)
@@ -264,6 +283,11 @@ class PickleBackend:
     def check_external_files(self, call_id, function_name):
         """Returns all of the externally specified call files, and the dirty
         list."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int))
+        assert isinstance(function_name, str)
+
         external_dirty = False
         digests = []
         try:
@@ -316,6 +340,11 @@ class PickleBackend:
 
     def check_call_files(self, call_id, function_name, filenames):
         """Returns all of the dirty call files."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int))
+        assert isinstance(function_name, str)
+
         digests = []
         for filename in filenames:
             d, digest = self.check_call_file(call_id, function_name, filename)
@@ -326,6 +355,11 @@ class PickleBackend:
 
     def save_call_files(self, call_id, function_name, digests):
         """Insert or update the call files."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, int)
+        assert isinstance(function_name, str)
+
         for src, digest in digests:
             self.save_call_file(call_id, function_name, src, digest)
 
