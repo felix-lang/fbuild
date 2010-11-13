@@ -508,6 +508,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                 preprocessor=preprocessor,
                 flags=ocamldep_flags))
 
+        if deps:
+            self.ctx.db.add_external_dependencies_to_call(srcs=deps)
+
         objs = self.ctx.scheduler.map_with_dependencies(
             partial(self.ocamldep.source_dependencies,
                 includes=includes,
@@ -520,8 +523,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             srcs)
 
         self.ctx.db.add_external_dependencies_to_call(
-            srcs=[],
-            dsts=[obj.replaceext('.cmi') for obj in objs])
+            dsts=(obj.replaceext('.cmi') for obj in objs))
 
         return objs
 

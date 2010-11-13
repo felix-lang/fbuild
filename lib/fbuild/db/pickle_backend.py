@@ -80,7 +80,7 @@ class PickleBackend:
 
         # Check extra external call files.
         external_dirty, external_srcs, external_dsts, external_digests = \
-            self.check_external_files(function_name, call_id)
+            self.check_external_files(call_id, function_name)
 
         return (
             function_dirty,
