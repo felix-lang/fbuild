@@ -4,6 +4,11 @@ import threading
 
 # ------------------------------------------------------------------------------
 
+class RPCNotRunning(Exception):
+    pass
+
+# ------------------------------------------------------------------------------
+
 # A unique object to distinquish  mark the ends of our streams.
 class _NullType:
     pass
@@ -25,6 +30,7 @@ class RPC(threading.Thread):
         super().__init__()
 
         self._handler = handler
+        self._lock = threading.Lock()
         self._queue = queue.Queue()
         self._events = threading.local()
         self._started = threading.Event()
@@ -33,22 +39,24 @@ class RPC(threading.Thread):
     def call(self, *args, **kwargs):
         """Call the function inside the rpc thread."""
 
-        assert self._running, "RPC thread died!"
+        with self._lock:
+            if not self._running:
+                raise RPCNotRunning()
 
-        # Create an object to hold the result of the function call.
-        result = _Result()
+            # Create an object to hold the result of the function call.
+            result = _Result()
 
-        # Since we will block while waiting for our function to get called, we
-        # can cache our events per thread.
-        try:
-            event = self._events.event
-        except AttributeError:
-            event = self._events.event = threading.Event()
-        else:
-            event.clear()
+            # Since we will block while waiting for our function to get called, we
+            # can cache our events per thread.
+            try:
+                event = self._events.event
+            except AttributeError:
+                event = self._events.event = threading.Event()
+            else:
+                event.clear()
 
-        msg = (event, result, args, kwargs)
-        self._queue.put(msg)
+            msg = (event, result, args, kwargs)
+            self._queue.put(msg)
 
         # Wait for the message to be processed.
         event.wait()
@@ -116,8 +124,9 @@ class RPC(threading.Thread):
         """Inform the thread to shut down."""
 
         if self._running:
-            # Shut down the queue first.
-            self._queue.put(_NULL)
-            self._queue.join()
+            with self._lock:
+                # Shut down the queue first.
+                self._queue.put(_NULL)
+                self._queue.join()
 
-            super().join(*args, **kwargs)
+                super().join(*args, **kwargs)

@@ -124,6 +124,7 @@ def main(argv=None):
         # between the finally and the mutex.release call.  So, we can find
         # ourselves exiting functions with the lock still held.  This could
         # then cause deadlocks if that lock was ever acquired again.  Oiy.
+        print('Interrupted, saving state...')
         raise
     else:
         # No exception occurred, so let us be good and shut down the scheduler.
