@@ -60,14 +60,14 @@ def build(ctx):
 
     # Exit early if we're just clearing a function.
     if ctx.options.clear_function:
-        if not ctx.db.clear_function(options.clear_function):
+        if not ctx.db.clear_function(ctx.options.clear_function):
             raise fbuild.Error('function %r not cached' %
                     ctx.options.clear_function)
         return 0
 
     # Exit early if we're just clearing a file.
     if ctx.options.clear_file:
-        if not ctx.db.clear_file(options.clear_file):
+        if not ctx.db.clear_file(ctx.options.clear_file):
             raise fbuild.Error('file %r not cached' % ctx.options.clear_file)
         return 0
 

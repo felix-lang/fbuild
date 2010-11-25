@@ -213,6 +213,22 @@ class Database:
         all_dsts.update(return_dsts)
         return result, all_srcs, all_dsts
 
+    def clear_function(self, *args, **kwargs):
+        """Clear the function from the database."""
+
+        return self._rpc.call((
+            self._backend.clear_function,
+            args,
+            kwargs))
+
+    def clear_file(self, *args, **kwargs):
+        """Clear the file from the database."""
+
+        return self._rpc.call((
+            self._backend.clear_file,
+            args,
+            kwargs))
+
     def dump_database(self):
         """Print the database."""
         pprint.pprint(self._backend.__dict__)
