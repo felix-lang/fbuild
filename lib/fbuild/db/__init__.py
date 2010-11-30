@@ -22,12 +22,14 @@ class SRC:
     def convert(src):
         return [src]
 
+
 class SRCS(SRC):
     """An annotation that's used to designate an argument as a list of source
     paths."""
     @staticmethod
     def convert(srcs):
         return srcs
+
 
 class DST:
     """An annotation that's used to designate an argument is a destination
@@ -36,12 +38,14 @@ class DST:
     def convert(dst):
         return [dst]
 
+
 class DSTS(DST):
     """An annotation that's used to designate an argument is a list of
     destination paths."""
     @staticmethod
     def convert(dsts):
         return dsts
+
 
 class OPTIONAL_SRC(SRC):
     """An annotation that's used to designate an argument as a source path or
@@ -51,6 +55,7 @@ class OPTIONAL_SRC(SRC):
         if src is None:
             return []
         return [src]
+
 
 class OPTIONAL_DST(DST):
     """An annotation that's used to designate an argument as a destination path
@@ -362,6 +367,7 @@ class PersistentMeta(abc.ABCMeta):
 
         return result
 
+
 class PersistentObject(metaclass=PersistentMeta):
     """An abstract baseclass that will cache instances in the database."""
 
@@ -397,6 +403,7 @@ class caches:
     def call(self, ctx, *args, **kwargs):
         return ctx.db.call(self.function, ctx, *args, **kwargs)
 
+
 class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results.
 
@@ -423,6 +430,7 @@ class cachemethod:
             return self
         return cachemethod_wrapper(types.MethodType(self.method, instance))
 
+
 class cachemethod_wrapper:
     def __init__(self, method):
         self.method = method
@@ -433,6 +441,7 @@ class cachemethod_wrapper:
 
     def call(self, *args, **kwargs):
         return self.method.__self__.ctx.db.call(self.method, *args, **kwargs)
+
 
 class cacheproperty:
     """L{cacheproperty} acts like a normal I{property} but will memoize the
