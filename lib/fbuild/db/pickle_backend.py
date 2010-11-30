@@ -153,13 +153,13 @@ class PickleBackend:
         assert isinstance(fun_name, str)
         assert isinstance(fun_digest, str)
 
-        # Since the function changed, clear out all the related data.
-        self.clear_function(fun_name)
+        # Since the function changed, delete out all the related data.
+        self.delete_function(fun_name)
 
         self._functions[fun_name] = fun_digest
 
 
-    def clear_function(self, fun_name):
+    def delete_function(self, fun_name):
         """Clear the function from the database."""
 
         # Make sure we got the right types.
@@ -246,7 +246,7 @@ class PickleBackend:
         try:
             datas = self._function_calls[fun_name]
         except KeyError:
-            # The function be new or may have been cleared. So ignore the
+            # The function be new or may have been deleted. So ignore the
             # call_id and just create a new list.
             self._function_calls[fun_name] = [(bound, result)]
             return 0
@@ -422,7 +422,7 @@ class PickleBackend:
 
         # Since the function changed, all of the calls that used this
         # function are dirty.
-        self.clear_file(file_name)
+        self.delete_file(file_name)
 
         # Now, add the file back to the database.
         data = self._files[file_name] = (mtime, digest)
@@ -431,7 +431,7 @@ class PickleBackend:
         return True, data
 
 
-    def clear_file(self, file_name):
+    def delete_file(self, file_name):
         """Remove the file from the database."""
 
         try:
@@ -439,7 +439,7 @@ class PickleBackend:
         except KeyError:
             pass
 
-        # And clear all of the related call files.
+        # And delete all of the related call files.
         try:
             del self._call_files[file_name]
         except KeyError:
