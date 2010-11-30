@@ -6,7 +6,7 @@ import time
 import fbuild
 import fbuild.builders.platform
 import fbuild.console
-import fbuild.db
+import fbuild.db.database
 import fbuild.path
 import fbuild.sched
 import fbuild.subprocess.killableprocess
@@ -25,7 +25,7 @@ class Context:
             threadcount=options.threadcount,
             show_threads=options.show_threads)
 
-        self.db = fbuild.db.Database(self, options.explain_database)
+        self.db = fbuild.db.database.Database(self, options.explain_database)
         self.scheduler = fbuild.sched.Scheduler(self.logger, options.threadcount)
 
         self.options = options
