@@ -165,36 +165,27 @@ class PickleBackend:
         # Make sure we got the right types.
         assert isinstance(fun_name, str)
 
-        function_existed = False
         try:
             del self._functions[fun_name]
         except KeyError:
             pass
-        else:
-            function_existed |= True
 
-        # Since the function was removed, all of this function's
-        # calls are dirty, so delete them.
+        # Since the function was removed, all of this function's calls and call
+        # files are dirty, so delete them.
         try:
             del self._function_calls[fun_name]
         except KeyError:
             pass
-        else:
-            function_existed |= True
 
         try:
             del self._external_srcs[fun_name]
         except KeyError:
             pass
-        else:
-            function_existed |= True
 
         try:
             del self._external_dsts[fun_name]
         except KeyError:
             pass
-        else:
-            function_existed |= True
 
         # Since _call_files is indexed by filename, we need to search through
         # each item and delete any references to this function. The assumption
@@ -206,8 +197,6 @@ class PickleBackend:
                 del value[fun_name]
             except KeyError:
                 pass
-            else:
-                function_existed |= True
 
             if not value:
                 remove_keys.append(key)
@@ -218,10 +207,6 @@ class PickleBackend:
                 del self._call_files[key]
             except KeyError:
                 pass
-            else:
-                function_existed = True
-
-        return function_existed
 
     # --------------------------------------------------------------------------
 
@@ -448,23 +433,17 @@ class PickleBackend:
 
     def clear_file(self, file_name):
         """Remove the file from the database."""
-        file_existed = False
+
         try:
             del self._files[file_name]
         except KeyError:
             pass
-        else:
-            file_existed |= True
 
         # And clear all of the related call files.
         try:
             del self._call_files[file_name]
         except KeyError:
             pass
-        else:
-            file_existed |= True
-
-        return file_existed
 
 # ------------------------------------------------------------------------------
 
