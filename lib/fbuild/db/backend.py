@@ -12,12 +12,12 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def save(self, filename):
+    def save(self, file_name):
         """Save the database to the file."""
         raise NotImplementedError
 
 
-    def load(self, filename):
+    def load(self, file_name):
         """Load the database from the file."""
         raise NotImplementedError
 
@@ -160,7 +160,7 @@ class Backend:
         if call_id is None:
             return True, digest
 
-        old_digest = self.find_call_file(call_id, fun_name, filename)
+        old_digest = self.find_call_file(call_id, fun_name, file_name)
 
         # Now, check if the file changed from the previous run. If it did then
         # return True.
@@ -172,13 +172,13 @@ class Backend:
             return True, digest
 
 
-    def find_call_file(self, call_id, fun_name, filename):
+    def find_call_file(self, call_id, fun_name, file_name):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
         raise NotImplementedError
 
 
-    def save_call_file(self, call_id, fun_name, filename, digest):
+    def save_call_file(self, call_id, fun_name, file_name, digest):
         """Insert or update the call file."""
         raise NotImplementedError
 
@@ -225,16 +225,16 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def add_file(self, filename):
+    def add_file(self, file_name):
         """Insert or update the file information. Returns True if the content
         of the file is different from what was in the table."""
 
         # Make sure we got the right types.
-        assert isinstance(filename, str)
+        assert isinstance(file_name, str)
 
-        mtime = fbuild.path.Path(filename).getmtime()
+        mtime = fbuild.path.Path(file_name).getmtime()
 
-        old_mtime, old_digest = self.find_file(filename)
+        old_mtime, old_digest = self.find_file(file_name)
 
         if old_mtime is not None:
             # If the file was modified less than 1.0 seconds ago, recompute the
@@ -244,36 +244,36 @@ class Backend:
                 return False, mtime, old_digest
 
         # The mtime changed, so let's see if the content's changed.
-        digest = fbuild.path.Path.digest(filename)
+        digest = fbuild.path.Path.digest(file_name)
 
         if digest == old_digest:
             # Save the new mtime.
-            self.save_file(filename, mtime, digest)
+            self.save_file(file_name, mtime, digest)
             return False, mtime, digest
 
         # Since the function changed, all of the calls that used this
         # function are dirty.
-        self.delete_file(filename)
+        self.delete_file(file_name)
 
         # Now, add the file back to the database.
-        self.save_file(filename, mtime, digest)
+        self.save_file(file_name, mtime, digest)
 
         # Returns True since the file changed.
         return True, mtime, digest
 
 
-    def find_file(self, filename):
+    def find_file(self, file_name):
         """Returns the file's old mtime and digest or None if it does not
         exist."""
         raise NotImplementedError
 
 
-    def save_file(self, filename, mtime, digest):
+    def save_file(self, file_name, mtime, digest):
         """Insert or update the file."""
         raise NotImplementedError
 
 
-    def delete_file(self, filename):
+    def delete_file(self, file_name):
         """Remove the file from the database."""
         raise NotImplementedError
 

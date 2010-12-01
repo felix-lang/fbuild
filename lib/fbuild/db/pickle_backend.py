@@ -17,7 +17,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         self._external_srcs = {}
         self._external_dsts = {}
 
-    def save(self, filename):
+    def save(self, file_name):
         """Save the database to the file."""
 
         f = io.BytesIO()
@@ -37,7 +37,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         # someone presses ctrl+c while we're saving, we might corrupt the db.
         # So, we'll write to a temp file, then move the old state file out of
         # the way, then rename the temp file to the filename.
-        path = fbuild.path.Path(filename)
+        path = fbuild.path.Path(file_name)
         tmp = path + '.tmp'
         old = path + '.old'
 
@@ -52,10 +52,10 @@ class PickleBackend(fbuild.db.backend.Backend):
         if old.exists():
             old.remove()
 
-    def load(self, filename):
+    def load(self, file_name):
         """Load the database from the file."""
 
-        with open(filename, 'rb') as f:
+        with open(file_name, 'rb') as f:
             unpickler = fbuild.db.backend.Unpickler(self._ctx, f)
 
             self._functions, self._function_calls, self._files, \
