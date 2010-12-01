@@ -18,8 +18,7 @@ class Database:
     """L{Database} persistently stores the results of argument calls."""
 
     def __init__(self, ctx, explain=False):
-        def handle_rpc(msg):
-            method, args, kwargs = msg
+        def handle_rpc(method, *args, **kwargs):
             return method(*args, **kwargs)
 
         self._ctx = ctx
@@ -43,11 +42,11 @@ class Database:
 
         self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
 
-        return self._rpc.call((self._backend.connect, args, kwargs))
+        return self._rpc.call(self._backend.connect, *args, **kwargs)
 
     def close(self, *args, **kwargs):
         """Close the connection to the backend."""
-        result = self._rpc.call((self._backend.close, args, kwargs))
+        result = self._rpc.call(self._backend.close, *args, **kwargs)
         self._backend = None
         return result
 
@@ -81,10 +80,12 @@ class Database:
 
         fun_dirty, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
-                self._rpc.call((
-                    self._backend.prepare,
-                    (fun_name, fun_digest, bound, srcs, dsts),
-                    {}))
+                self._rpc.call(self._backend.prepare,
+                    fun_name,
+                    fun_digest,
+                    bound,
+                    srcs,
+                    dsts)
 
         dirty_dsts = set()
 
@@ -154,12 +155,9 @@ class Database:
             "Cannot store generator in database"
 
         # Save the results in the database.
-        self._rpc.call((
-            self._backend.cache,
-            (fun_dirty, fun_name, fun_digest, call_id, bound, result,
-                call_file_digests, external_srcs, external_dsts,
-                external_digests),
-            {}))
+        self._rpc.call(self._backend.cache,
+            fun_dirty, fun_name, fun_digest, call_id, bound, result,
+            call_file_digests, external_srcs, external_dsts, external_digests)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
             return_dsts = return_type.convert(result)
@@ -174,18 +172,12 @@ class Database:
     def delete_function(self, *args, **kwargs):
         """Delete the function from the database."""
 
-        return self._rpc.call((
-            self._backend.delete_function,
-            args,
-            kwargs))
+        return self._rpc.call(self._backend.delete_function, *args, **kwargs)
 
     def delete_file(self, *args, **kwargs):
         """Delete the file from the database."""
 
-        return self._rpc.call((
-            self._backend.delete_file,
-            args,
-            kwargs))
+        return self._rpc.call(self._backend.delete_file, *args, **kwargs)
 
     def dump_database(self):
         """Print the database."""
@@ -290,10 +282,9 @@ class Database:
 
                         for src in srcs:
                             external_srcs.add(src)
-                            dirty, digest = self._rpc.call((
+                            dirty, digest = self._rpc.call(
                                 self._backend.check_call_file,
-                                (call_id, fun_name, src),
-                                {}))
+                                call_id, fun_name, src)
                             if dirty:
                                 external_digests.append((src, digest))
 
