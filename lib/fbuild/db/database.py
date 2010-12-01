@@ -65,13 +65,13 @@ class Database:
             for arg in itertools.chain(args, kwargs.values())), \
             "Cannot store generator in database"
 
-        function_name, function, args, kwargs = self._find_function_name(
+        fun_name, function, args, kwargs = self._find_function_name(
             function,
             args,
             kwargs)
 
         # Compute the function digest.
-        function_digest = self._digest_function(function, args, kwargs)
+        fun_digest = self._digest_function(function, args, kwargs)
 
         # Find the call filenames for the function.
         bound, srcs, dsts, return_type = self._find_call_filenames(
@@ -79,17 +79,17 @@ class Database:
             args,
             kwargs)
 
-        function_dirty, call_id, old_result, call_file_digests, \
+        fun_dirty, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
                 self._rpc.call((
                     self._backend.prepare,
-                    (function_name, function_digest, bound, srcs, dsts),
+                    (fun_name, fun_digest, bound, srcs, dsts),
                     {}))
 
         dirty_dsts = set()
 
         # Check if we have a result. If not, then we're dirty.
-        if not (function_dirty or \
+        if not (fun_dirty or \
                 call_id is None or \
                 call_file_digests or \
                 external_digests or \
@@ -118,13 +118,13 @@ class Database:
 
         if self._explain:
             # Explain why we are going to run the function.
-            if function_dirty:
-                self._ctx.logger.log('function %s is dirty' % function_name)
+            if fun_dirty:
+                self._ctx.logger.log('function %s is dirty' % fun_name)
 
             if call_id is None:
                 self._ctx.logger.log(
                     'function %s has not been called with these arguments' %
-                    function_name)
+                    fun_name)
 
             if call_file_digests:
                 self._ctx.logger.log('dirty source files:')
@@ -156,9 +156,9 @@ class Database:
         # Save the results in the database.
         self._rpc.call((
             self._backend.cache,
-            (function_dirty, function_name, function_digest,
-                call_id, bound, result, call_file_digests, external_srcs,
-                external_dsts, external_digests),
+            (fun_dirty, fun_name, fun_digest, call_id, bound, result,
+                call_file_digests, external_srcs, external_dsts,
+                external_digests),
             {}))
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
@@ -195,17 +195,17 @@ class Database:
         """Extract the function name from the function."""
 
         if not fbuild.inspect.ismethod(function):
-            function_name = function.__module__ + '.' + function.__name__
+            fun_name = function.__module__ + '.' + function.__name__
         else:
             # If we're caching a PersistentObject creation, use the class's
             # name as our function name.
             if function.__name__ == '__call_super__' and \
                     isinstance(function.__self__, fbuild.db.PersistentMeta):
-                function_name = '%s.%s' % (
+                fun_name = '%s.%s' % (
                     function.__self__.__module__,
                     function.__self__.__name__)
             else:
-                function_name = '%s.%s.%s' % (
+                fun_name = '%s.%s.%s' % (
                     function.__module__,
                     function.__self__.__class__.__name__,
                     function.__name__)
@@ -215,7 +215,7 @@ class Database:
         if not fbuild.inspect.isroutine(function):
             function = function.__call__
 
-        return function_name, function, args, kwargs
+        return fun_name, function, args, kwargs
 
     # Create an in-process cache of the function digests, since they shouldn't
     # change while we're running.
@@ -282,7 +282,7 @@ class Database:
                 frame = fbuild.inspect.currentframe(i)
                 try:
                     if frame.f_code == self.call.__code__:
-                        function_name = frame.f_locals['function_name']
+                        fun_name = frame.f_locals['fun_name']
                         call_id = frame.f_locals['call_id']
                         external_digests = frame.f_locals['external_digests']
                         external_srcs = frame.f_locals['external_srcs']
@@ -292,7 +292,7 @@ class Database:
                             external_srcs.add(src)
                             dirty, digest = self._rpc.call((
                                 self._backend.check_call_file,
-                                (call_id, function_name, src),
+                                (call_id, fun_name, src),
                                 {}))
                             if dirty:
                                 external_digests.append((src, digest))
