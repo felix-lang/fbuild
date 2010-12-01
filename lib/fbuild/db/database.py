@@ -269,9 +269,12 @@ class Database:
 
         # Hack in additional dependencies
         i = 2
-        try:
-            while True:
+        while True:
+            try:
                 frame = fbuild.inspect.currentframe(i)
+            except ValueError:
+                break
+            else:
                 try:
                     if frame.f_code == self.call.__code__:
                         fun_name = frame.f_locals['fun_name']
@@ -292,5 +295,3 @@ class Database:
                     i += 1
                 finally:
                     del frame
-        except ValueError:
-            pass
