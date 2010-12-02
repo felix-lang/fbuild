@@ -1,3 +1,0 @@
-[submodule "external/PyYAML"]
-	path = external/PyYAML
-	url = http://git.felix-lang.org/r/PyYAML.git
