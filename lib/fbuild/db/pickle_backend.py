@@ -69,7 +69,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Returns the function record or None if it does not exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_name, str)
+        assert isinstance(fun_name, str), fun_name
 
         try:
             return fun_name, self._functions[fun_name]
@@ -98,7 +98,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Clear the function from the database."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_name, str)
+        assert isinstance(fun_name, str), fun_name
 
         try:
             del self._functions[fun_name]
@@ -150,8 +150,8 @@ class PickleBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, str)
-        assert isinstance(bound, dict)
+        assert isinstance(fun_id, str), fun_id
+        assert isinstance(bound, dict), bound
 
         try:
             datas = self._function_calls[fun_id]
@@ -174,9 +174,9 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the function call."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_id, str)
-        assert isinstance(bound, dict)
+        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(fun_id, str), fun_id
+        assert isinstance(bound, dict), bound
 
         try:
             datas = self._function_calls[fun_id]
@@ -198,6 +198,11 @@ class PickleBackend(fbuild.db.backend.Backend):
     def find_call_file(self, call_id, fun_id, file_id):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, int), call_id
+        assert isinstance(fun_id, str), fun_id
+        assert isinstance(file_id, str), file_id
 
         try:
             return self._call_files[file_id][fun_id][call_id]
@@ -224,6 +229,10 @@ class PickleBackend(fbuild.db.backend.Backend):
     def find_external_srcs(self, call_id, fun_id):
         """Returns all of the externally specified call src files"""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(fun_id, str), fun_id
+
         try:
             return self._external_srcs[fun_id][call_id]
         except KeyError:
@@ -232,6 +241,10 @@ class PickleBackend(fbuild.db.backend.Backend):
 
     def find_external_dsts(self, call_id, fun_id):
         """Returns all of the externally specified call dst files"""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(fun_id, str), fun_id
 
         try:
             return self._external_dsts[fun_id][call_id]
@@ -243,12 +256,12 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the externall specified call files."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, int)
-        assert isinstance(fun_id, str)
-        assert all(isinstance(src, str) for src in srcs)
-        assert all(isinstance(dst, str) for dst in dsts)
+        assert isinstance(call_id, int), call_id
+        assert isinstance(fun_id, str), fun_id
+        assert all(isinstance(src, str) for src in srcs), srcs
+        assert all(isinstance(dst, str) for dst in dsts), dsts
         assert all(isinstance(src, str) and isinstance(digest, str)
-            for src, digest in digests)
+            for src, digest in digests), digests
 
         self._external_srcs.setdefault(fun_id, {})[call_id] = srcs
         self._external_dsts.setdefault(fun_id, {})[call_id] = dsts
@@ -260,6 +273,9 @@ class PickleBackend(fbuild.db.backend.Backend):
     def find_file(self, file_name):
         """Returns the mtime and digest of the file, or None if it does not
         exist."""
+
+        # Make sure we got the right types.
+        assert isinstance(file_name, str), file_name
 
         try:
             mtime, digest = self._files[file_name]
@@ -274,9 +290,9 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the file."""
 
         # Make sure we got the right types.
-        assert isinstance(file_name, str)
-        assert isinstance(mtime, float)
-        assert isinstance(digest, str)
+        assert isinstance(file_name, str), file_name
+        assert isinstance(mtime, float), mtime
+        assert isinstance(digest, str), digest
 
         self._files[file_name] = (mtime, digest)
 
@@ -286,6 +302,9 @@ class PickleBackend(fbuild.db.backend.Backend):
 
     def delete_file(self, file_name):
         """Remove the file from the database."""
+
+        # Make sure we got the right types.
+        assert isinstance(file_name, str), file_name
 
         try:
             del self._files[file_name]

@@ -87,8 +87,7 @@ class Backend:
         as well as the function's digest."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_name, str)
-        assert isinstance(fun_digest, str)
+        assert isinstance(fun_digest, str), fun_digest
 
         fun_id, old_digest = self.find_function(fun_name)
 
@@ -147,10 +146,6 @@ class Backend:
     def save_call_files(self, call_id, fun_id, digests):
         """Insert or update the call files."""
 
-        # Make sure we got the right types.
-        assert isinstance(call_id, int)
-        assert isinstance(fun_id, str)
-
         for src, digest in digests:
             self.save_call_file(call_id, fun_id, src, digest)
 
@@ -194,10 +189,6 @@ class Backend:
         """Returns all of the externally specified call files, and the dirty
         list."""
 
-        # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_id, str)
-
         srcs = self.find_external_srcs(call_id, fun_id)
         dsts = self.find_external_dsts(call_id, fun_id)
 
@@ -236,9 +227,10 @@ class Backend:
         of the file is different from what was in the table."""
 
         # Make sure we got the right types.
-        assert isinstance(file_name, str)
+        assert isinstance(file_name, str), file_name
 
-        mtime = fbuild.path.Path(file_name).getmtime()
+        file_name = fbuild.path.Path(file_name)
+        mtime = file_name.getmtime()
 
         file_id, old_mtime, old_digest = self.find_file(file_name)
 
