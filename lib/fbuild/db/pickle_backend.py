@@ -79,17 +79,17 @@ class PickleBackend(fbuild.db.backend.Backend):
             return fun_name, None
 
 
-    def save_function(self, fun_id, fun_name, digest):
+    def save_function(self, fun_id, fun_name, fun_digest):
         """Insert or update the function's digest."""
 
         assert isinstance(fun_id, str), fun_id
         assert isinstance(fun_name, str), fun_name
-        assert isinstance(digest, str), digest
+        assert isinstance(fun_digest, str), fun_digest
 
         # Since the function changed, delete out all the related data.
         self.delete_function(fun_id)
 
-        self._functions[fun_id] = digest
+        self._functions[fun_id] = fun_digest
 
         return fun_id
 
