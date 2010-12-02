@@ -286,7 +286,7 @@ class Pickler(pickle.Pickler):
 
     def persistent_id(self, obj):
         if obj is self.ctx:
-            return 'ctx'
+            return b'ctx'
         else:
             return None
 
@@ -298,10 +298,11 @@ class Unpickler(pickle.Unpickler):
         self.ctx = ctx
 
     def persistent_load(self, pid):
-        if pid == 'ctx':
+        if pid == b'ctx':
             return self.ctx
         else:
-            raise pickle.UnpicklingError('unsupported persistent object')
+            raise pickle.UnpicklingError('unsupported persistent object: %r' %
+                pid)
 
 
 def pickle_dumps(ctx, obj):
