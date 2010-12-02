@@ -78,7 +78,7 @@ class Database:
             args,
             kwargs)
 
-        fun_dirty, call_id, old_result, call_file_digests, \
+        fun_dirty, fun_id, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
                 self._rpc.call(self._backend.prepare,
                     fun_name,
@@ -156,7 +156,7 @@ class Database:
 
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
-            fun_dirty, fun_name, fun_digest, call_id, bound, result,
+            fun_dirty, fun_id, fun_name, fun_digest, call_id, bound, result,
             call_file_digests, external_srcs, external_dsts, external_digests)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
@@ -285,11 +285,11 @@ class Database:
 
                         for src in srcs:
                             external_srcs.add(src)
-                            dirty, digest = self._rpc.call(
+                            dirty, file_id, digest = self._rpc.call(
                                 self._backend.check_call_file,
                                 call_id, fun_name, src)
                             if dirty:
-                                external_digests.append((src, digest))
+                                external_digests.append((file_id, digest))
 
                         external_dsts.update(dsts)
                     i += 1

@@ -72,23 +72,26 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str)
 
         try:
-            return self._functions[fun_name]
+            return fun_name, self._functions[fun_name]
         except KeyError:
-            # This is the first time we've seen this function.
-            return None
+            # This is the first time we've seen this function. We'll use the
+            # function name as it's id.
+            return fun_name, None
 
 
-    def save_function(self, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, digest):
         """Insert or update the function's digest."""
 
-        # Make sure we got the right types.
-        assert isinstance(fun_name, str)
-        assert isinstance(fun_digest, str)
+        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(digest, str), digest
 
         # Since the function changed, delete out all the related data.
-        self.delete_function(fun_name)
+        self.delete_function(fun_id)
 
-        self._functions[fun_name] = fun_digest
+        self._functions[fun_id] = digest
+
+        return fun_id
 
 
     def delete_function(self, fun_name):
@@ -142,45 +145,45 @@ class PickleBackend(fbuild.db.backend.Backend):
 
     # --------------------------------------------------------------------------
 
-    def find_call(self, function, bound):
+    def find_call(self, fun_id, bound):
         """Returns the function call index and result or None if it does not
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(function, str)
+        assert isinstance(fun_id, str)
         assert isinstance(bound, dict)
 
         try:
-            datas = self._function_calls[function]
+            datas = self._function_calls[fun_id]
         except KeyError:
             # This is the first time we've seen this function.
             return None, None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.
-        for index, (old_bound, old_result) in enumerate(datas):
+        for call_id, (old_bound, old_result) in enumerate(datas):
             if bound == old_bound:
                 # We've found a matching call so just return the index.
-                return index, old_result
+                return call_id, old_result
 
         # Turns out we haven't called it with these args.
         return None, None
 
 
-    def save_call(self, fun_name, call_id, bound, result):
+    def save_call(self, fun_id, call_id, bound, result):
         """Insert or update the function call."""
 
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_name, str)
+        assert isinstance(fun_id, str)
         assert isinstance(bound, dict)
 
         try:
-            datas = self._function_calls[fun_name]
+            datas = self._function_calls[fun_id]
         except KeyError:
             # The function be new or may have been deleted. So ignore the
             # call_id and just create a new list.
-            self._function_calls[fun_name] = [(bound, result)]
+            self._function_calls[fun_id] = [(bound, result)]
             return 0
         else:
             if call_id is None:
@@ -192,65 +195,65 @@ class PickleBackend(fbuild.db.backend.Backend):
 
     # --------------------------------------------------------------------------
 
-    def find_call_file(self, call_id, fun_name, file_name):
+    def find_call_file(self, call_id, fun_id, file_id):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
 
         try:
-            return self._call_files[file_name][fun_name][call_id]
+            return self._call_files[file_id][fun_id][call_id]
         except KeyError:
             # This is the first time we've seen this file with this call.
             return None
 
 
-    def save_call_file(self, call_id, fun_name, file_name, digest):
+    def save_call_file(self, call_id, fun_id, file_id, digest):
         """Insert or update the call file."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, int)
-        assert isinstance(fun_name, str)
-        assert isinstance(file_name, str)
-        assert isinstance(digest, str)
+        assert isinstance(call_id, int), call_id
+        assert isinstance(fun_id, str), fun_id
+        assert isinstance(file_id, str), file_id
+        assert isinstance(digest, str), digest
 
         self._call_files. \
-            setdefault(file_name, {}).\
-            setdefault(fun_name, {})[call_id] = digest
+            setdefault(file_id, {}).\
+            setdefault(fun_id, {})[call_id] = digest
 
     # --------------------------------------------------------------------------
 
-    def find_external_srcs(self, call_id, fun_name):
+    def find_external_srcs(self, call_id, fun_id):
         """Returns all of the externally specified call src files"""
 
         try:
-            return self._external_srcs[fun_name][call_id]
+            return self._external_srcs[fun_id][call_id]
         except KeyError:
             return set()
 
 
-    def find_external_dsts(self, call_id, fun_name):
+    def find_external_dsts(self, call_id, fun_id):
         """Returns all of the externally specified call dst files"""
 
         try:
-            return self._external_dsts[fun_name][call_id]
+            return self._external_dsts[fun_id][call_id]
         except KeyError:
             return set()
 
 
-    def save_external_files(self, fun_name, call_id, srcs, dsts, digests):
+    def save_external_files(self, fun_id, call_id, srcs, dsts, digests):
         """Insert or update the externall specified call files."""
 
         # Make sure we got the right types.
         assert isinstance(call_id, int)
-        assert isinstance(fun_name, str)
+        assert isinstance(fun_id, str)
         assert all(isinstance(src, str) for src in srcs)
         assert all(isinstance(dst, str) for dst in dsts)
         assert all(isinstance(src, str) and isinstance(digest, str)
             for src, digest in digests)
 
-        self._external_srcs.setdefault(fun_name, {})[call_id] = srcs
-        self._external_dsts.setdefault(fun_name, {})[call_id] = dsts
+        self._external_srcs.setdefault(fun_id, {})[call_id] = srcs
+        self._external_dsts.setdefault(fun_id, {})[call_id] = dsts
 
-        self.save_call_files(call_id, fun_name, digests)
+        self.save_call_files(call_id, fun_id, digests)
 
     # --------------------------------------------------------------------------
 
@@ -259,9 +262,12 @@ class PickleBackend(fbuild.db.backend.Backend):
         exist."""
 
         try:
-            return self._files[file_name]
+            mtime, digest = self._files[file_name]
         except KeyError:
-            return None, None
+            return None, None, None
+        else:
+            # Return the file's name as it's id for now.
+            return file_name, mtime, digest
 
 
     def save_file(self, file_name, mtime, digest):
@@ -273,6 +279,9 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(digest, str)
 
         self._files[file_name] = (mtime, digest)
+
+        # Return the file's name as it's id for now.
+        return file_name
 
 
     def delete_file(self, file_name):
