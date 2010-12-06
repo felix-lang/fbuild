@@ -14,6 +14,9 @@ class dlfcn_h(dlfcn_h):
         if 'linux' in self.platform:
             self.external_libs.append('dl')
 
+class regex_h(regex_h):
+    reg_errcode_t = c.type_test()
+
 class pthread_h(pthread_h):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -59,6 +59,22 @@ class unistd_h(c.Test):
     header = c.header_test('unistd.h')
 
     brk = c.function_test('void*', 'void*')
+    getopt = c.function_test('int', 'int', 'char**', 'char*', test='''
+        #include <unistd.h>
+        int main(int argc, char** argv) {
+            int ch, ret = 0;
+            while ((ch = getopt(argc, argv, "f")) != -1) {
+                switch (ch) {
+                case 'f':
+                    break;
+                default:
+                    ret = 1;
+                }
+            }
+
+            return ret;
+        }
+        ''')
     getwd = c.function_test('char*', 'char*', test='''
         #include <unistd.h>
         #include <sys/param.h>

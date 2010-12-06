@@ -1,4 +1,5 @@
 import fbuild.config.c as c
+import fbuild.config.c.c90 as c90
 
 # ------------------------------------------------------------------------------
 
@@ -17,6 +18,9 @@ class execinfo_h(c.Test):
     backtrace_symbols = c.function_test('char**', 'void* const*', 'int',
         test=backtrace.test)
     backtrace_symbols_fd = c.function_test('void', 'void* const*', 'int', 'int')
+
+class memory_h(c90.string_h):
+    pass
 
 class sys_dir_h(c.Test):
     header = c.header_test('sys/dir.h')

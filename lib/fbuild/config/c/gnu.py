@@ -59,3 +59,67 @@ class extensions(c.Test):
                 return 0;
             }
         ''', 'checking for asm labels')
+
+class getopt_h(c.Test):
+    header = c.header_test('getopt.h')
+
+    getopt = c.function_test('int', 'int', 'char**', 'char*', test='''
+        #include <getopt.h>
+        int main(int argc, char** argv) {
+            int ch, ret = 0;
+            while ((ch = getopt(argc, argv, "f")) != -1) {
+                switch (ch) {
+                case 'f':
+                    break;
+                default:
+                    ret = 1;
+                }
+            }
+
+            return ret;
+        }
+        ''')
+    getopt_long = c.function_test('int', 'int', 'char**', 'char*', 'struct option*', 'int',
+        test='''
+        #include <getopt.h>
+        static struct option longopts[] = {
+            { "foo", no_argument, NULL, 'f' }
+        };
+
+        int main(int argc, char** argv) {
+            int ch, ret = 0;
+            while ((ch = getopt_long(argc, argv, "b", longopts, NULL)) != -1) {
+                switch (ch) {
+                case 'b':
+                case 'f':
+                    break;
+                default:
+                    ret = 1;
+                }
+            }
+
+            return ret;
+        }
+        ''')
+    getopt_long_only = c.function_test('int', 'int', 'char**', 'char*', 'struct option*', 'int',
+        test='''
+        #include <getopt.h>
+        static struct option longopts[] = {
+            { "foo", no_argument, NULL, 'f' }
+        };
+
+        int main(int argc, char** argv) {
+            int ch, ret = 0;
+            while ((ch = getopt_long_only(argc, argv, "b", longopts, NULL)) != -1) {
+                switch (ch) {
+                case 'b':
+                case 'f':
+                    break;
+                default:
+                    ret = 1;
+                }
+            }
+
+            return ret;
+        }
+        ''')

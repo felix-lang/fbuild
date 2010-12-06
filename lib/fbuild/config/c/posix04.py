@@ -1190,6 +1190,22 @@ class unistd_h(c.Test):
     header = c.header_test('unistd.h')
 
     getcwd = c.function_test('char*', 'char*', 'size_t')
+    getopt = c.function_test('int', 'int', 'char**', 'char*', test='''
+        #include <unistd.h>
+        int main(int argc, char** argv) {
+            int ch, ret = 0;
+            while ((ch = getopt(argc, argv, "f")) != -1) {
+                switch (ch) {
+                case 'f':
+                    break;
+                default:
+                    ret = 1;
+                }
+            }
+
+            return ret;
+        }
+        ''')
     getpagesize = c.function_test('int', 'void')
     isatty = c.function_test('int', 'int')
     sysconf = c.function_test('long', 'int', default_args=('0',))
@@ -1205,7 +1221,26 @@ class wchar_h(c99.wchar_h):
     pass
 
 class wctype_h(c99.wctype_h):
-    pass
+    iswalnum = c.function_test('int', 'wint_t')
+    iswalpha = c.function_test('int', 'wint_t')
+    iswascii = c.function_test('int', 'wint_t')
+    iswblank = c.function_test('int', 'wint_t')
+    iswcntrl = c.function_test('int', 'wint_t')
+    iswctype = c.function_test('int', 'wint_t', 'wctype_t')
+    iswdigit = c.function_test('int', 'wint_t')
+    iswgraph = c.function_test('int', 'wint_t')
+    iswhexnumber = c.function_test('int', 'wint_t')
+    iswideogram = c.function_test('int', 'wint_t')
+    iswlower = c.function_test('int', 'wint_t')
+    iswnumber = c.function_test('int', 'wint_t')
+    iswphonogram = c.function_test('int', 'wint_t')
+    iswprint = c.function_test('int', 'wint_t')
+    iswpunct = c.function_test('int', 'wint_t')
+    iswrune = c.function_test('int', 'wint_t')
+    iswspace = c.function_test('int', 'wint_t')
+    iswspecial = c.function_test('int', 'wint_t')
+    iswupper = c.function_test('int', 'wint_t')
+    iswxdigit = c.function_test('int', 'wint_t')
 
 class wordexp_h(c.Test):
     header = c.header_test('wordexp.h')
