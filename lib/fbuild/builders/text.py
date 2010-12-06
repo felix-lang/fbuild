@@ -104,6 +104,8 @@ def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
 
     ctx.logger.log(' * creating ' + dst, color='cyan')
 
+    missing_definitions = []
+
     def replace(match):
         if match.group('sub'):
             # Handle the @foo@ substitution
@@ -116,7 +118,14 @@ def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
         else:
             # Handle the #undef replacement
             key = match.group('def')
-            value = patterns[key]
+            try:
+                value = patterns[key]
+            except KeyError:
+                # We couldn't find a value for this
+                # key, so log it and continue on.
+                missing_definitions.append(key)
+                value = None
+
             if isinstance(value, bool):
                 value = int(value)
             elif \
@@ -134,6 +143,10 @@ def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
 
     code = re.sub('(^#undef +(?P<def>\w+)$)|(?:@(?P<sub>\w+)@)', replace, code,
         flags=re.M)
+
+    if missing_definitions:
+        raise fbuild.Error('missing definitions: %s' %
+            ' '.join(missing_definitions))
 
     with open(dst, 'w') as dst_file:
         dst_file.write(code)
