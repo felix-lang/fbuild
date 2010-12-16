@@ -31,7 +31,7 @@ for d in os.listdir(examples_dir):
 
     print('running example:', d)
     print()
-    subprocess.call('%s %s -j %i' % (
+    rcode = subprocess.call('%s %s -j %i' % (
             sys.executable,
             os.path.join('..', '..', 'fbuild-light'),
             options.jobs),
@@ -39,3 +39,7 @@ for d in os.listdir(examples_dir):
     print()
     print('-' * 50)
     print()
+
+    if rcode != 0:
+        break
+
