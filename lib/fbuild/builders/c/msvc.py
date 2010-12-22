@@ -121,20 +121,6 @@ class Cl(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
-    def __hash__(self):
-        return hash((
-            self.exe,
-            self.pre_flags,
-            self.flags,
-            self.includes,
-            self.macros,
-            self.warnings,
-            self.debug,
-            self.optimize,
-            self.debug_flags,
-            self.optimize_flags,
-        ))
-
 # ------------------------------------------------------------------------------
 
 class Compiler(fbuild.db.PersistentObject):
@@ -170,9 +156,6 @@ class Compiler(fbuild.db.PersistentObject):
 
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.cl,), self.flags))
-
-    def __hash__(self):
-        return hash((self.cl, self.flags, self.suffix))
 
 # ------------------------------------------------------------------------------
 
@@ -510,13 +493,6 @@ class Builder(fbuild.builders.c.Builder):
             self.compiler,
             self.lib_linker,
             self.exe_linker)
-
-    def __hash__(self):
-        return hash((
-            self.compiler,
-            self.lib_linker,
-            self.exe_linker,
-        ))
 
 # ------------------------------------------------------------------------------
 

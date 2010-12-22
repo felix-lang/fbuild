@@ -296,23 +296,6 @@ class Gcc(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
-    def __hash__(self):
-        return hash((
-            self.exe,
-            self.flags,
-            self.includes,
-            self.macros,
-            self.warnings,
-            self.debug,
-            self.optimize,
-            self.debug_flags,
-            self.profile_flags,
-            self.optimize_flags,
-            self.libpaths,
-            self.libs,
-            self.external_libs,
-        ))
-
 def make_gcc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
     return Gcc(ctx,
         fbuild.builders.find_program(ctx, [exe] if exe else default_exes),
@@ -354,9 +337,6 @@ class Compiler(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
-    def __hash__(self):
-        return hash((self.gcc, self.flags, self.suffix))
-
 # ------------------------------------------------------------------------------
 
 class Linker(fbuild.db.PersistentObject):
@@ -394,14 +374,6 @@ class Linker(fbuild.db.PersistentObject):
 
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
-
-    def __hash__(self):
-        return hash((
-            self.gcc,
-            self.flags,
-            self.prefix,
-            self.suffix,
-        ))
 
 # ------------------------------------------------------------------------------
 
@@ -481,13 +453,6 @@ class Builder(fbuild.builders.c.Builder):
             self.compiler,
             self.lib_linker,
             self.exe_linker)
-
-    def __hash__(self):
-        return hash((
-            self.compiler,
-            self.lib_linker,
-            self.exe_linker,
-        ))
 
 # ------------------------------------------------------------------------------
 
