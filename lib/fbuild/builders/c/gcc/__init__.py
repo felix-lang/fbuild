@@ -17,12 +17,12 @@ class Ar(fbuild.db.PersistentObject):
             platform=None,
             prefix=None,
             suffix=None,
-            flags=['-rc'],
-            libpaths=[],
-            libs=[],
-            external_libs=[],
+            flags=('-rc',),
+            libpaths=(),
+            libs=(),
+            external_libs=(),
             ranlib='ranlib',
-            ranlib_flags=[]):
+            ranlib_flags=()):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
@@ -35,18 +35,18 @@ class Ar(fbuild.db.PersistentObject):
             fbuild.builders.platform.static_lib_prefix(platform)
         self.suffix = suffix or \
             fbuild.builders.platform.static_lib_suffix(platform)
-        self.libpaths = libpaths
-        self.libs = libs
-        self.external_libs = external_libs
-        self.flags = flags
-        self.ranlib_flags = ranlib_flags
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.external_libs = tuple(external_libs)
+        self.flags = tuple(flags)
+        self.ranlib_flags = tuple(ranlib_flags)
 
     @fbuild.db.cachemethod
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
-            libs:fbuild.db.SRCS=[],
-            external_libs=[],
-            flags=[],
-            ranlib_flags=[],
+            libs:fbuild.db.SRCS=(),
+            external_libs=(),
+            flags=(),
+            ranlib_flags=(),
             prefix=None,
             suffix=None,
             buildroot=None,
@@ -103,37 +103,37 @@ class Ar(fbuild.db.PersistentObject):
 
 class Gcc(fbuild.db.PersistentObject):
     def __init__(self, ctx, exe, *,
-            pre_flags=[],
-            flags=[],
-            includes=[],
-            macros=[],
-            warnings=[],
-            libpaths=[],
-            libs=[],
-            external_libs=[],
+            pre_flags=(),
+            flags=(),
+            includes=(),
+            macros=(),
+            warnings=(),
+            libpaths=(),
+            libs=(),
+            external_libs=(),
             debug=None,
             profile=None,
             optimize=None,
-            debug_flags=['-g'],
-            profile_flags=['-pg'],
-            optimize_flags=['-O2']):
+            debug_flags=('-g',),
+            profile_flags=('-pg',),
+            optimize_flags=('-O2',)):
         super().__init__(ctx)
 
         self.exe = exe
-        self.pre_flags = pre_flags
-        self.flags = flags
-        self.includes = includes
-        self.macros = macros
-        self.warnings = warnings
+        self.pre_flags = tuple(pre_flags)
+        self.flags = tuple(flags)
+        self.includes = tuple(includes)
+        self.macros = tuple(macros)
+        self.warnings = tuple(warnings)
         self.debug = debug
         self.profile = profile
         self.optimize = optimize
-        self.debug_flags = debug_flags
-        self.profile_flags = profile_flags
-        self.optimize_flags = optimize_flags
-        self.libpaths = libpaths
-        self.libs = libs
-        self.external_libs = external_libs
+        self.debug_flags = tuple(debug_flags)
+        self.profile_flags = tuple(profile_flags)
+        self.optimize_flags = tuple(optimize_flags)
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.external_libs = tuple(external_libs)
 
         if not self.check_flags(flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
@@ -148,14 +148,14 @@ class Gcc(fbuild.db.PersistentObject):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
     def __call__(self, srcs, dst=None, *,
-            pre_flags=[],
-            flags=[],
-            includes=[],
-            macros=[],
-            warnings=[],
-            libpaths=[],
-            libs=[],
-            external_libs=[],
+            pre_flags=(),
+            flags=(),
+            includes=(),
+            macros=(),
+            warnings=(),
+            libpaths=(),
+            libs=(),
+            external_libs=(),
             debug=None,
             profile=None,
             optimize=None,
@@ -308,7 +308,7 @@ class Compiler(fbuild.db.PersistentObject):
         super().__init__(ctx)
 
         self.gcc = gcc
-        self.flags = flags
+        self.flags = tuple(flags)
         self.suffix = suffix
 
         if flags and not gcc.check_flags(flags):
@@ -327,7 +327,7 @@ class Compiler(fbuild.db.PersistentObject):
         dst.parent.makedirs()
 
         stdout, stderr = self.gcc([src], dst,
-            pre_flags=list(chain(['-c'], self.flags)),
+            pre_flags=list(chain(('-c',), self.flags)),
             msg1=str(self),
             color='green',
             **kwargs)
@@ -340,11 +340,11 @@ class Compiler(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Linker(fbuild.db.PersistentObject):
-    def __init__(self, ctx, gcc, flags=[], *, prefix, suffix):
+    def __init__(self, ctx, gcc, flags=(), *, prefix, suffix):
         super().__init__(ctx)
 
         self.gcc = gcc
-        self.flags = flags
+        self.flags = tuple(flags)
         self.prefix = prefix
         self.suffix = suffix
 
@@ -462,13 +462,13 @@ def static(ctx, exe=None, *args,
         make_lib_linker=Ar,
         make_exe_linker=Linker,
         platform=None,
-        flags=[],
-        compile_flags=[],
+        flags=(),
+        compile_flags=(),
         ar=None,
-        libpaths=[],
-        libs=[],
-        link_flags=[],
-        exe_link_flags=[],
+        libpaths=(),
+        libs=(),
+        link_flags=(),
+        exe_link_flags=(),
         src_suffix='.c',
         obj_suffix=None,
         lib_prefix=None,
@@ -516,13 +516,13 @@ def shared(ctx, exe=None, *args,
         make_lib_linker=Linker,
         make_exe_linker=Linker,
         platform=None,
-        flags=[],
-        compile_flags=['-fPIC'],
-        libpaths=[],
-        libs=[],
-        link_flags=[],
-        lib_link_flags=['-fPIC', '-shared'],
-        exe_link_flags=[],
+        flags=(),
+        compile_flags=('-fPIC',),
+        libpaths=(),
+        libs=(),
+        link_flags=(),
+        lib_link_flags=('-fPIC', '-shared'),
+        exe_link_flags=(),
         src_suffix='.c',
         obj_suffix=None,
         lib_prefix=None,

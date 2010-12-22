@@ -22,18 +22,18 @@ from fbuild.path import Path
 class Ocamldep(fbuild.db.PersistentObject):
     """Use ocamldep to generate dependencies for ocaml files."""
 
-    def __init__(self, ctx, exe=None, *, pre_flags=[], flags=[]):
+    def __init__(self, ctx, exe=None, *, pre_flags=(), flags=()):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamldep.opt', 'ocamldep'])
-        self.pre_flags = pre_flags
-        self.flags = flags
+        self.pre_flags = tuple(pre_flags)
+        self.flags = tuple(flags)
 
     @fbuild.db.cachemethod
     def modules(self, src:fbuild.db.SRC, *,
             preprocessor=None,
-            flags=[]):
+            flags=()):
         """Calculate the modules this ocaml file depends on."""
         src = Path(src)
 
@@ -66,7 +66,7 @@ class Ocamldep(fbuild.db.PersistentObject):
 
     @fbuild.db.cachemethod
     def source_dependencies(self, src:fbuild.db.SRC, *,
-            includes=[],
+            includes=(),
             **kwargs) -> fbuild.db.DSTS:
         """Compute the source files this ocaml file depends on."""
         deps = []
@@ -160,16 +160,16 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             platform=None,
             obj_suffix,
             lib_suffix,
-            includes=[],
-            libs=[],
+            includes=(),
+            libs=(),
             cc=None,
-            c_libs=[],
-            pre_flags=[],
-            flags=[],
+            c_libs=(),
+            pre_flags=(),
+            flags=(),
             debug=False,
             optimize=False,
-            debug_flags=['-g'],
-            optimize_flags=[],
+            debug_flags=('-g',),
+            optimize_flags=(),
             ocamldep=None,
             make_ocamldep=Ocamldep,
             requires_version=None,
@@ -182,16 +182,16 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         self.obj_suffix = obj_suffix
         self.lib_suffix = lib_suffix
         self.exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
-        self.includes = includes
-        self.libs = libs
+        self.includes = tuple(includes)
+        self.libs = tuple(libs)
         self.cc = cc
-        self.c_libs = c_libs
-        self.pre_flags = pre_flags
-        self.flags = flags
+        self.c_libs = tuple(c_libs)
+        self.pre_flags = tuple(pre_flags)
+        self.flags = tuple(flags)
         self.debug = debug
         self.optimize = optimize
-        self.debug_flags = debug_flags
-        self.optimize_flags = optimize_flags
+        self.debug_flags = tuple(debug_flags)
+        self.optimize_flags = tuple(optimize_flags)
 
         # Make sure we've got a valid version.
         fbuild.builders.check_version(ctx, self, self.version,
@@ -262,16 +262,16 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     def _run(self, dst, srcs, *,
-            includes=[],
-            libs=[],
-            external_libs=[],
-            pre_flags=[],
-            flags=[],
+            includes=(),
+            libs=(),
+            external_libs=(),
+            pre_flags=(),
+            flags=(),
             debug=None,
             optimize=None,
             custom=False,
             cc=None,
-            c_libs=[],
+            c_libs=(),
             for_pack=None,
             preprocessor=None,
             buildroot=None,
@@ -347,8 +347,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def compile(self, src:fbuild.db.SRC, *args,
-            includes=[],
-            ocamldep_flags=[],
+            includes=(),
+            ocamldep_flags=(),
             preprocessor=None,
             **kwargs) -> fbuild.db.DST:
         """Compile an ocaml implementation or interface file and cache the
@@ -366,7 +366,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     def uncached_compile(self, src, dst=None, *args,
             buildroot=None,
-            pre_flags=[],
+            pre_flags=(),
             **kwargs):
         """Compile an ocaml implementation or interface file without caching
         the results.  This is needed when compiling temporary files."""
@@ -410,7 +410,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
+            libs:fbuild.db.SRCS=(),
             **kwargs) -> fbuild.db.DST:
         """Link all the L{srcs} into a library."""
         return self._link(self.uncached_link_lib, dst, srcs, *args,
@@ -419,7 +419,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
+            libs:fbuild.db.SRCS=(),
             **kwargs) -> fbuild.db.DST:
         """Link all the L{srcs} into an executable."""
         return self._link(self.uncached_link_exe, dst, srcs, *args,
@@ -441,22 +441,22 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     def uncached_link_lib(self, dst, *args,
-            libs=[],
-            external_libs=[],
-            pre_flags=[],
+            libs=(),
+            external_libs=(),
+            pre_flags=(),
             **kwargs):
         """Link compiled ocaml files into a library without caching the
         results.  This is needed when linking temporary files."""
         # ignore passed in libraries
         return self._uncached_link(dst + self.lib_suffix,
-            pre_flags=['-a'] + pre_flags, *args, **kwargs)
+            pre_flags=tuple(chain(('-a',), pre_flags)), *args, **kwargs)
 
     def uncached_link_exe(self, dst, *args, **kwargs):
         """Link compiled ocaml files into an executable without caching the
         results.  This is needed when linking temporary files."""
         return self._uncached_link(dst + self.exe_suffix, *args, **kwargs)
 
-    def _uncached_link(self, dst, srcs, *args, libs=[], **kwargs):
+    def _uncached_link(self, dst, srcs, *args, libs=(), **kwargs):
         """Actually link the sources."""
         # Filter out the .cmi files, such as when we're using ocamlyacc source
         # files.
@@ -468,11 +468,11 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     @fbuild.db.cachemethod
     def build_objects(self, srcs:fbuild.db.SRCS, *,
-            includes=[],
-            libs=[],
-            external_libs=[],
+            includes=(),
+            libs=(),
+            external_libs=(),
             buildroot=None,
-            ocamldep_flags=[],
+            ocamldep_flags=(),
             preprocessor=None,
             **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
@@ -526,8 +526,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     @fbuild.db.cachemethod
     def build_pack(self, dst, srcs:fbuild.db.SRCS, *,
             buildroot=None,
-            objs=[],
-            pre_flags=[],
+            objs=(),
+            pre_flags=(),
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} into a packed object."""
 
@@ -570,7 +570,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             **kwargs)
 
     def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=[],
+            libs:fbuild.db.SRCS=(),
             **kwargs) -> fbuild.db.DST:
         """Compile all the L{srcs} and link into an executable."""
         return self._build_link(self.link_exe, dst, srcs, *args,
@@ -580,18 +580,18 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     # --------------------------------------------------------------------------
 
     def _build_link(self, function, dst, srcs, *,
-            objs=[],
+            objs=(),
             pack=None,
-            includes=[],
-            cflags=[],
+            includes=(),
+            cflags=(),
             ckwargs={},
-            libs=[],
-            external_libs=[],
+            libs=(),
+            external_libs=(),
             custom=False,
-            c_libs=[],
-            lflags=[],
+            c_libs=(),
+            lflags=(),
             lkwargs={},
-            flags=[],
+            flags=(),
             buildroot=None,
             **kwargs):
         # This must be called from a cached function to work properly.
@@ -649,7 +649,7 @@ class BytecodeBuilder(Builder):
 
     @fbuild.db.cachemethod
     def scan(self, src:fbuild.db.SRC, *,
-            includes=[],
+            includes=(),
             **kwargs) -> fbuild.db.DSTS:
         """Recursively compute all the source files this ocaml file depends
         on."""
@@ -681,15 +681,15 @@ class Ocamlc(BytecodeBuilder):
 # ------------------------------------------------------------------------------
 
 class Ocamlcp(BytecodeBuilder):
-    def __init__(self, ctx, exe=None, *args, profile_flags=[], **kwargs):
+    def __init__(self, ctx, exe=None, *args, profile_flags=(), **kwargs):
         exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlcp.opt', 'ocamlcp'])
 
-        self.profile_flags = profile_flags
+        self.profile_flags = tuple(profile_flags)
 
         super().__init__(ctx, exe, *args, **kwargs)
 
-    def _run(self, *args, flags=[], profile_flags=None, **kwargs):
+    def _run(self, *args, flags=(), profile_flags=None, **kwargs):
         """Add the profile flags."""
         if profile_flags is None:
             profile_flags = self.profile_flags
@@ -708,7 +708,7 @@ class Ocamlopt(Builder):
             ocamlc=None,
             make_ocamlc=Ocamlc,
             profile=False,
-            profile_flags=['-p'],
+            profile_flags=('-p',),
             **kwargs):
         # We need the bytecode compiler to compile .mli files.
         # Note we purposely don't pass the profile to ocamlc.
@@ -722,7 +722,7 @@ class Ocamlopt(Builder):
             fbuild.builders.platform.static_lib_suffix(ctx, platform)
 
         self.profile = profile
-        self.profile_flags = profile_flags
+        self.profile_flags = tuple(profile_flags)
 
         exe = fbuild.builders.find_program(ctx,
             [exe] if exe else ['ocamlopt.opt', 'ocamlopt'])
@@ -738,7 +738,7 @@ class Ocamlopt(Builder):
 
     @fbuild.db.cachemethod
     def scan(self, src:fbuild.db.SRC, *,
-            includes=[],
+            includes=(),
             **kwargs) -> fbuild.db.DSTS:
         """Recursively compute all the source files this ocaml file depends
         on."""
@@ -758,13 +758,13 @@ class Ocamlopt(Builder):
 
     # --------------------------------------------------------------------------
 
-    def _run(self, *args, flags=[], profile=None, profile_flags=None, **kwargs):
+    def _run(self, *args, flags=(), profile=None, profile_flags=None, **kwargs):
         """Add the profile flags if requested."""
         if (profile is None and self.profile) or profile:
             if profile_flags is None:
                 profile_flags = self.profile_flags
 
-            flags = flags + self.profile_flags
+            flags = tuple(chain(flags, self.profile_flags))
 
         return super()._run(*args, flags=flags, **kwargs)
 

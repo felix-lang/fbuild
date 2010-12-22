@@ -75,13 +75,13 @@ class Jar(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Java(fbuild.db.PersistentObject):
-    def __init__(self, ctx, exe='java', *, classpaths=[]):
+    def __init__(self, ctx, exe='java', *, classpaths=()):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
-        self.classpaths = classpaths
+        self.classpaths = tuple(classpaths)
 
-    def run_class(self, cls, *args, classpaths=[], **kwargs):
+    def run_class(self, cls, *args, classpaths=(), **kwargs):
         cmd = [self.exe]
 
         cmd.extend(('-cp', os.pathsep.join(chain(self.classpaths, classpaths))))

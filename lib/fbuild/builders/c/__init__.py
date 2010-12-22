@@ -25,8 +25,8 @@ class MissingHeader(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
-    def __init__(self, *args, flags=[], cross_compiler=False, **kwargs):
-        self.flags = flags
+    def __init__(self, *args, flags=(), cross_compiler=False, **kwargs):
+        self.flags = tuple(flags)
 
         # If we're a cross compiler, don't try to execute tests as they'll
         # probably fail.
@@ -283,17 +283,17 @@ class Library(Path):
     was used to compile the library."""
 
     def __new__(cls, *args,
-            flags=[],
-            libpaths=[],
-            libs=[],
-            external_libs=[],
+            flags=(),
+            libpaths=(),
+            libs=(),
+            external_libs=(),
             **kwargs):
         self = super().__new__(cls, *args, **kwargs)
 
-        self.flags = flags
-        self.libpaths = libpaths
-        self.libs = libs
-        self.external_libs = external_libs
+        self.flags = tuple(flags)
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.external_libs = tuple(external_libs)
 
         return self
 
@@ -331,10 +331,10 @@ class Executable(Path):
     """Wrapper around an executable path that carries extra metadata about what
     was used to link the executable."""
 
-    def __new__(cls, *args, libs=[], **kwargs):
+    def __new__(cls, *args, libs=(), **kwargs):
         self = super().__new__(cls, *args, **kwargs)
 
-        self.libs = libs
+        self.libs = tuple(libs)
 
         return self
 
