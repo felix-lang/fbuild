@@ -74,10 +74,6 @@ class Flx(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join([self.exe] + self.flags)
 
-    def __eq__(self, other):
-        return isinstance(other, Flx) and \
-            self.exe == other.exe
-
 # ------------------------------------------------------------------------------
 
 class Felix(fbuild.builders.AbstractCompiler):
@@ -156,10 +152,3 @@ class Felix(fbuild.builders.AbstractCompiler):
         with self.tempfile(code) as src:
             exe = self.uncached_compile(src, quieter=quieter, **ckwargs)
             return self.run(exe, quieter=quieter, **kwargs)
-
-    # --------------------------------------------------------------------------
-
-    def __eq__(self, other):
-        return isinstance(other, Felix) and \
-            self.exe == other.exe and \
-            self.exe_suffix == other.exe_suffix

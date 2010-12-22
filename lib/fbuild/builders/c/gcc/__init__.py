@@ -296,22 +296,6 @@ class Gcc(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
-    def __eq__(self, other):
-        return isinstance(other, Gcc) and \
-            self.exe == other.exe and \
-            self.flags == other.flags and \
-            self.includes == other.includes and \
-            self.macros == other.macros and \
-            self.warnings == other.warnings and \
-            self.debug == other.debug and \
-            self.optimize == other.optimize and \
-            self.debug_flags == other.debug_flags and \
-            self.profile_flags == other.profile_flags and \
-            self.optimize_flags == other.optimize_flags and \
-            self.libpaths == other.libpaths and \
-            self.libs == other.libs and \
-            self.external_libs == other.external_libs
-
     def __hash__(self):
         return hash((
             self.exe,
@@ -370,12 +354,6 @@ class Compiler(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
 
-    def __eq__(self, other):
-        return isinstance(other, Compiler) and \
-            self.gcc == other.gcc and \
-            self.flags == other.flags and \
-            self.suffix == other.suffix
-
     def __hash__(self):
         return hash((self.gcc, self.flags, self.suffix))
 
@@ -416,13 +394,6 @@ class Linker(fbuild.db.PersistentObject):
 
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
-
-    def __eq__(self, other):
-        return isinstance(other, Linker) and \
-                self.gcc == other.gcc and \
-                self.flags == other.flags and \
-                self.prefix == other.prefix and \
-                self.suffix == other.suffix
 
     def __hash__(self):
         return hash((
@@ -510,12 +481,6 @@ class Builder(fbuild.builders.c.Builder):
             self.compiler,
             self.lib_linker,
             self.exe_linker)
-
-    def __eq__(self, other):
-        return isinstance(other, Builder) and \
-                self.compiler == other.compiler and \
-                self.lib_linker == other.lib_linker and \
-                self.exe_linker == other.exe_linker
 
     def __hash__(self):
         return hash((

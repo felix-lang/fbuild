@@ -153,12 +153,6 @@ class Ocamldep(fbuild.db.PersistentObject):
             self.pre_flags,
             self.flags)
 
-    def __eq__(self, other):
-        return isinstance(other, Ocamldep) and \
-            self.exe == other.exe and \
-            self.pre_flags == other.pre_flags and \
-            self.flags == other.flags
-
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
@@ -641,15 +635,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.exe)
 
-    def __eq__(self, other):
-        return isinstance(other, Builder) and \
-            self.exe == other.exe and \
-            self.obj_suffix == other.obj_suffix and \
-            self.lib_suffix == other.lib_suffix and \
-            self.exe_suffix == other.exe_suffix and \
-            self.debug_flags == other.debug_flags and \
-            self.optimize_flags == other.optimize_flags
-
 # ------------------------------------------------------------------------------
 
 class BytecodeBuilder(Builder):
@@ -710,10 +695,6 @@ class Ocamlcp(BytecodeBuilder):
             profile_flags = self.profile_flags
 
         return super()._run(*args, flags=flags + profile_flags, **kwargs)
-
-    def __eq__(self, other):
-        return super().__eq__(other) and \
-            self.profile_flags == other.profile_flags
 
 # ------------------------------------------------------------------------------
 
@@ -836,12 +817,6 @@ class Ocamlopt(Builder):
         self.ctx.db.add_external_dependencies_to_call(
             srcs=srcs,
             dsts=dsts)
-
-    # --------------------------------------------------------------------------
-
-    def __eq__(self, other):
-        return super().__eq__(other) and \
-            self.profile_flags == other.profile_flags
 
 # ------------------------------------------------------------------------------
 
@@ -1022,11 +997,6 @@ class Ocamllex(fbuild.db.PersistentObject):
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
 
-    def __eq__(self, other):
-        return isinstance(other, Ocamllex) and \
-            self.exe == other.exe and \
-            self.flags == other.flags
-
 # ------------------------------------------------------------------------------
 
 class Ocamlyacc(fbuild.db.PersistentObject):
@@ -1069,8 +1039,3 @@ class Ocamlyacc(fbuild.db.PersistentObject):
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.exe, self.flags)
-
-    def __eq__(self, other):
-        return isinstance(other, Ocamlyacc) and \
-            self.exe == other.exe and \
-            self.flags == other.flags

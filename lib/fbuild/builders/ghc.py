@@ -74,17 +74,6 @@ class Ghc(fbuild.db.PersistentObject):
     def __str__(self):
         return self.exe.name
 
-    def __eq__(self, other):
-        return isinstance(other, Ghc) and \
-            self.exe == other.exe and \
-            self.flags == other.flags
-
-    def __hash__(self):
-        return hash((
-            self.exe,
-            self.flags,
-        ))
-
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractExeLinker):

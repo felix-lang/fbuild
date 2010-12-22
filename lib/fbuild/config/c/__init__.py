@@ -625,3 +625,12 @@ class Test(fbuild.config.Test, metaclass=TestMeta):
                 f = getattr(self, name)
                 if isinstance(f, Variable):
                     yield field.method.name, f
+
+    def __eq__(self, other):
+        return super().__eq__(other) and \
+            self.builder == other.builder and \
+            self.platform == other.platform and \
+            self.flags == other.flags and \
+            self.libpaths == other.libpaths and \
+            self.libs == other.libs and \
+            self.external_libs == other.external_libs

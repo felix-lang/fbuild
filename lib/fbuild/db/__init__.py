@@ -76,6 +76,23 @@ class PersistentObject(metaclass=PersistentMeta):
     def __init__(self, ctx):
         self.ctx = ctx
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if not isinstance(other, type(self)):
+            return False
+
+        # Step through the members and exit if they aren't equal.
+        try:
+            for key in self.__dict__:
+                if getattr(self, key) != getattr(other, key):
+                    return False
+        except AttributeError:
+            return False
+        else:
+            return True
+
 # ------------------------------------------------------------------------------
 
 class caches:

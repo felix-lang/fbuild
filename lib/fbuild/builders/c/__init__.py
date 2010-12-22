@@ -310,7 +310,12 @@ class Library(Path):
         return super().__hash__()
 
     def __eq__(self, other):
-        return type(self) == type(other) and \
+        if self is other:
+            return True
+
+        # Check the types as well because Path doesn't require that for
+        # equality.
+        return isinstance(other, self.__class__) and \
             super().__eq__(other) and \
             self.libpaths == other.libpaths and \
             self.libs == other.libs and \
@@ -333,6 +338,21 @@ class Executable(Path):
         return 'Executable({0}{1})'.format(
             super().__repr__(),
             ', libs={0}'.format(self.libs) if self.libs else '')
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        # Check the types as well because Path doesn't require that for
+        # equality.
+        return isinstance(other, self.__class__) and \
+            super().__eq__(other) and \
+            self.libs == other.libs
+
+    def __hash__(self):
+        return hash((
+            super().__hash__(),
+            self.libs))
 
 # ------------------------------------------------------------------------------
 

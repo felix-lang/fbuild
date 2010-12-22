@@ -28,11 +28,6 @@ class AbstractCompiler(fbuild.builders.java.AbstractCompiler):
 
         return super()._run(*args, flags=flags, **kwargs)
 
-    def __eq__(self, other):
-        return super().__eq__(other) and \
-            self.optimize == other.optimize and \
-            self.optimize_flags == other.optimize_flags
-
 # ------------------------------------------------------------------------------
 
 class Scala(AbstractCompiler):

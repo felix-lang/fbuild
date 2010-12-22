@@ -188,16 +188,6 @@ class AbstractCompiler(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join([self.exe.name] + self.flags)
 
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and \
-            self.exe == other.exe and \
-            self.classpaths == other.classpaths and \
-            self.sourcepaths == other.sourcepaths and \
-            self.debug == other.debug and \
-            self.debug_flags == other.debug_flags and \
-            self.target == other.target and \
-            self.flags == other.flags
-
 # ------------------------------------------------------------------------------
 
 class Javac(AbstractCompiler):
