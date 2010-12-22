@@ -306,9 +306,6 @@ class Library(Path):
             ', external_libs={0}'.format(self.external_libs)
                 if self.external_libs else '')
 
-    def __hash__(self):
-        return super().__hash__()
-
     def __eq__(self, other):
         if self is other:
             return True
@@ -320,6 +317,13 @@ class Library(Path):
             self.libpaths == other.libpaths and \
             self.libs == other.libs and \
             self.external_libs == other.external_libs
+
+    def __hash__(self):
+        return hash((
+            super().__hash__(),
+            self.libpaths,
+            self.libs,
+            self.external_libs))
 
 # ------------------------------------------------------------------------------
 
