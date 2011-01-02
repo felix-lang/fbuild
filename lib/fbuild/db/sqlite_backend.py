@@ -359,12 +359,11 @@ class SqliteBackend(fbuild.db.backend.Backend):
         return dsts
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts):
+    def save_external_files(self, call_id, srcs, dsts):
         """Insert or update the externally specified call files."""
 
         # Make sure we got the right types.
         assert isinstance(call_id, int), call_id
-        assert isinstance(fun_id, int), fun_id
         assert all(isinstance(src, str) for src in srcs), srcs
         assert all(isinstance(dst, str) for dst in dsts), dsts
 
@@ -380,23 +379,38 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
         # ----------------------------------------------------------------------
 
-        for src in srcs:
-            dirty, file_name, mtime, digest = self.add_file(src)
+        if srcs:
+            # XXX: There's a python bug where you can't pass a generator that
+            # itself inserts into sqlite, so we need to force the generator.
+            src_call_files = [self.check_call_file(call_id, src)
+                for src in srcs]
 
-            self.cursor.execute('''
-                INSERT INTO ExternalSrc (call_id,file_name)
-                VALUES (?,?)
-                ''', (call_id, file_name))
+            self.cursor.executemany(
+                'INSERT INTO ExternalSrc (call_id,file_id) VALUES (?,?)',
+                ((call_id, file_id)
+                    for dirty, file_id, file_digest in src_call_files))
 
-        for dst in dsts:
-            dirty, file_name, mtime, digest = self.add_file(dst)
+            # Also make sure we saved the call file.
+            self.cursor.executemany('''
+                INSERT OR REPLACE INTO CallFile (call_id, file_id, file_digest)
+                VALUES (?,?,?)
+                ''', ((call_id, file_id, file_digest)
+                    for dirty, file_id, file_digest in src_call_files if dirty))
 
-            self.cursor.execute('''
-                INSERT INTO ExternalDst (call_id,file_name)
-                VALUES (?,?)
-                ''', (call_id, file_name))
+        # ----------------------------------------------------------------------
 
-        self.save_call_files(call_id, fun_id, digests)
+        if dsts:
+            # We don't need to save a list here because we're only using it
+            # once.
+            # XXX: There's a python bug where you can't pass a generator that
+            # itself inserts into sqlite, so we need to force the generator.
+            dst_call_files = [self.check_call_file(call_id, dst)
+                for dst in dsts]
+
+            self.cursor.executemany(
+                'INSERT INTO ExternalDst (call_id,file_id) VALUES (?,?)',
+                ((call_id, file_id)
+                    for dirty, file_id, file_digest in dst_call_files if dirty))
 
     # --------------------------------------------------------------------------
 
