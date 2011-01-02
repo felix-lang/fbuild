@@ -192,19 +192,19 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the function call."""
 
         # Extract out the real fun_id and call_id
-        fun_name, call_index = call_id
+        fun_id, call_index = call_id
 
         # Make sure we got the right types.
-        assert isinstance(fun_name, str), fun_name
+        assert isinstance(fun_id, str), fun_id
         assert isinstance(call_index, (type(None), int)), call_index
         assert isinstance(bound, dict), bound
 
         try:
-            datas = self._function_calls[fun_name]
+            datas = self._function_calls[fun_id]
         except KeyError:
             # The function be new or may have been deleted. So ignore the
             # call_id and just create a new list.
-            self._function_calls[fun_name] = [(bound, result)]
+            self._function_calls[fun_id] = [(bound, result)]
 
             call_index = 0
         else:
@@ -214,9 +214,7 @@ class PickleBackend(fbuild.db.backend.Backend):
             else:
                 datas[call_index] = (bound, result)
 
-        # The call_id is a tuple of the function name and the index into the
-        # call array.
-        return (fun_name, call_index)
+        return (fun_id, call_index)
 
     # --------------------------------------------------------------------------
 
