@@ -169,15 +169,15 @@ class Database:
         all_dsts.update(return_dsts)
         return result, all_srcs, all_dsts
 
-    def delete_function(self, *args, **kwargs):
+    def delete_function(self, fun_name):
         """Delete the function from the database."""
 
-        return self._rpc.call(self._backend.delete_function, *args, **kwargs)
+        return self._rpc.call(self._backend.delete_function, fun_name)
 
-    def delete_file(self, *args, **kwargs):
+    def delete_file(self, file_name):
         """Delete the file from the database."""
 
-        return self._rpc.call(self._backend.delete_file, *args, **kwargs)
+        return self._rpc.call(self._backend.delete_file, file_name)
 
     def dump_database(self):
         """Print the database."""
