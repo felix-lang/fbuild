@@ -17,13 +17,19 @@ import fbuild.db.pickle_backend
 class Database:
     """L{Database} persistently stores the results of argument calls."""
 
-    def __init__(self, ctx, explain=False):
+    def __init__(self, ctx, *, engine, explain=False):
         def handle_rpc(method, *args, **kwargs):
             return method(*args, **kwargs)
 
         self._ctx = ctx
         self._explain = explain
-        self._backend = None
+        self._connected = False
+
+        if engine == 'pickle':
+            self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
+        else:
+            raise fbuild.Error('unknown backend: %s' % engine)
+
         self._rpc = fbuild.rpc.RPC(handle_rpc)
         self._rpc.daemon = True
         self.start()
@@ -38,16 +44,16 @@ class Database:
 
     def connect(self, *args, **kwargs):
         """Connect to the database backend."""
-        assert self._backend is None, 'Already connected to the backend.'
+        assert not self._connected, 'Already connected to the backend.'
 
-        self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
-
-        return self._rpc.call(self._backend.connect, *args, **kwargs)
+        result = self._rpc.call(self._backend.connect, *args, **kwargs)
+        self._connected = True
+        return result
 
     def close(self, *args, **kwargs):
         """Close the connection to the backend."""
         result = self._rpc.call(self._backend.close, *args, **kwargs)
-        self._backend = None
+        self._connected = False
         return result
 
     def call(self, function, *args, **kwargs):

@@ -88,6 +88,12 @@ def make_parser():
             action='store_true',
             default=False,
             help='explain why a function was not cached.'),
+        make_option('--database-engine',
+            action='store',
+            choices=('pickle',),
+            default='pickle',
+            help='which database engine to use: Pickle is currently the only '
+                'option'),
     ])
 
     return parser
