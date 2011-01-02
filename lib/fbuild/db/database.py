@@ -268,30 +268,29 @@ class Database:
         uncached function."""
 
         # Hack in additional dependencies
-        i = 2
-        while True:
-            try:
-                frame = fbuild.inspect.currentframe(i)
-            except ValueError:
-                break
-            else:
-                try:
-                    if frame.f_code == self.call.__code__:
-                        fun_name = frame.f_locals['fun_name']
-                        call_id = frame.f_locals['call_id']
-                        external_digests = frame.f_locals['external_digests']
-                        external_srcs = frame.f_locals['external_srcs']
-                        external_dsts = frame.f_locals['external_dsts']
+        frame = fbuild.inspect.currentframe()
 
-                        for src in srcs:
-                            external_srcs.add(src)
-                            dirty, file_id, digest = self._rpc.call(
-                                self._backend.check_call_file,
-                                call_id, fun_name, src)
-                            if dirty:
-                                external_digests.append((file_id, digest))
+        if frame is None:
+            return
 
-                        external_dsts.update(dsts)
-                    i += 1
-                finally:
-                    del frame
+        frame = frame.f_back
+
+        while frame:
+            if frame.f_code == self.call.__code__:
+                fun_name = frame.f_locals['fun_name']
+                call_id = frame.f_locals['call_id']
+                external_digests = frame.f_locals['external_digests']
+                external_srcs = frame.f_locals['external_srcs']
+                external_dsts = frame.f_locals['external_dsts']
+
+                for src in srcs:
+                    external_srcs.add(src)
+                    dirty, file_id, digest = self._rpc.call(
+                        self._backend.check_call_file,
+                        call_id, fun_name, src)
+                    if dirty:
+                        external_digests.append((file_id, digest))
+
+                external_dsts.update(dsts)
+
+            frame = frame.f_back
