@@ -128,7 +128,7 @@ class Backend:
         for file_name in file_names:
             d, file_id, digest = self.check_call_file(call_id, file_name)
             if d:
-                digests.add((file_id, digest))
+                digests.add((file_name, digest))
 
         return digests
 
