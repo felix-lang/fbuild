@@ -60,9 +60,9 @@ class Ocamldep(fbuild.db.PersistentObject):
 
         s = m.group(1)
         if s is None:
-            return []
+            return ()
         else:
-            return s.decode().split()
+            return tuple(s.decode().split())
 
     @fbuild.db.cachemethod
     def source_dependencies(self, src:fbuild.db.SRC, *,
@@ -398,9 +398,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
     def _add_compile_dependencies(self, dst, src, **kwargs):
         # If the .mli file doesn't exist, ocaml creates one from the .ml file
         if src.endswith('.ml') and not src.replaceext('.mli').exists():
-            dsts = [dst.replaceext('.cmi')]
+            dsts = (dst.replaceext('.cmi'),)
         else:
-            dsts = []
+            dsts = ()
 
         self.ctx.db.add_external_dependencies_to_call(
             srcs=self.scan(src, **kwargs),
@@ -944,7 +944,7 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
         return self.Tuple(bobj, nobj)
 
     def _link(self, blink, nlink, dst, srcs, *args,
-            libs=[],
+            libs=(),
             custom=False,
             **kwargs):
         """Actually link the sources using the bytecode and native compilers."""
@@ -968,7 +968,7 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
 # ------------------------------------------------------------------------------
 
 class Ocamllex(fbuild.db.PersistentObject):
-    def __init__(self, ctx, exe=None, flags=[]):
+    def __init__(self, ctx, exe=None, flags=()):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx,
@@ -977,7 +977,7 @@ class Ocamllex(fbuild.db.PersistentObject):
 
     @fbuild.db.cachemethod
     def __call__(self, src:fbuild.db.SRC, *,
-            flags=[],
+            flags=(),
             buildroot=None) -> fbuild.db.DST:
         buildroot = buildroot or self.ctx.buildroot
         dst = src.replaceext('.ml').addroot(buildroot)
@@ -1004,7 +1004,7 @@ class Ocamllex(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Ocamlyacc(fbuild.db.PersistentObject):
-    def __init__(self, ctx, exe=None, flags=[]):
+    def __init__(self, ctx, exe=None, flags=()):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx,
@@ -1013,7 +1013,7 @@ class Ocamlyacc(fbuild.db.PersistentObject):
 
     @fbuild.db.cachemethod
     def __call__(self, src:fbuild.db.SRC, *,
-            flags=[],
+            flags=(),
             buildroot=None) -> fbuild.db.DSTS:
         buildroot = buildroot or self.ctx.buildroot
         # first, copy the src file into the buildroot
