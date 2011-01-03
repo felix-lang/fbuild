@@ -361,7 +361,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         return dsts
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts, digests):
+    def save_external_files(self, fun_id, call_id, srcs, dsts):
         """Insert or update the externally specified call files."""
 
         # Make sure we got the right types.
@@ -369,8 +369,6 @@ class SqliteBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_id, int), fun_id
         assert all(isinstance(src, str) for src in srcs), srcs
         assert all(isinstance(dst, str) for dst in dsts), dsts
-        assert all(isinstance(src, str) and isinstance(digest, str)
-            for src, digest in digests), digests
 
         # ----------------------------------------------------------------------
 

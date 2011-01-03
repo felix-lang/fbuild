@@ -270,7 +270,7 @@ class PickleBackend(fbuild.db.backend.Backend):
             return set()
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts, digests):
+    def save_external_files(self, fun_id, call_id, srcs, dsts):
         """Insert or update the externall specified call files."""
 
         # Make sure we got the right types.
@@ -278,13 +278,16 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_id, str), fun_id
         assert all(isinstance(src, str) for src in srcs), srcs
         assert all(isinstance(dst, str) for dst in dsts), dsts
-        assert all(isinstance(src, str) and isinstance(digest, str)
-            for src, digest in digests), digests
 
         self._external_srcs.setdefault(fun_id, {})[call_id] = srcs
         self._external_dsts.setdefault(fun_id, {})[call_id] = dsts
 
-        self.save_call_files(call_id, fun_id, digests)
+        external_digests = []
+        for src in srcs:
+            dirty, file_id, mtime, digest = self.add_file(src)
+            external_digests.append((file_id, digest))
+
+        self.save_call_files(call_id, fun_id, external_digests)
 
     # --------------------------------------------------------------------------
 

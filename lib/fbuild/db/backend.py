@@ -60,8 +60,7 @@ class Backend:
             result,
             call_file_digests,
             external_srcs,
-            external_dsts,
-            external_digests):
+            external_dsts):
         """Saves the function call into the database."""
 
         # Lock the db since we're updating data structures.
@@ -73,12 +72,7 @@ class Backend:
 
         self.save_call_files(call_id, fun_id, call_file_digests)
 
-        self.save_external_files(
-            fun_id,
-            call_id,
-            external_srcs,
-            external_dsts,
-            external_digests)
+        self.save_external_files(fun_id, call_id, external_srcs, external_dsts)
 
     # --------------------------------------------------------------------------
 
@@ -216,7 +210,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts, digests):
+    def save_external_files(self, fun_id, call_id, srcs, dsts):
         """Insert or update the externally specified call files."""
         raise NotImplementedError
 

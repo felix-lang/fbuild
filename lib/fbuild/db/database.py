@@ -166,7 +166,7 @@ class Database:
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
             fun_dirty, fun_id, fun_name, fun_digest, call_id, bound, result,
-            call_file_digests, external_srcs, external_dsts, external_digests)
+            call_file_digests, external_srcs, external_dsts)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
             return_dsts = return_type.convert(result)
@@ -286,20 +286,7 @@ class Database:
 
         while frame:
             if frame.f_code == self.call.__code__:
-                fun_name = frame.f_locals['fun_name']
-                call_id = frame.f_locals['call_id']
-                external_digests = frame.f_locals['external_digests']
-                external_srcs = frame.f_locals['external_srcs']
-                external_dsts = frame.f_locals['external_dsts']
-
-                for src in srcs:
-                    external_srcs.add(src)
-                    dirty, file_id, digest = self._rpc.call(
-                        self._backend.check_call_file,
-                        call_id, fun_name, src)
-                    if dirty:
-                        external_digests.append((file_id, digest))
-
-                external_dsts.update(dsts)
+                frame.f_locals['external_srcs'].update(srcs)
+                frame.f_locals['external_dsts'].update(dsts)
 
             frame = frame.f_back
