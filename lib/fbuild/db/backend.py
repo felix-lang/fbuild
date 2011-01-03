@@ -30,18 +30,19 @@ class Backend:
         fun_dirty, fun_id = self.check_function(fun_name, fun_digest)
 
         # Check if this is a new call and get the index.
-        call_id, old_result = self.find_call(fun_id, bound)
+        call_dirty, call_id, old_result = self.find_call(fun_id, bound)
 
         # Add the source files to the database.
-        call_file_digests = self.check_call_files(call_id, fun_name, srcs)
+        call_file_digests = self.check_call_files(call_id, srcs)
 
         # Check extra external call files.
         external_dirty, external_srcs, external_dsts, external_digests = \
-            self.check_external_files(call_id, fun_name)
+            self.check_external_files(call_id)
 
         return (
             fun_dirty,
             fun_id,
+            call_dirty,
             call_id,
             old_result,
             call_file_digests,
@@ -55,6 +56,7 @@ class Backend:
             fun_id,
             fun_name,
             fun_digest,
+            call_dirty,
             call_id,
             bound,
             result,
@@ -68,11 +70,12 @@ class Backend:
             fun_id = self.save_function(fun_name, fun_digest)
 
         # Get the real call_id to use in the call files.
-        call_id = self.save_call(fun_id, call_id, bound, result)
+        if call_dirty:
+            call_id = self.save_call(call_id, fun_id, bound, result)
 
-        self.save_call_files(call_id, fun_id, call_file_digests)
+        self.save_call_files(call_id, call_file_digests)
 
-        self.save_external_files(fun_id, call_id, external_srcs, external_dsts)
+        self.save_external_files(call_id, external_srcs, external_dsts)
 
     # --------------------------------------------------------------------------
 
@@ -106,47 +109,43 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def find_call(self, function, bound):
+    def find_call(self, fun_id, bound):
         """Returns the function call index and result or None if it does not
         exist."""
         raise NotImplementedError
 
 
-    def save_call(self, fun_name, call_id, bound, result):
+    def save_call(self, call_id, fun_id, bound, result):
         """Insert or update the function call."""
         raise NotImplementedError
 
     # --------------------------------------------------------------------------
 
-    def check_call_files(self, call_id, fun_id, file_names):
+    def check_call_files(self, call_id, file_names):
         """Returns all of the dirty call files."""
 
-        # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int))
-        assert isinstance(fun_id, str)
-
-        digests = []
+        digests = set()
         for file_name in file_names:
-            d, file_id, digest = self.check_call_file(
-                call_id,
-                fun_id,
-                file_name)
+            d, file_id, digest = self.check_call_file(call_id, file_name)
             if d:
-                digests.append((file_id, digest))
+                digests.add((file_id, digest))
 
         return digests
 
 
-    def save_call_files(self, call_id, fun_id, digests):
+    def save_call_files(self, call_id, digests):
         """Insert or update the call files."""
 
         for src, digest in digests:
-            self.save_call_file(call_id, fun_id, src, digest)
+            self.save_call_file(call_id, src, digest)
 
     # --------------------------------------------------------------------------
 
-    def check_call_file(self, call_id, fun_id, file_name):
+    def check_call_file(self, call_id, file_name):
         """Returns if the call file is dirty and the file's digest."""
+
+        # Make sure we got the right types.
+        assert isinstance(file_name, str), file_name
 
         # Compute the digest of the file.
         dirty, file_id, mtime, digest = self.add_file(file_name)
@@ -155,7 +154,7 @@ class Backend:
         if call_id is None:
             return True, file_id, digest
 
-        old_digest = self.find_call_file(call_id, fun_id, file_id)
+        old_digest = self.find_call_file(call_id, file_id)
 
         # Now, check if the file changed from the previous run. If it did then
         # return True.
@@ -167,30 +166,30 @@ class Backend:
             return True, file_id, digest
 
 
-    def find_call_file(self, call_id, fun_id, file_name):
+    def find_call_file(self, call_id, file_id):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
         raise NotImplementedError
 
 
-    def save_call_file(self, call_id, fun_id, file_id, digest):
+    def save_call_file(self, call_id, file_id, digest):
         """Insert or update the call file."""
         raise NotImplementedError
 
     # --------------------------------------------------------------------------
 
-    def check_external_files(self, call_id, fun_id):
+    def check_external_files(self, call_id):
         """Returns all of the externally specified call files, and the dirty
         list."""
 
-        srcs = self.find_external_srcs(call_id, fun_id)
-        dsts = self.find_external_dsts(call_id, fun_id)
+        srcs = self.find_external_srcs(call_id)
+        dsts = self.find_external_dsts(call_id)
 
         external_dirty = False
         digests = []
         for src in srcs:
             try:
-                d, file_id, digest = self.check_call_file(call_id, fun_id, src)
+                d, file_id, digest = self.check_call_file(call_id, src)
             except OSError:
                 external_dirty = True
             else:
@@ -200,17 +199,17 @@ class Backend:
         return external_dirty, srcs, dsts, digests
 
 
-    def find_external_srcs(self, call_id, fun_id):
+    def find_external_srcs(self, call_id):
         """Returns all of the externally specified call src files"""
         raise NotImplementedError
 
 
-    def find_external_dsts(self, call_id, fun_id):
+    def find_external_dsts(self, call_id):
         """Returns all of the externally specified call dst files"""
         raise NotImplementedError
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts):
+    def save_external_files(self, call_id, srcs, dsts):
         """Insert or update the externally specified call files."""
         raise NotImplementedError
 

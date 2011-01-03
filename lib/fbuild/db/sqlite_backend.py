@@ -259,7 +259,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
             return True, None, None
 
 
-    def save_call(self, fun_id, call_id, call_bound, call_result):
+    def save_call(self, call_id, fun_id, call_bound, call_result):
         """Insert or update the function call."""
 
         # Make sure we got the right types.
@@ -284,14 +284,14 @@ class SqliteBackend(fbuild.db.backend.Backend):
             call_id = self.cursor.lastrowid
         else:
             self.cursor.execute(
-                'UPDATE Call SET result=? WHERE call_id=?',
+                'UPDATE Call SET call_result=? WHERE call_id=?',
                 (sqlite3.Binary(call_result), call_id))
 
         return call_id
 
     # --------------------------------------------------------------------------
 
-    def find_call_file(self, call_id, fun_id, file_name):
+    def find_call_file(self, call_id, file_id):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
 
@@ -308,32 +308,30 @@ class SqliteBackend(fbuild.db.backend.Backend):
         rows = self.cursor.fetchall()
 
         if not rows:
-            # This is the first time we've seen this call, so store it and
-            # return True.
+            # This is the first time we've seen this call, so return None.
             return None
         else:
-            (digest,), = rows
-            return digest
+            (file_digest,), = rows
+            return file_digest
 
 
-    def save_call_file(self, call_id, fun_id, file_id, digest):
+    def save_call_file(self, call_id, file_name, file_digest):
         """Insert or update the call file."""
 
         # Make sure we got the right types.
         assert isinstance(call_id, int), call_id
-        assert isinstance(fun_id, int), fun_id
-        assert isinstance(file_id, int), file_id
-        assert isinstance(digest, str), digest
-
+        assert isinstance(file_name, str), file_name
+        assert isinstance(file_digest, str), file_digest
 
         self.cursor.execute('''
             INSERT OR REPLACE INTO CallFile (call_id,file_id,file_digest)
-            VALUES (?,?,?)
-            ''', (call_id, file_id, digest))
+            SELECT ?,file_id,?
+            FROM File WHERE file_name=?
+            ''', (call_id, file_digest, file_name))
 
     # --------------------------------------------------------------------------
 
-    def find_external_srcs(self, call_id, fun_id):
+    def find_external_srcs(self, call_id):
         """Returns all of the externally specified call src files"""
 
         srcs = frozenset(file_name for file_name, in
@@ -347,7 +345,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         return srcs
 
 
-    def find_external_dsts(self, call_id, fun_id):
+    def find_external_dsts(self, call_id):
         """Returns all of the externally specified call dst files"""
 
         dsts = frozenset(file_name for file_name, in

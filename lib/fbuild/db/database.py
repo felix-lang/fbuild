@@ -82,17 +82,17 @@ class Database:
         fun_digest = self._digest_function(function, args, kwargs)
 
         # Find the call filenames for the function.
-        bound, srcs, dsts, return_type = self._find_call_filenames(
+        call_bound, srcs, dsts, return_type = self._find_call_filenames(
             function,
             args,
             kwargs)
 
-        fun_dirty, fun_id, call_id, old_result, call_file_digests, \
+        fun_dirty, fun_id, call_dirty, call_id, old_result, call_file_digests, \
             external_dirty, external_srcs, external_dsts, external_digests = \
                 self._rpc.call(self._backend.prepare,
                     fun_name,
                     fun_digest,
-                    bound,
+                    call_bound,
                     srcs,
                     dsts)
 
@@ -100,7 +100,7 @@ class Database:
 
         # Check if we have a result. If not, then we're dirty.
         if not (fun_dirty or \
-                call_id is None or \
+                call_dirty or \
                 call_file_digests or \
                 external_digests or \
                 external_dirty):
@@ -131,7 +131,7 @@ class Database:
             if fun_dirty:
                 self._ctx.logger.log('function %s is dirty' % fun_name)
 
-            if call_id is None:
+            if call_dirty:
                 self._ctx.logger.log(
                     'function %s has not been called with these arguments' %
                     fun_name)
@@ -157,26 +157,27 @@ class Database:
         external_dsts = set()
 
         # The call was dirty, so recompute it.
-        result = function(*args, **kwargs)
+        call_result = function(*args, **kwargs)
 
         # Make sure the result is not a generator.
-        assert not fbuild.inspect.isgenerator(result), \
+        assert not fbuild.inspect.isgenerator(call_result), \
             "Cannot store generator in database"
 
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
-            fun_dirty, fun_id, fun_name, fun_digest, call_id, bound, result,
+            fun_dirty, fun_id, fun_name, fun_digest,
+            call_dirty, call_id, call_bound, call_result,
             call_file_digests, external_srcs, external_dsts)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
-            return_dsts = return_type.convert(result)
+            return_dsts = return_type.convert(call_result)
         else:
             return_dsts = ()
 
         all_srcs = srcs.union(external_srcs)
         all_dsts = dsts.union(external_dsts)
         all_dsts.update(return_dsts)
-        return result, all_srcs, all_dsts
+        return call_result, all_srcs, all_dsts
 
     def delete_function(self, fun_name):
         """Delete the function from the database."""

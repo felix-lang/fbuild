@@ -175,119 +175,144 @@ class PickleBackend(fbuild.db.backend.Backend):
             datas = self._function_calls[fun_id]
         except KeyError:
             # This is the first time we've seen this function.
-            return None, None
+            return True, (fun_id, None), None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.
-        for call_id, (old_bound, old_result) in enumerate(datas):
+        for call_index, (old_bound, old_result) in enumerate(datas):
             if bound == old_bound:
                 # We've found a matching call so just return the index.
-                return call_id, old_result
+                return False, (fun_id, call_index), old_result
 
         # Turns out we haven't called it with these args.
-        return None, None
+        return True, (fun_id, None), None
 
 
-    def save_call(self, fun_id, call_id, bound, result):
+    def save_call(self, call_id, fun_id, bound, result):
         """Insert or update the function call."""
 
+        # Extract out the real fun_id and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
-        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, (type(None), int)), call_index
         assert isinstance(bound, dict), bound
 
         try:
-            datas = self._function_calls[fun_id]
+            datas = self._function_calls[fun_name]
         except KeyError:
             # The function be new or may have been deleted. So ignore the
             # call_id and just create a new list.
-            self._function_calls[fun_id] = [(bound, result)]
-            return 0
+            self._function_calls[fun_name] = [(bound, result)]
+
+            call_index = 0
         else:
-            if call_id is None:
+            if call_index is None:
                 datas.append((bound, result))
-                return len(datas) - 1
+                call_index = len(datas) - 1
             else:
-                datas[call_id] = (bound, result)
-        return call_id
+                datas[call_index] = (bound, result)
+
+        # The call_id is a tuple of the function name and the index into the
+        # call array.
+        return (fun_name, call_index)
 
     # --------------------------------------------------------------------------
 
-    def find_call_file(self, call_id, fun_id, file_id):
+    def find_call_file(self, call_id, file_name):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
 
+        # Extract out the real fun_name and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, int), call_id
-        assert isinstance(fun_id, str), fun_id
-        assert isinstance(file_id, str), file_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, (type(None), int)), call_index
+        assert isinstance(file_name, str), file_name
 
         try:
-            return self._call_files[file_id][fun_id][call_id]
+            return self._call_files[file_name][fun_name][call_index]
         except KeyError:
             # This is the first time we've seen this file with this call.
             return None
 
 
-    def save_call_file(self, call_id, fun_id, file_id, digest):
+    def save_call_file(self, call_id, file_name, digest):
         """Insert or update the call file."""
 
+        # Extract out the real fun_name and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, int), call_id
-        assert isinstance(fun_id, str), fun_id
-        assert isinstance(file_id, str), file_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, int), call_index
+        assert isinstance(file_name, str), file_name
         assert isinstance(digest, str), digest
 
         self._call_files. \
-            setdefault(file_id, {}).\
-            setdefault(fun_id, {})[call_id] = digest
+            setdefault(file_name, {}).\
+            setdefault(fun_name, {})[call_index] = digest
 
     # --------------------------------------------------------------------------
 
-    def find_external_srcs(self, call_id, fun_id):
+    def find_external_srcs(self, call_id):
         """Returns all of the externally specified call src files"""
 
+        # Extract out the real fun_name and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
-        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, (type(None), int)), call_index
 
         try:
-            return self._external_srcs[fun_id][call_id]
+            return self._external_srcs[fun_name][call_index]
         except KeyError:
             return set()
 
 
-    def find_external_dsts(self, call_id, fun_id):
+    def find_external_dsts(self, call_id):
         """Returns all of the externally specified call dst files"""
 
+        # Extract out the real fun_name and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
-        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, (type(None), int)), call_index
 
         try:
-            return self._external_dsts[fun_id][call_id]
+            return self._external_dsts[fun_name][call_index]
         except KeyError:
             return set()
 
 
-    def save_external_files(self, fun_id, call_id, srcs, dsts):
+    def save_external_files(self, call_id, srcs, dsts):
         """Insert or update the externall specified call files."""
 
+        # Extract out the real fun_name and call_id
+        fun_name, call_index = call_id
+
         # Make sure we got the right types.
-        assert isinstance(call_id, int), call_id
-        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_name, str), fun_name
+        assert isinstance(call_index, int), call_index
         assert all(isinstance(src, str) for src in srcs), srcs
         assert all(isinstance(dst, str) for dst in dsts), dsts
 
-        self._external_srcs.setdefault(fun_id, {})[call_id] = srcs
-        self._external_dsts.setdefault(fun_id, {})[call_id] = dsts
+        srcs = frozenset(srcs)
+        dsts = frozenset(dsts)
+
+        self._external_srcs.setdefault(fun_name, {})[call_index] = srcs
+        self._external_dsts.setdefault(fun_name, {})[call_index] = dsts
 
         external_digests = []
         for src in srcs:
             dirty, file_id, mtime, digest = self.add_file(src)
             external_digests.append((file_id, digest))
 
-        self.save_call_files(call_id, fun_id, external_digests)
+        self.save_call_files(call_id, external_digests)
 
     # --------------------------------------------------------------------------
 
