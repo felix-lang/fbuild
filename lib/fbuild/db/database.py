@@ -11,6 +11,7 @@ import fbuild.rpc
 
 import fbuild.db
 import fbuild.db.pickle_backend
+import fbuild.db.sqlite_backend
 
 # ------------------------------------------------------------------------------
 
@@ -27,6 +28,8 @@ class Database:
 
         if engine == 'pickle':
             self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
+        elif engine == 'sqlite':
+            self._backend = fbuild.db.sqlite_backend.SqliteBackend(self._ctx)
         else:
             raise fbuild.Error('unknown backend: %s' % engine)
 
