@@ -136,8 +136,8 @@ class Backend:
     def save_call_files(self, call_id, digests):
         """Insert or update the call files."""
 
-        for src, digest in digests:
-            self.save_call_file(call_id, src, digest)
+        for file_name, file_digest in digests:
+            self.save_call_file(call_id, file_name, file_digest)
 
     # --------------------------------------------------------------------------
 
@@ -186,7 +186,7 @@ class Backend:
         dsts = self.find_external_dsts(call_id)
 
         external_dirty = False
-        digests = []
+        external_digests = []
         for src in srcs:
             try:
                 d, file_id, digest = self.check_call_file(call_id, src)
@@ -194,9 +194,9 @@ class Backend:
                 external_dirty = True
             else:
                 if d:
-                    digests.append((file_id, digest))
+                    external_digests.append((src, digest))
 
-        return external_dirty, srcs, dsts, digests
+        return external_dirty, srcs, dsts, external_digests
 
 
     def find_external_srcs(self, call_id):
