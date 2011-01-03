@@ -88,7 +88,7 @@ class Database:
             kwargs)
 
         fun_dirty, fun_id, call_dirty, call_id, old_result, call_file_digests, \
-            external_dirty, external_srcs, external_dsts, external_digests = \
+            external_srcs, external_dsts, external_digests = \
                 self._rpc.call(self._backend.prepare,
                     fun_name,
                     fun_digest,
@@ -102,8 +102,7 @@ class Database:
         if not (fun_dirty or \
                 call_dirty or \
                 call_file_digests or \
-                external_digests or \
-                external_dirty):
+                external_digests):
             # If the result is a dst filename, make sure it exists. If not,
             # we're dirty.
             if return_type is not None and \

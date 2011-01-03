@@ -36,7 +36,7 @@ class Backend:
         call_file_digests = self.check_call_files(call_id, srcs)
 
         # Check extra external call files.
-        external_dirty, external_srcs, external_dsts, external_digests = \
+        external_srcs, external_dsts, external_digests = \
             self.check_external_files(call_id)
 
         return (
@@ -46,7 +46,6 @@ class Backend:
             call_id,
             old_result,
             call_file_digests,
-            external_dirty,
             external_srcs,
             external_dsts,
             external_digests)
@@ -185,18 +184,17 @@ class Backend:
         srcs = self.find_external_srcs(call_id)
         dsts = self.find_external_dsts(call_id)
 
-        external_dirty = False
         external_digests = []
         for src in srcs:
             try:
                 d, file_id, digest = self.check_call_file(call_id, src)
             except OSError:
-                external_dirty = True
+                pass
             else:
                 if d:
                     external_digests.append((src, digest))
 
-        return external_dirty, srcs, dsts, external_digests
+        return srcs, dsts, external_digests
 
 
     def find_external_srcs(self, call_id):
