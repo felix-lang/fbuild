@@ -2,7 +2,7 @@ import io
 import pickle
 import time
 
-import fbuild.path
+from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
@@ -229,35 +229,37 @@ class Backend:
         # Make sure we got the right types.
         assert isinstance(file_name, str), file_name
 
-        file_name = fbuild.path.Path(file_name)
-        mtime = file_name.getmtime()
-
+        # Look up the old data.
         file_id, old_mtime, old_digest = self.find_file(file_name)
+
+        # Now, create a path object and find it's mtime.
+        file_path = Path(file_name)
+        file_mtime = file_path.getmtime()
 
         if old_mtime is not None:
             # If the file was modified less than 1.0 seconds ago, recompute the
             # hash since it still could have changed even with the same mtime.
             # If True, then assume the file has not been modified.
-            if mtime == old_mtime and time.time() - mtime > 1.0:
-                return False, file_id, mtime, old_digest
+            if file_mtime == old_mtime and time.time() - file_mtime > 1.0:
+                return False, file_id, file_mtime, old_digest
 
         # The mtime changed, so let's see if the content's changed.
-        digest = fbuild.path.Path.digest(file_name)
+        digest = file_path.digest()
 
         if digest == old_digest:
             # Save the new mtime.
-            self.save_file(file_name, mtime, digest)
-            return False, file_id, mtime, digest
+            self.save_file(file_name, file_mtime, digest)
+            return False, file_id, file_mtime, digest
 
         # Since the function changed, all of the calls that used this
         # function are dirty.
         self.delete_file(file_name)
 
         # Now, add the file back to the database.
-        file_id = self.save_file(file_name, mtime, digest)
+        file_id = self.save_file(file_name, file_mtime, digest)
 
         # Returns True since the file changed.
-        return True, file_id, mtime, digest
+        return True, file_id, file_mtime, digest
 
 
     def find_file(self, file_name):
