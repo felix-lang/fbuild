@@ -334,6 +334,13 @@ class SqliteBackend(fbuild.db.backend.Backend):
     def find_external_srcs(self, call_id):
         """Returns all of the externally specified call src files"""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int)), call_id
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return frozenset()
+
         srcs = frozenset(file_name for file_name, in
             self.cursor.execute('''
                 SELECT file_name
@@ -347,6 +354,13 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
     def find_external_dsts(self, call_id):
         """Returns all of the externally specified call dst files"""
+
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), int)), call_id
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return frozenset()
 
         dsts = frozenset(file_name for file_name, in
             self.cursor.execute('''
