@@ -118,6 +118,9 @@ class SqliteBackend(fbuild.db.backend.Backend):
     def find_function(self, fun_name):
         """Returns the function record or None if it does not exist."""
 
+        # Make sure we got the right types.
+        assert isinstance(fun_name, str), fun_name
+
         self.cursor.execute(
             'SELECT fun_id,fun_digest FROM Function WHERE fun_name=?',
             (fun_name,))
@@ -135,7 +138,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         """Insert or update the function's digest."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, (type(None), int)), fun_id
+        assert isinstance(fun_id, int) or fun_id is None, fun_id
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
@@ -155,6 +158,9 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
     def delete_function(self, fun_name):
         """Clear the function from the database."""
+
+        # Make sure we got the right types.
+        assert isinstance(fun_name, str), fun_name
 
         # Since the function was removed, all of this function's calls and call
         # files are dirty, so delete them.
@@ -240,7 +246,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, (type(None), int)), fun_id
+        assert isinstance(fun_id, int) or fun_id is None, fun_id
         assert isinstance(bound, dict), bound
 
         # Exit early if this is a new function.
@@ -268,7 +274,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         """Insert or update the function call."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(call_id, int) or call_id is None, call_id
         assert isinstance(fun_id, int), fun_id
         assert isinstance(call_bound, dict), call_bound
 
@@ -339,7 +345,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         """Returns all of the externally specified call src files"""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(call_id, int), call_id
 
         srcs = frozenset(file_name for file_name, in
             self.cursor.execute('''
@@ -356,7 +362,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         """Returns all of the externally specified call dst files"""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), int)), call_id
+        assert isinstance(call_id, int), call_id
 
         dsts = frozenset(file_name for file_name, in
             self.cursor.execute('''
@@ -448,7 +454,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         """Insert or update the file."""
 
         # Make sure we got the right types.
-        assert isinstance(file_name, str), file_name
+        assert isinstance(file_name, str) or file_id is None, file_name
         assert isinstance(file_mtime, float), file_mtime
         assert isinstance(file_digest, str), file_digest
 

@@ -88,8 +88,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the function's digest."""
 
         # Make sure we have the right types.
-        assert fun_id is fun_name or isinstance(fun_id, type(None)), \
-            (fun_id, fun_name)
+        assert fun_id is fun_name or fun_id is None, (fun_id, fun_name)
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
@@ -170,7 +169,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, (type(None), str)), fun_id
+        assert isinstance(fun_id, str) or fun_id is None, fun_id
         assert isinstance(bound, dict), bound
 
         # This is the first time we've seen this function.
@@ -197,7 +196,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the function call."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), tuple)), call_id
+        assert isinstance(call_id, tuple) or call_id is None, call_id
         assert isinstance(fun_id, str), fun_id
         assert isinstance(bound, dict), bound
 
@@ -236,14 +235,14 @@ class PickleBackend(fbuild.db.backend.Backend):
         function, or None if it does not exist."""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), tuple)), call_id
+        assert isinstance(call_id, tuple), call_id
         assert isinstance(file_name, str), file_name
 
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
         assert isinstance(fun_name, str), fun_name
-        assert isinstance(call_index, (type(None), int)), call_index
+        assert isinstance(call_index, int), call_index
 
         # If we don't have a valid call_id, then it's a new call.
         if call_index is None:
@@ -278,13 +277,13 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Returns all of the externally specified call src files"""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), tuple)), call_id
+        assert isinstance(call_id, tuple), call_id
 
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
         assert isinstance(fun_name, str), fun_name
-        assert isinstance(call_index, (type(None), int)), call_index
+        assert isinstance(call_index, int), call_index
 
         try:
             return self._external_srcs[fun_name][call_index]
@@ -296,13 +295,13 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Returns all of the externally specified call dst files"""
 
         # Make sure we got the right types.
-        assert isinstance(call_id, (type(None), tuple)), call_id
+        assert isinstance(call_id, tuple), call_id
 
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
         assert isinstance(fun_name, str), fun_name
-        assert isinstance(call_index, (type(None), int)), call_index
+        assert isinstance(call_index, int), call_index
 
         try:
             return self._external_dsts[fun_name][call_index]
@@ -360,7 +359,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Insert or update the file."""
 
         # Make sure we got the right types.
-        assert file_id is file_name, (file_id, file_name)
+        assert file_id is file_name or file_id is None, (file_id, file_name)
         assert isinstance(file_name, str), file_name
         assert isinstance(file_mtime, float), file_mtime
         assert isinstance(file_digest, str), file_digest
