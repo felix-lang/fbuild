@@ -131,21 +131,29 @@ class SqliteBackend(fbuild.db.backend.Backend):
             return fun_id, fun_digest
 
 
-    def save_function(self, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest):
         """Insert or update the function's digest."""
 
+        # Make sure we got the right types.
+        assert isinstance(fun_id, (type(None), int)), fun_id
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
-        # Since the function changed, delete out all the related data.
-        self.delete_function(fun_name)
+        if fun_id is None:
+            self.cursor.execute(
+                'INSERT INTO Function (fun_name, fun_digest) VALUES (?,?)',
+                (fun_name, fun_digest))
 
-        self.cursor.execute('''
-            INSERT OR REPLACE INTO Function (fun_name, fun_digest)
-            VALUES (?,?)
-            ''', (fun_name, fun_digest))
+            fun_id = self.cursor.lastrowid
+        else:
+            # Since the function changed, delete out all the related data.
+            self.delete_function(fun_name)
 
-        return self.cursor.lastrowid
+            self.cursor.execute(
+                'UPDATE Function SET fun_digest=? WHERE fun_id=?',
+                (fun_digest, fun_id))
+
+        return fun_id
 
 
     def delete_function(self, fun_name):
@@ -448,7 +456,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
         return file_id, file_mtime, file_digest
 
 
-    def save_file(self, file_name, file_mtime, file_digest):
+    def save_file(self, file_id, file_name, file_mtime, file_digest):
         """Insert or update the file."""
 
         # Make sure we got the right types.
@@ -456,12 +464,17 @@ class SqliteBackend(fbuild.db.backend.Backend):
         assert isinstance(file_mtime, float), file_mtime
         assert isinstance(file_digest, str), file_digest
 
-        self.cursor.execute('''
-            INSERT OR REPLACE INTO File (file_name,file_mtime,file_digest)
-            VALUES (?,?,?)
-            ''', (file_name, file_mtime, file_digest))
+        if file_id is None:
+            self.cursor.execute('''
+                INSERT INTO File (file_name,file_mtime,file_digest)
+                VALUES (?,?,?)
+                ''', (file_name, file_mtime, file_digest))
 
-        file_id = self.cursor.lastrowid
+            file_id = self.cursor.lastrowid
+        else:
+            self.cursor.execute(
+                'UPDATE File SET file_mtime=?, file_digest=? WHERE file_id=?',
+                (file_mtime, file_digest, file_id))
 
         return file_id
 

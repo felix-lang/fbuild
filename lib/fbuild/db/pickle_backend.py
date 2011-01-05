@@ -81,10 +81,11 @@ class PickleBackend(fbuild.db.backend.Backend):
         return fun_name, fun_digest
 
 
-    def save_function(self, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest):
         """Insert or update the function's digest."""
 
         # Make sure we have the right types.
+        assert fun_id is fun_name, (fun_id, fun_name)
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
@@ -335,10 +336,11 @@ class PickleBackend(fbuild.db.backend.Backend):
         return file_name, file_mtime, file_digest
 
 
-    def save_file(self, file_name, file_mtime, file_digest):
+    def save_file(self, file_id, file_name, file_mtime, file_digest):
         """Insert or update the file."""
 
         # Make sure we got the right types.
+        assert file_id is file_name, (file_id, file_name)
         assert isinstance(file_name, str), file_name
         assert isinstance(file_mtime, float), file_mtime
         assert isinstance(file_digest, str), file_digest

@@ -66,7 +66,7 @@ class Backend:
 
         # Lock the db since we're updating data structures.
         if fun_dirty:
-            fun_id = self.save_function(fun_name, fun_digest)
+            fun_id = self.save_function(fun_id, fun_name, fun_digest)
 
         # Get the real call_id to use in the call files.
         if call_dirty:
@@ -97,7 +97,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_function(self, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest):
         """Insert or update the function's digest."""
         raise NotImplementedError
 
@@ -235,7 +235,7 @@ class Backend:
 
         if digest == old_digest:
             # Save the new mtime.
-            self.save_file(file_name, file_mtime, digest)
+            self.save_file(file_id, file_name, file_mtime, digest)
             return False, file_id, file_mtime, digest
 
         # Since the function changed, all of the calls that used this
@@ -243,7 +243,7 @@ class Backend:
         self.delete_file(file_name)
 
         # Now, add the file back to the database.
-        file_id = self.save_file(file_name, file_mtime, digest)
+        file_id = self.save_file(file_id, file_name, file_mtime, digest)
 
         # Returns True since the file changed.
         return True, file_id, file_mtime, digest
@@ -255,7 +255,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_file(self, file_name, file_mtime, file_digest):
+    def save_file(self, file_id, file_name, file_mtime, file_digest):
         """Insert or update the file."""
         raise NotImplementedError
 
