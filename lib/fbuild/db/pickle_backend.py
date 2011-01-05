@@ -171,12 +171,8 @@ class PickleBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, str) or fun_id is None, fun_id
+        assert isinstance(fun_id, str), fun_id
         assert isinstance(bound, dict), bound
-
-        # This is the first time we've seen this function.
-        if fun_id is None:
-            return True, None, None
 
         try:
             datas = self._function_calls[fun_id]

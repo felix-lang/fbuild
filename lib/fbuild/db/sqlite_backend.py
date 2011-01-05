@@ -246,12 +246,8 @@ class SqliteBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, int) or fun_id is None, fun_id
+        assert isinstance(fun_id, int), fun_id
         assert isinstance(bound, dict), bound
-
-        # Exit early if this is a new function.
-        if fun_id is None:
-            return True, None, None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.

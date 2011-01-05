@@ -37,12 +37,18 @@ class Backend:
         else:
             call_dirty, call_id, old_result = self.find_call(fun_id, bound)
 
-        # Add the source files to the database.
+        # Add the source files to the database. We always run this because it
+        # adds our call files to the database for us.
         call_file_digests = self.check_call_files(call_id, srcs)
 
         # Check extra external call files.
-        external_srcs, external_dsts, external_digests = \
-            self.check_external_files(call_id)
+        if call_id is None:
+            external_srcs = frozenset()
+            external_dsts = frozenset()
+            external_digests = ()
+        else:
+            external_srcs, external_dsts, external_digests = \
+                self.check_external_files(call_id)
 
         return (
             fun_dirty,
