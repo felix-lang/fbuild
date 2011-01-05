@@ -51,6 +51,8 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
     def _initialize_database(self):
         self.cursor.executescript('''
+            PRAGMA foreign_keys = ON;
+
             CREATE TABLE IF NOT EXISTS Function (
                 fun_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fun_name TEXT UNIQUE,
