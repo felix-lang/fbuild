@@ -146,9 +146,6 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
             fun_id = self.cursor.lastrowid
         else:
-            # Since the function changed, delete out all the related data.
-            self.delete_function(fun_name)
-
             self.cursor.execute(
                 'UPDATE Function SET fun_digest=? WHERE fun_id=?',
                 (fun_digest, fun_id))

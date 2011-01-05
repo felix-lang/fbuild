@@ -66,6 +66,10 @@ class Backend:
 
         # Lock the db since we're updating data structures.
         if fun_dirty:
+            # Since the function changed, delete out all the related data.
+            if fun_id is not None:
+                self.delete_function(fun_name)
+
             fun_id = self.save_function(fun_id, fun_name, fun_digest)
 
         # Get the real call_id to use in the call files.

@@ -93,11 +93,6 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
-        # Don't bother trying to delete the function if we haven't seen it
-        # before.
-        if fun_id is not None:
-            self.delete_function(fun_name)
-
         self._functions[fun_name] = fun_digest
 
         # The name is the id.
