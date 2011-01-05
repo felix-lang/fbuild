@@ -149,10 +149,6 @@ class Backend:
         # Compute the digest of the file.
         dirty, file_id, mtime, digest = self.add_file(file_name)
 
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return True, file_id, digest
-
         old_digest = self.find_call_file(call_id, file_id)
 
         # Now, check if the file changed from the previous run. If it did then

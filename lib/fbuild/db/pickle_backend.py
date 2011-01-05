@@ -230,6 +230,10 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(call_index, (type(None), int)), call_index
         assert isinstance(file_name, str), file_name
 
+        # If we don't have a valid call_id, then it's a new call.
+        if call_index is None:
+            return None
+
         try:
             return self._call_files[file_name][fun_name][call_index]
         except KeyError:
