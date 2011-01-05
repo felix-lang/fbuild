@@ -92,6 +92,8 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
+        # We don't have separate code paths for existing and non-existing
+        # functions.
         self._functions[fun_name] = fun_digest
 
         # The name is the id.
@@ -364,6 +366,8 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(file_mtime, float), file_mtime
         assert isinstance(file_digest, str), file_digest
 
+        # We don't have separate code paths for existing and non-existing
+        # files.
         self._files[file_name] = (file_mtime, file_digest)
 
         # We'll return the file_name as the file_id.
