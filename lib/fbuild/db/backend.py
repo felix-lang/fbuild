@@ -137,9 +137,9 @@ class Backend:
 
         digests = set()
         for file_name in file_names:
-            d, file_id, digest = self.check_call_file(call_id, file_name)
+            d, file_id, file_digest = self.check_call_file(call_id, file_name)
             if d:
-                digests.add((file_name, digest))
+                digests.add((file_id, file_name, file_digest))
 
         return digests
 
@@ -147,8 +147,8 @@ class Backend:
     def save_call_files(self, call_id, digests):
         """Insert or update the call files."""
 
-        for file_name, file_digest in digests:
-            self.save_call_file(call_id, file_name, file_digest)
+        for file_id, file_name, file_digest in digests:
+            self.save_call_file(call_id, file_id, file_digest)
 
     # --------------------------------------------------------------------------
 
@@ -179,7 +179,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_call_file(self, call_id, file_id, digest):
+    def save_call_file(self, call_id, file_id, file_digest):
         """Insert or update the call file."""
         raise NotImplementedError
 
@@ -195,12 +195,12 @@ class Backend:
         external_digests = []
         for src in srcs:
             try:
-                d, file_id, digest = self.check_call_file(call_id, src)
+                d, file_id, file_digest = self.check_call_file(call_id, src)
             except OSError:
                 pass
             else:
                 if d:
-                    external_digests.append((src, digest))
+                    external_digests.append((file_id, src, file_digest))
 
         return srcs, dsts, external_digests
 

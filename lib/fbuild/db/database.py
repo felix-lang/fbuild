@@ -137,12 +137,12 @@ class Database:
 
             if call_file_digests:
                 self._ctx.logger.log('dirty source files:')
-                for src, digest in call_file_digests:
+                for file_id, src, digest in call_file_digests:
                     self._ctx.logger.log('\t%s %s' % (digest, src))
 
             if external_digests:
                 self._ctx.logger.log('dirty external digests:')
-                for src, digest in external_digests:
+                for file_id, src, digest in external_digests:
                     self._ctx.logger.log('\t%s %s' % (digest, src))
 
             if dirty_dsts:

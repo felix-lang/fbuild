@@ -196,13 +196,9 @@ class PickleBackend(fbuild.db.backend.Backend):
     def save_call(self, call_id, fun_id, bound, result):
         """Insert or update the function call."""
 
-        # Extract out the real fun_id and call_id
-        fun_id, call_index = call_id
-
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), tuple)), call_id
         assert isinstance(fun_id, str), fun_id
-        assert isinstance(call_index, (type(None), int)), call_index
         assert isinstance(bound, dict), bound
 
         if call_id is None:
@@ -264,7 +260,7 @@ class PickleBackend(fbuild.db.backend.Backend):
             return None
 
 
-    def save_call_file(self, call_id, file_name, digest):
+    def save_call_file(self, call_id, file_id, file_digest):
         """Insert or update the call file."""
 
         # Extract out the real fun_name and call_id
@@ -273,12 +269,12 @@ class PickleBackend(fbuild.db.backend.Backend):
         # Make sure we got the right types.
         assert isinstance(fun_name, str), fun_name
         assert isinstance(call_index, int), call_index
-        assert isinstance(file_name, str), file_name
-        assert isinstance(digest, str), digest
+        assert isinstance(file_id, str), file_id
+        assert isinstance(file_digest, str), file_digest
 
         self._call_files. \
-            setdefault(file_name, {}).\
-            setdefault(fun_name, {})[call_index] = digest
+            setdefault(file_id, {}).\
+            setdefault(fun_name, {})[call_index] = file_digest
 
     # --------------------------------------------------------------------------
 
@@ -349,7 +345,7 @@ class PickleBackend(fbuild.db.backend.Backend):
         external_digests = []
         for src in srcs:
             dirty, file_id, mtime, digest = self.add_file(src)
-            external_digests.append((file_id, digest))
+            external_digests.append((file_id, src, digest))
 
         self.save_call_files(call_id, external_digests)
 

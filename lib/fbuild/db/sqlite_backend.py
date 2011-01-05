@@ -320,19 +320,18 @@ class SqliteBackend(fbuild.db.backend.Backend):
             return file_digest
 
 
-    def save_call_file(self, call_id, file_name, file_digest):
+    def save_call_file(self, call_id, file_id, file_digest):
         """Insert or update the call file."""
 
         # Make sure we got the right types.
         assert isinstance(call_id, int), call_id
-        assert isinstance(file_name, str), file_name
+        assert isinstance(file_id, int), file_id
         assert isinstance(file_digest, str), file_digest
 
         self.cursor.execute('''
             INSERT OR REPLACE INTO CallFile (call_id,file_id,file_digest)
-            SELECT ?,file_id,?
-            FROM File WHERE file_name=?
-            ''', (call_id, file_digest, file_name))
+            VALUES (?,?,?)
+            ''', (call_id, file_id, file_digest))
 
     # --------------------------------------------------------------------------
 
