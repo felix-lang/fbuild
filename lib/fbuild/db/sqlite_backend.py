@@ -341,10 +341,6 @@ class SqliteBackend(fbuild.db.backend.Backend):
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), int)), call_id
 
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return frozenset()
-
         srcs = frozenset(file_name for file_name, in
             self.cursor.execute('''
                 SELECT file_name
@@ -361,10 +357,6 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), int)), call_id
-
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return frozenset()
 
         dsts = frozenset(file_name for file_name, in
             self.cursor.execute('''

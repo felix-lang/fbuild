@@ -239,10 +239,6 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(call_id, (type(None), tuple)), call_id
         assert isinstance(file_name, str), file_name
 
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return None
-
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
@@ -284,10 +280,6 @@ class PickleBackend(fbuild.db.backend.Backend):
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), tuple)), call_id
 
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return frozenset()
-
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
@@ -305,10 +297,6 @@ class PickleBackend(fbuild.db.backend.Backend):
 
         # Make sure we got the right types.
         assert isinstance(call_id, (type(None), tuple)), call_id
-
-        # If we don't have a valid call_id, then it's a new call.
-        if call_id is None:
-            return frozenset()
 
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id

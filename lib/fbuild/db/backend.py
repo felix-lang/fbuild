@@ -161,6 +161,10 @@ class Backend:
         # Compute the digest of the file.
         dirty, file_id, mtime, digest = self.add_file(file_name)
 
+        # Exit early if we don't have a valid call_id.
+        if call_id is None:
+            return True, file_id, digest
+
         old_digest = self.find_call_file(call_id, file_id)
 
         # Now, check if the file changed from the previous run. If it did then
@@ -189,18 +193,24 @@ class Backend:
         """Returns all of the externally specified call files, and the dirty
         list."""
 
-        srcs = self.find_external_srcs(call_id)
-        dsts = self.find_external_dsts(call_id)
+        # Do nothing if we don't have a valid call.
+        if call_id is None:
+            srcs = frozenset()
+            dsts = frozenset()
+            external_digests = ()
+        else:
+            srcs = self.find_external_srcs(call_id)
+            dsts = self.find_external_dsts(call_id)
 
-        external_digests = []
-        for src in srcs:
-            try:
-                d, file_id, file_digest = self.check_call_file(call_id, src)
-            except OSError:
-                pass
-            else:
-                if d:
-                    external_digests.append((file_id, src, file_digest))
+            external_digests = []
+            for src in srcs:
+                try:
+                    d, file_id, file_digest = self.check_call_file(call_id, src)
+                except OSError:
+                    pass
+                else:
+                    if d:
+                        external_digests.append((file_id, src, file_digest))
 
         return srcs, dsts, external_digests
 
