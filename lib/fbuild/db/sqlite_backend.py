@@ -39,46 +39,44 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
         self._file_name = fbuild.path.Path(filename)
 
-        # Save whether or not the db exists. We need to this before we connect
-        # to sqlite in order to know if we should create the tables.
-        exists = self._file_name.exists()
-
         self.conn = sqlite3.connect(self._file_name)
         self.cursor = self.conn.cursor()
 
-        if not exists:
-            self._create()
+        self._initialize_database()
 
 
     def close(self):
         self.conn.close()
 
 
-    def _create(self):
+    def _initialize_database(self):
         self.cursor.executescript('''
-            CREATE TABLE Function (
+            CREATE TABLE IF NOT EXISTS Function (
                 fun_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fun_name TEXT UNIQUE,
                 fun_digest TEXT);
-            CREATE INDEX Function_name_index ON Function (fun_name);
+            CREATE INDEX IF NOT EXISTS Function_name_index ON
+                Function (fun_name);
 
-            CREATE TABLE Call (
+            CREATE TABLE IF NOT EXISTS Call (
                 call_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fun_id INTEGER REFERENCES Function(fun_id)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE,
                 call_bound BLOB,
                 call_result BLOB);
-            CREATE INDEX Call_fun_id_index ON Call (fun_id);
+            CREATE INDEX IF NOT EXISTS Call_fun_id_index ON
+                Call (fun_id);
 
-            CREATE TABLE File (
+            CREATE TABLE IF NOT EXISTS File (
                 file_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 file_name TEXT UNIQUE,
                 file_mtime INTEGER,
                 file_digest TEXT);
-            CREATE INDEX File_name_index ON File (file_name);
+            CREATE INDEX IF NOT EXISTS File_name_index ON
+                File (file_name);
 
-            CREATE TABLE CallFile (
+            CREATE TABLE IF NOT EXISTS CallFile (
                 call_id INTEGER REFERENCES Call(call_id)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE,
@@ -88,7 +86,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
                 file_digest TEXT,
                 PRIMARY KEY (call_id, file_id));
 
-            CREATE TABLE ExternalSrc (
+            CREATE TABLE IF NOT EXISTS ExternalSrc (
                 call_id INTEGER REFERENCES Call(call_id)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE,
@@ -97,7 +95,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
                     ON UPDATE CASCADE,
                 PRIMARY KEY (call_id, file_id));
 
-            CREATE TABLE ExternalDst (
+            CREATE TABLE IF NOT EXISTS ExternalDst (
                 call_id INTEGER REFERENCES Call(call_id)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE,
