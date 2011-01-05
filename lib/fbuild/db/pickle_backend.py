@@ -75,22 +75,28 @@ class PickleBackend(fbuild.db.backend.Backend):
             fun_digest = self._functions[fun_name]
         except KeyError:
             # This is the first time we've seen this function.
+            fun_id = None
             fun_digest = None
+        else:
+            # The name is the id.
+            fun_id = fun_name
 
-        # The name is the id.
-        return fun_name, fun_digest
+        return fun_id, fun_digest
 
 
     def save_function(self, fun_id, fun_name, fun_digest):
         """Insert or update the function's digest."""
 
         # Make sure we have the right types.
-        assert fun_id is fun_name, (fun_id, fun_name)
+        assert fun_id is fun_name or isinstance(fun_id, type(None)), \
+            (fun_id, fun_name)
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
-        # Since the function changed, delete out all the related data.
-        self.delete_function(fun_name)
+        # Don't bother trying to delete the function if we haven't seen it
+        # before.
+        if fun_id is not None:
+            self.delete_function(fun_name)
 
         self._functions[fun_name] = fun_digest
 
@@ -169,14 +175,17 @@ class PickleBackend(fbuild.db.backend.Backend):
         exist."""
 
         # Make sure we got the right types.
-        assert isinstance(fun_id, str), fun_id
+        assert isinstance(fun_id, (type(None), str)), fun_id
         assert isinstance(bound, dict), bound
+
+        # This is the first time we've seen this function.
+        if fun_id is None:
+            return True, None, None
 
         try:
             datas = self._function_calls[fun_id]
         except KeyError:
-            # This is the first time we've seen this function.
-            return True, (fun_id, None), None
+            return True, None, None
 
         # We've called this before, so search the data to see if we've called
         # it with the same arguments.
@@ -186,7 +195,7 @@ class PickleBackend(fbuild.db.backend.Backend):
                 return False, (fun_id, call_index), old_result
 
         # Turns out we haven't called it with these args.
-        return True, (fun_id, None), None
+        return True, None, None
 
 
     def save_call(self, call_id, fun_id, bound, result):
@@ -196,12 +205,24 @@ class PickleBackend(fbuild.db.backend.Backend):
         fun_id, call_index = call_id
 
         # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), tuple)), call_id
         assert isinstance(fun_id, str), fun_id
         assert isinstance(call_index, (type(None), int)), call_index
         assert isinstance(bound, dict), bound
 
+        if call_id is None:
+            # We use the function's name as it's id
+            fun_name = fun_id
+            call_index = None
+        else:
+            # Extract out the real fun_id and call_id
+            fun_name, call_index = call_id
+
+            assert fun_id is fun_name, (fun_id, fun_name)
+            assert isinstance(call_index, int), call_index
+
         try:
-            datas = self._function_calls[fun_id]
+            datas = self._function_calls[fun_name]
         except KeyError:
             # The function be new or may have been deleted. So ignore the
             # call_id and just create a new list.
@@ -223,13 +244,19 @@ class PickleBackend(fbuild.db.backend.Backend):
         """Returns the digest of the file from the last time we called this
         function, or None if it does not exist."""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), tuple)), call_id
+        assert isinstance(file_name, str), file_name
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return None
+
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
-        # Make sure we got the right types.
         assert isinstance(fun_name, str), fun_name
         assert isinstance(call_index, (type(None), int)), call_index
-        assert isinstance(file_name, str), file_name
 
         # If we don't have a valid call_id, then it's a new call.
         if call_index is None:
@@ -263,46 +290,60 @@ class PickleBackend(fbuild.db.backend.Backend):
     def find_external_srcs(self, call_id):
         """Returns all of the externally specified call src files"""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), tuple)), call_id
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return frozenset()
+
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
-        # Make sure we got the right types.
         assert isinstance(fun_name, str), fun_name
         assert isinstance(call_index, (type(None), int)), call_index
 
         try:
             return self._external_srcs[fun_name][call_index]
         except KeyError:
-            return set()
+            return frozenset()
 
 
     def find_external_dsts(self, call_id):
         """Returns all of the externally specified call dst files"""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, (type(None), tuple)), call_id
+
+        # If we don't have a valid call_id, then it's a new call.
+        if call_id is None:
+            return frozenset()
+
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
-        # Make sure we got the right types.
         assert isinstance(fun_name, str), fun_name
         assert isinstance(call_index, (type(None), int)), call_index
 
         try:
             return self._external_dsts[fun_name][call_index]
         except KeyError:
-            return set()
+            return frozenset()
 
 
     def save_external_files(self, call_id, srcs, dsts):
         """Insert or update the externall specified call files."""
 
+        # Make sure we got the right types.
+        assert isinstance(call_id, tuple), call_id
+        assert all(isinstance(src, str) for src in srcs), srcs
+        assert all(isinstance(dst, str) for dst in dsts), dsts
+
         # Extract out the real fun_name and call_id
         fun_name, call_index = call_id
 
-        # Make sure we got the right types.
         assert isinstance(fun_name, str), fun_name
         assert isinstance(call_index, int), call_index
-        assert all(isinstance(src, str) for src in srcs), srcs
-        assert all(isinstance(dst, str) for dst in dsts), dsts
 
         srcs = frozenset(srcs)
         dsts = frozenset(dsts)
