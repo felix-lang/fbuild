@@ -30,7 +30,12 @@ class Backend:
         fun_dirty, fun_id = self.check_function(fun_name, fun_digest)
 
         # Check if this is a new call and get the index.
-        call_dirty, call_id, old_result = self.find_call(fun_id, bound)
+        if fun_dirty or fun_id is None:
+            call_dirty = True
+            call_id = None
+            old_result = None
+        else:
+            call_dirty, call_id, old_result = self.find_call(fun_id, bound)
 
         # Add the source files to the database.
         call_file_digests = self.check_call_files(call_id, srcs)
@@ -69,6 +74,9 @@ class Backend:
             # Since the function changed, delete out all the related data.
             if fun_id is not None:
                 self.delete_function(fun_name)
+
+                # The fun_id is now invalid.
+                fun_id = None
 
             fun_id = self.save_function(fun_id, fun_name, fun_digest)
 
@@ -242,9 +250,13 @@ class Backend:
             self.save_file(file_id, file_name, file_mtime, digest)
             return False, file_id, file_mtime, digest
 
-        # Since the function changed, all of the calls that used this
-        # function are dirty.
-        self.delete_file(file_name)
+        if file_id is not None:
+            # Since the function changed, all of the calls that used this
+            # function are dirty.
+            self.delete_file(file_name)
+
+            # The file_id is now invalid.
+            file_id = None
 
         # Now, add the file back to the database.
         file_id = self.save_file(file_id, file_name, file_mtime, digest)
