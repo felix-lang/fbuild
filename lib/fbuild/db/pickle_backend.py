@@ -72,11 +72,13 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
 
         try:
-            return fun_name, self._functions[fun_name]
+            fun_digest = self._functions[fun_name]
         except KeyError:
-            # This is the first time we've seen this function. We'll use the
-            # function name as it's id.
-            return fun_name, None
+            # This is the first time we've seen this function.
+            fun_digest = None
+
+        # The name is the id.
+        return fun_name, fun_digest
 
 
     def save_function(self, fun_name, fun_digest):
@@ -98,7 +100,7 @@ class PickleBackend(fbuild.db.backend.Backend):
     def delete_function(self, fun_name):
         """Clear the function from the database."""
 
-        # Make sure we got the right types.
+        # Make sure we have the right types.
         assert isinstance(fun_name, str), fun_name
 
         function_existed = False
@@ -294,25 +296,26 @@ class PickleBackend(fbuild.db.backend.Backend):
         assert isinstance(file_name, str), file_name
 
         try:
-            mtime, digest = self._files[file_name]
+            file_mtime, file_digest = self._files[file_name]
         except KeyError:
-            return None, None, None
-        else:
-            # Return the file's name as it's id for now.
-            return file_name, mtime, digest
+            file_mtime = None
+            file_digest = None
+
+        # We'll return the file_name as the file_id.
+        return file_name, file_mtime, file_digest
 
 
-    def save_file(self, file_name, mtime, digest):
+    def save_file(self, file_name, file_mtime, file_digest):
         """Insert or update the file."""
 
         # Make sure we got the right types.
         assert isinstance(file_name, str), file_name
-        assert isinstance(mtime, float), mtime
-        assert isinstance(digest, str), digest
+        assert isinstance(file_mtime, float), file_mtime
+        assert isinstance(file_digest, str), file_digest
 
-        self._files[file_name] = (mtime, digest)
+        self._files[file_name] = (file_mtime, file_digest)
 
-        # Return the file's name as it's id for now.
+        # We'll return the file_name as the file_id.
         return file_name
 
 

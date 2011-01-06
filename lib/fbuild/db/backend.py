@@ -268,7 +268,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_file(self, file_name, mtime, digest):
+    def save_file(self, file_name, file_mtime, file_digest):
         """Insert or update the file."""
         raise NotImplementedError
 
