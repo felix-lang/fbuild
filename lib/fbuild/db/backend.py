@@ -66,7 +66,7 @@ class Backend:
 
         # Lock the db since we're updating data structures.
         if fun_dirty:
-            fun_id = self.save_function(fun_id, fun_name, fun_digest)
+            fun_id = self.save_function(fun_name, fun_digest)
 
         # Get the real call_id to use in the call files.
         call_id = self.save_call(fun_id, call_id, bound, result)
@@ -101,7 +101,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_function(self, fun_id, fun_name, digest):
+    def save_function(self, fun_name, fun_digest):
         """Insert or update the function's digest."""
         raise NotImplementedError
 
