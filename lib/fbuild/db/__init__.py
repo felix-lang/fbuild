@@ -99,7 +99,9 @@ class caches:
     """L{caches} decorates a function and caches the results.  The first
     argument of the function must be an instance of L{database}.
 
-    >>> ctx = fbuild.context.make_default_context()
+    >>> import fbuild.context
+    >>> ctx = fbuild.context.make_default_context(['--database=cache'])
+    >>> ctx.db.connect()
     >>> @caches
     ... def test(ctx):
     ...     print('running test')
@@ -126,7 +128,9 @@ class caches:
 class cachemethod:
     """L{cachemethod} decorates a method of a class to cache the results.
 
-    >>> ctx = fbuild.context.make_default_context([])
+    >>> import fbuild.context
+    >>> ctx = fbuild.context.make_default_context(['--database=cache'])
+    >>> ctx.db.connect()
     >>> class C:
     ...     def __init__(self, ctx):
     ...         self.ctx = ctx
@@ -167,7 +171,9 @@ class cacheproperty:
     result in the store.  The first argument of the function it wraps must be a
     store or a class that has has an attribute named I{store}.
 
-    >>> ctx = fbuild.context.make_default_context([])
+    >>> import fbuild.context
+    >>> ctx = fbuild.context.make_default_context(['--database=cache'])
+    >>> ctx.db.connect()
     >>> class C:
     ...     def __init__(self, ctx):
     ...         self.ctx = ctx

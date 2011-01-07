@@ -90,7 +90,7 @@ def make_parser():
             help='explain why a function was not cached.'),
         make_option('--database-engine',
             action='store',
-            choices=('pickle', 'sqlite'),
+            choices=('pickle', 'sqlite', 'cache'),
             default='pickle',
             help='which database engine to use: (pickle, sqlite). pickle is ' \
                 'the default'),
