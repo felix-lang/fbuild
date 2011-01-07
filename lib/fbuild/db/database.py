@@ -11,19 +11,28 @@ import fbuild.rpc
 
 import fbuild.db
 import fbuild.db.pickle_backend
+import fbuild.db.sqlite_backend
 
 # ------------------------------------------------------------------------------
 
 class Database:
     """L{Database} persistently stores the results of argument calls."""
 
-    def __init__(self, ctx, explain=False):
+    def __init__(self, ctx, *, engine, explain=False):
         def handle_rpc(method, *args, **kwargs):
             return method(*args, **kwargs)
 
         self._ctx = ctx
         self._explain = explain
-        self._backend = None
+        self._connected = False
+
+        if engine == 'pickle':
+            self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
+        elif engine == 'sqlite':
+            self._backend = fbuild.db.sqlite_backend.SqliteBackend(self._ctx)
+        else:
+            raise fbuild.Error('unknown backend: %s' % engine)
+
         self._rpc = fbuild.rpc.RPC(handle_rpc)
         self._rpc.daemon = True
         self.start()
@@ -38,16 +47,16 @@ class Database:
 
     def connect(self, *args, **kwargs):
         """Connect to the database backend."""
-        assert self._backend is None, 'Already connected to the backend.'
+        assert not self._connected, 'Already connected to the backend.'
 
-        self._backend = fbuild.db.pickle_backend.PickleBackend(self._ctx)
-
-        return self._rpc.call(self._backend.connect, *args, **kwargs)
+        result = self._rpc.call(self._backend.connect, *args, **kwargs)
+        self._connected = True
+        return result
 
     def close(self, *args, **kwargs):
         """Close the connection to the backend."""
         result = self._rpc.call(self._backend.close, *args, **kwargs)
-        self._backend = None
+        self._connected = False
         return result
 
     def call(self, function, *args, **kwargs):
@@ -73,17 +82,17 @@ class Database:
         fun_digest = self._digest_function(function, args, kwargs)
 
         # Find the call filenames for the function.
-        bound, srcs, dsts, return_type = self._find_call_filenames(
+        call_bound, srcs, dsts, return_type = self._find_call_filenames(
             function,
             args,
             kwargs)
 
-        fun_dirty, fun_id, call_id, old_result, call_file_digests, \
-            external_dirty, external_srcs, external_dsts, external_digests = \
+        fun_dirty, fun_id, call_dirty, call_id, old_result, call_file_digests, \
+            external_srcs, external_dsts, external_digests = \
                 self._rpc.call(self._backend.prepare,
                     fun_name,
                     fun_digest,
-                    bound,
+                    call_bound,
                     srcs,
                     dsts)
 
@@ -91,10 +100,9 @@ class Database:
 
         # Check if we have a result. If not, then we're dirty.
         if not (fun_dirty or \
-                call_id is None or \
+                call_dirty or \
                 call_file_digests or \
-                external_digests or \
-                external_dirty):
+                external_digests):
             # If the result is a dst filename, make sure it exists. If not,
             # we're dirty.
             if return_type is not None and \
@@ -122,19 +130,19 @@ class Database:
             if fun_dirty:
                 self._ctx.logger.log('function %s is dirty' % fun_name)
 
-            if call_id is None:
+            if call_dirty:
                 self._ctx.logger.log(
                     'function %s has not been called with these arguments' %
                     fun_name)
 
             if call_file_digests:
                 self._ctx.logger.log('dirty source files:')
-                for src, digest in call_file_digests:
+                for file_id, src, digest in call_file_digests:
                     self._ctx.logger.log('\t%s %s' % (digest, src))
 
             if external_digests:
                 self._ctx.logger.log('dirty external digests:')
-                for src, digest in external_digests:
+                for file_id, src, digest in external_digests:
                     self._ctx.logger.log('\t%s %s' % (digest, src))
 
             if dirty_dsts:
@@ -148,36 +156,37 @@ class Database:
         external_dsts = set()
 
         # The call was dirty, so recompute it.
-        result = function(*args, **kwargs)
+        call_result = function(*args, **kwargs)
 
         # Make sure the result is not a generator.
-        assert not fbuild.inspect.isgenerator(result), \
+        assert not fbuild.inspect.isgenerator(call_result), \
             "Cannot store generator in database"
 
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
-            fun_dirty, fun_id, fun_name, fun_digest, call_id, bound, result,
-            call_file_digests, external_srcs, external_dsts, external_digests)
+            fun_dirty, fun_id, fun_name, fun_digest,
+            call_dirty, call_id, call_bound, call_result,
+            call_file_digests, external_srcs, external_dsts)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
-            return_dsts = return_type.convert(result)
+            return_dsts = return_type.convert(call_result)
         else:
             return_dsts = ()
 
         all_srcs = srcs.union(external_srcs)
         all_dsts = dsts.union(external_dsts)
         all_dsts.update(return_dsts)
-        return result, all_srcs, all_dsts
+        return call_result, all_srcs, all_dsts
 
-    def delete_function(self, *args, **kwargs):
+    def delete_function(self, fun_name):
         """Delete the function from the database."""
 
-        return self._rpc.call(self._backend.delete_function, *args, **kwargs)
+        return self._rpc.call(self._backend.delete_function, fun_name)
 
-    def delete_file(self, *args, **kwargs):
+    def delete_file(self, file_name):
         """Delete the file from the database."""
 
-        return self._rpc.call(self._backend.delete_file, *args, **kwargs)
+        return self._rpc.call(self._backend.delete_file, file_name)
 
     def dump_database(self):
         """Print the database."""
@@ -268,30 +277,16 @@ class Database:
         uncached function."""
 
         # Hack in additional dependencies
-        i = 2
-        while True:
-            try:
-                frame = fbuild.inspect.currentframe(i)
-            except ValueError:
-                break
-            else:
-                try:
-                    if frame.f_code == self.call.__code__:
-                        fun_name = frame.f_locals['fun_name']
-                        call_id = frame.f_locals['call_id']
-                        external_digests = frame.f_locals['external_digests']
-                        external_srcs = frame.f_locals['external_srcs']
-                        external_dsts = frame.f_locals['external_dsts']
+        frame = fbuild.inspect.currentframe()
 
-                        for src in srcs:
-                            external_srcs.add(src)
-                            dirty, file_id, digest = self._rpc.call(
-                                self._backend.check_call_file,
-                                call_id, fun_name, src)
-                            if dirty:
-                                external_digests.append((file_id, digest))
+        if frame is None:
+            return
 
-                        external_dsts.update(dsts)
-                    i += 1
-                finally:
-                    del frame
+        frame = frame.f_back
+
+        while frame:
+            if frame.f_code == self.call.__code__:
+                frame.f_locals['external_srcs'].update(srcs)
+                frame.f_locals['external_dsts'].update(dsts)
+
+            frame = frame.f_back

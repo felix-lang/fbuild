@@ -13,6 +13,9 @@ parser.add_option('-j', '--jobs',
     type='int',
     default=1,
     help='Allow N jobs at once')
+parser.add_option('--database-engine',
+    default='pickle',
+    help='specify the database engine')
 
 options, args = parser.parse_args()
 
@@ -31,9 +34,10 @@ for d in os.listdir(examples_dir):
 
     print('running example:', d)
     print()
-    rcode = subprocess.call('%s %s -j %i' % (
+    rcode = subprocess.call('%s %s --database-engine=%s -j %i' % (
             sys.executable,
             os.path.join('..', '..', 'fbuild-light'),
+            options.database_engine,
             options.jobs),
         cwd=d, shell=True)
     print()
