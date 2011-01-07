@@ -17,16 +17,22 @@ class TestScheduler(unittest.TestCase):
         # Make sure any latent contexts are cleaned up before we run.
         gc.collect()
 
-        self.assertEquals(threading.active_count(), 1)
+        self.initial_thread_count = threading.active_count()
 
         self.logger = Log()
         self.scheduler = Scheduler(self.logger, self.threads)
 
+        if self.threads == 0:
+            self.assertEquals(self.scheduler.count, 1)
+        else:
+            self.assertEquals(self.scheduler.count, self.threads)
+
     def tearDown(self):
         # make sure we turn off all tht threads when shutting down
-        del self.scheduler
+        self.scheduler.shutdown()
 
-        self.assertEquals(threading.active_count(), 1)
+        self.assertEquals(self.scheduler.count, 0)
+        self.assertEquals(threading.active_count(), self.initial_thread_count)
 
     def testMap(self):
         def f(x):

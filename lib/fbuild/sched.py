@@ -35,18 +35,18 @@ class DependencyLoop(fbuild.Error):
 
 class Scheduler:
     def __init__(self, logger, count=0):
-        self.__count = max(1, count)
+        count = max(1, count)
         self.__ready_queue = queue.LifoQueue()
         self.__threads = []
 
-        for i in range(self.__count):
+        for i in range(count):
             thread = WorkerThread(logger, self.__ready_queue)
             self.__threads.append(thread)
             thread.start()
 
     @property
     def count(self):
-        return self.__count
+        return len(self.__threads)
 
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
@@ -182,6 +182,9 @@ class Scheduler:
         for thread in self.__threads:
             thread.shutdown()
             thread.join()
+
+        # Reset our thread list.
+        self.__threads = []
 
 # ------------------------------------------------------------------------------
 
