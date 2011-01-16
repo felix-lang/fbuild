@@ -63,7 +63,7 @@ class Jar(fbuild.db.PersistentObject):
         else:
             msg2 = '%s %s -> %s' % (manifest, ' '.join(srcs), dst)
 
-        self.ctx.execute(cmd, self, msg2, cwd=cwd, color='cyan', **kwargs)
+        self.ctx.execute(cmd, self, msg2, cwd=cwd, color='link', **kwargs)
 
         return dst
 
@@ -256,7 +256,7 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
 
         # Log all the files we found
         self.ctx.logger.check(str(builder), '%s -> %s' % (src, ' '.join(dsts)),
-            color='green')
+            color='compile')
 
         return dsts
 

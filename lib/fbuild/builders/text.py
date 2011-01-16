@@ -17,7 +17,7 @@ def substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    ctx.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='yellow')
 
     with open(src, 'r') as src_file:
         code = src_file.read()
@@ -43,7 +43,7 @@ def format_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *,
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    ctx.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='yellow')
 
     with open(src, 'r') as src_file:
         code = src_file.read().format(**patterns)
@@ -67,7 +67,7 @@ def autoconf_config_file(ctx, dst, src:fbuild.db.SRC, patterns, *,
     dst = fbuild.path.Path(dst).addroot(buildroot)
     dst.parent.makedirs()
 
-    ctx.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='yellow')
 
     def replace(match):
         value = patterns[match.group(1)]
@@ -102,7 +102,7 @@ def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
     dst = fbuild.path.Path.addroot(dst, buildroot)
     dst.parent.makedirs()
 
-    ctx.logger.log(' * creating ' + dst, color='cyan')
+    ctx.logger.log(' * creating ' + dst, color='yellow')
 
     missing_definitions = []
 

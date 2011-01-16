@@ -82,6 +82,10 @@ else:
 
         sys.stdout.write(s)
 
+# Add in some color aliases
+_colorcodes['compile'] = _colorcodes['green']
+_colorcodes['link'] = _colorcodes['cyan']
+
 # ------------------------------------------------------------------------------
 
 class _ThreadStack(threading.local, collections.UserList):

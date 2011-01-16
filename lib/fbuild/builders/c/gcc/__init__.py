@@ -79,7 +79,7 @@ class Ar(fbuild.db.PersistentObject):
         self.ctx.execute(cmd,
             msg1=str(self),
             msg2='%s -> %s' % (' '.join(srcs), dst),
-            color='cyan',
+            color='link',
             **kwargs)
 
         if self.ranlib is not None:
@@ -91,7 +91,7 @@ class Ar(fbuild.db.PersistentObject):
             self.ctx.execute(cmd,
                 msg1=self.ranlib.name,
                 msg2=dst,
-                color='cyan',
+                color='link',
                 **kwargs)
 
         return dst
@@ -329,7 +329,7 @@ class Compiler(fbuild.db.PersistentObject):
         stdout, stderr = self.gcc([src], dst,
             pre_flags=list(chain(('-c',), self.flags)),
             msg1=str(self),
-            color='green',
+            color='compile',
             **kwargs)
 
         return dst, stdout, stderr
@@ -367,7 +367,7 @@ class Linker(fbuild.db.PersistentObject):
         self.gcc(srcs, dst,
             pre_flags=self.flags,
             msg1=str(self),
-            color='cyan',
+            color='link',
             **kwargs)
 
         return dst

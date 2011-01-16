@@ -116,7 +116,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
             pre_flags=pre_flags,
             odir=fbuild.path.Path(odir or dst.parent),
             hidir=fbuild.path.Path(hidir or dst.parent),
-            color='green',
+            color='compile',
             *args, **kwargs)
 
         return dst
@@ -134,7 +134,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
         dst = fbuild.path.Path(dst).addroot(buildroot or self.ctx.buildroot)
         dst.parent.makedirs()
 
-        self.ghc(dst, srcs, *args, color='cyan', **kwargs)
+        self.ghc(dst, srcs, *args, color='link', **kwargs)
 
         return dst
 

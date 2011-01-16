@@ -391,7 +391,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
         return self._run(dst, [src],
             pre_flags=pre_flags,
-            color='green',
+            color='compile',
             buildroot=buildroot,
             *args, **kwargs)
 
@@ -462,7 +462,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         # files.
         srcs = [src for src in srcs if not src.endswith('.cmi')]
 
-        return self._run(dst, srcs, libs=libs, color='cyan', *args, **kwargs)
+        return self._run(dst, srcs, libs=libs, color='link', *args, **kwargs)
 
     # --------------------------------------------------------------------------
 
@@ -551,7 +551,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
         pre_flags.append('-pack')
 
         dst = self._run(dst, objs,
-            color='green',
+            color='link',
             pre_flags=pre_flags,
             **kwargs)
 

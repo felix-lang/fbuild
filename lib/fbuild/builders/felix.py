@@ -134,7 +134,7 @@ class Felix(fbuild.builders.AbstractCompiler):
             includes=includes,
             static=static,
             flags=cmd_flags,
-            color='green',
+            color='compile',
             **kwargs)
 
         return dst

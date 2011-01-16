@@ -149,7 +149,7 @@ class Compiler(fbuild.db.PersistentObject):
         stdout, stderr = self.cl([src], dst,
             pre_flags=list(chain(['/c'], self.flags)),
             msg1=str(self),
-            color='green',
+            color='compile',
             **kwargs)
 
         return dst, stdout, stderr
@@ -214,7 +214,7 @@ class Lib(fbuild.db.PersistentObject):
 
         self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
-            color='cyan',
+            color='link',
             **kwargs)
 
         return dst
@@ -320,7 +320,7 @@ class Link(fbuild.db.PersistentObject):
 
         stdout, stderr = self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
-            color='cyan',
+            color='link',
             **kwargs)
 
         return dst, stdout, stderr
