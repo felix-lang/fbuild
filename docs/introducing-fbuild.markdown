@@ -4,7 +4,7 @@ Introducing Fbuild
 I'd like to introduce yet another build system, this one called `Fbuild`.  It's
 a different way to build things.  As opposed to pretty much every other build
 system, `Fbuild` is designed as just a caching library for [Python
-3.0](http://docs.python.org/3.0).  It takes advantage of Python's evaluation
+3](http://docs.python.org/py3k).  It takes advantage of Python's evaluation
 scheme to implicitly describe the build dependency tree.  In order to evaluate
 the build, we simply evaluate python functions and cache their results.  This
 turns out to be an elegant and easy way to describe and program build systems.
