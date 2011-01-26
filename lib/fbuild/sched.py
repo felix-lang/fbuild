@@ -58,7 +58,7 @@ class Scheduler:
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
         returns the results in their initial order."""
-        tasks = (Task(function, src, index) for index, src in enumerate(srcs))
+        tasks = [Task(function, src, index) for index, src in enumerate(srcs)]
         tasks = sorted(self._evaluate(tasks), key=operator.attrgetter('index'))
 
         return [n.result for n in tasks]
@@ -72,7 +72,7 @@ class Scheduler:
         for src in srcs:
             tasks[src] = Task(function, src)
 
-        for dep_task in self._evaluate(Task(depends, src) for src in srcs):
+        for dep_task in self._evaluate([Task(depends, src) for src in srcs]):
             try:
                 task = tasks[dep_task.src]
             except KeyError:
@@ -87,7 +87,7 @@ class Scheduler:
                         pass
 
         # Evaluate the functions.
-        self._evaluate(tasks.values())
+        self._evaluate(list(tasks.values()))
 
         # Sort the functions in a depth first order. Otherwise, the order of
         # the function evaluation could change between calls.
@@ -109,7 +109,6 @@ class Scheduler:
         return results
 
     def _evaluate(self, tasks):
-        tasks = list(tasks)
         count = 0
         children = collections.defaultdict(list)
         done_queue = queue.Queue()
