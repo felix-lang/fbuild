@@ -23,15 +23,15 @@ class TestScheduler(unittest.TestCase):
         self.scheduler = Scheduler(self.logger, self.threads)
 
         if self.threads == 0:
-            self.assertEquals(self.scheduler.count, 1)
+            self.assertEquals(self.scheduler.threadcount, 1)
         else:
-            self.assertEquals(self.scheduler.count, self.threads)
+            self.assertEquals(self.scheduler.threadcount, self.threads)
 
     def tearDown(self):
         # make sure we turn off all tht threads when shutting down
         self.scheduler.shutdown()
 
-        self.assertEquals(self.scheduler.count, 0)
+        self.assertEquals(self.scheduler.threadcount, 0)
         self.assertEquals(threading.active_count(), self.initial_thread_count)
 
     def testMap(self):

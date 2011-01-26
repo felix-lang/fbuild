@@ -34,18 +34,18 @@ class DependencyLoop(fbuild.Error):
 # ------------------------------------------------------------------------------
 
 class Scheduler:
-    def __init__(self, logger, count=0):
-        count = max(1, count)
+    def __init__(self, logger, threadcount=0):
+        threadcount = max(1, threadcount)
         self.__ready_queue = queue.LifoQueue()
         self.__threads = []
 
-        for i in range(count):
+        for i in range(threadcount):
             thread = WorkerThread(logger, self.__ready_queue)
             self.__threads.append(thread)
             thread.start()
 
     @property
-    def count(self):
+    def threadcount(self):
         return len(self.__threads)
 
     def map(self, function, srcs):
