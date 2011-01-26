@@ -54,7 +54,7 @@ the "--help" option:
     ...
 
     Targets:
-      build   	
+      build
       run-test	run the foo test
 
 Next up is another removal of magic, this time in `fbuild.config.c`. Now, if
