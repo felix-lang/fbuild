@@ -210,7 +210,7 @@ class WorkerThread(threading.Thread):
         try:
             while not self.__finished:
                 with self.__logger.log_from_thread():
-                    if self.run_one():
+                    if not self.run_one():
                         break
         except KeyboardInterrupt:
             # let the main thread know we got a SIGINT
@@ -218,13 +218,18 @@ class WorkerThread(threading.Thread):
             raise
 
     def run_one(self, *args, **kwargs):
+        """
+        Try to run one task. Returns True if we actually ran a function,
+        otherwise return False.
+        """
+
         queue_task = self.__ready_queue.get(*args, **kwargs)
 
         try:
             # This should be tested in the try block so that we update the done
             # counter in the ready queue, even if we errored out.
             if queue_task is None:
-                return True
+                return False
 
             done_queue, task = queue_task
             try:
@@ -233,6 +238,8 @@ class WorkerThread(threading.Thread):
                 done_queue.put(task)
         finally:
             self.__ready_queue.task_done()
+
+        return True
 
 # ------------------------------------------------------------------------------
 
