@@ -58,53 +58,53 @@ class Scheduler:
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
         returns the results in their initial order."""
-        nodes = (Node(function, src, index) for index, src in enumerate(srcs))
-        nodes = sorted(self._evaluate(nodes), key=operator.attrgetter('index'))
+        tasks = (Task(function, src, index) for index, src in enumerate(srcs))
+        tasks = sorted(self._evaluate(tasks), key=operator.attrgetter('index'))
 
-        return [n.result for n in nodes]
+        return [n.result for n in tasks]
 
     def map_with_dependencies(self, depends, function, srcs):
         """Calculate the dependencies between the input sources and run them
         concurrently. This function returns the results in the order that they
         finished, not their initial order."""
-        nodes = {}
 
+        tasks = {}
         for src in srcs:
-            nodes[src] = Node(function, src)
+            tasks[src] = Task(function, src)
 
-        for dep_node in self._evaluate(Node(depends, src) for src in srcs):
+        for dep_task in self._evaluate(Task(depends, src) for src in srcs):
             try:
-                node = nodes[dep_node.src]
+                task = tasks[dep_task.src]
             except KeyError:
                 # ignore missing dependencies
                 pass
             else:
-                for dep in dep_node.result:
+                for dep in dep_task.result:
                     try:
-                        node.dependencies.append(nodes[dep])
+                        task.dependencies.append(tasks[dep])
                     except KeyError:
                         # ignore missing dependencies
                         pass
 
         # Evaluate the functions.
-        self._evaluate(nodes.values())
+        self._evaluate(tasks.values())
 
         # Sort the functions in a depth first order. Otherwise, the order of
         # the function evaluation could change between calls.
         visited = set()
         results = []
 
-        def f(node):
-            if node in visited:
+        def f(task):
+            if task in visited:
                 return
-            visited.add(node)
+            visited.add(task)
 
-            for n in node.dependencies:
+            for n in task.dependencies:
                 f(n)
-            results.append(node.result)
+            results.append(task.result)
 
         for src in srcs:
-            f(nodes[src])
+            f(tasks[src])
 
         return results
 
@@ -237,7 +237,7 @@ class WorkerThread(threading.Thread):
 
 # ------------------------------------------------------------------------------
 
-class Node:
+class Task:
     def __init__(self, function, src, index=None):
         self.function = function
         self.src = src
