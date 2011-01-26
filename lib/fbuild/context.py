@@ -28,7 +28,8 @@ class Context:
         self.db = fbuild.db.database.Database(self,
             engine=options.database_engine,
             explain=options.explain_database)
-        self.scheduler = fbuild.sched.Scheduler(self.logger, options.threadcount)
+        self.scheduler = fbuild.sched.Scheduler(options.threadcount,
+            logger=self.logger)
 
         self.options = options
         self.args = args

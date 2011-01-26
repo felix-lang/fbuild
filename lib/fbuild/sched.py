@@ -34,10 +34,17 @@ class DependencyLoop(fbuild.Error):
 # ------------------------------------------------------------------------------
 
 class Scheduler:
-    def __init__(self, logger, threadcount=0):
+    def __init__(self, threadcount=0, *, logger=None):
         threadcount = max(1, threadcount)
         self.__ready_queue = queue.LifoQueue()
         self.__threads = []
+
+        # All the worker threads need to share a logger object to make sure we
+        # don't have races when we're logging to the console. So we need to
+        # make one if we weren't given one.
+        if logger is None:
+            import fbuild.console
+            logger = fbuild.console.Log()
 
         for i in range(threadcount):
             thread = WorkerThread(logger, self.__ready_queue)

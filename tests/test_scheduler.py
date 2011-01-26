@@ -19,8 +19,7 @@ class TestScheduler(unittest.TestCase):
 
         self.initial_thread_count = threading.active_count()
 
-        self.logger = Log()
-        self.scheduler = Scheduler(self.logger, self.threads)
+        self.scheduler = Scheduler(self.threads)
 
         if self.threads == 0:
             self.assertEquals(self.scheduler.threadcount, 1)
