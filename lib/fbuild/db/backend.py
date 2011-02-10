@@ -66,7 +66,6 @@ class Backend:
             fun_id,
             fun_name,
             fun_digest,
-            call_dirty,
             call_id,
             bound,
             result,
@@ -87,9 +86,7 @@ class Backend:
             fun_id = self.save_function(fun_id, fun_name, fun_digest)
 
         # Get the real call_id to use in the call files.
-        if call_dirty:
-            call_id = self.save_call(call_id, fun_id, bound, result)
-
+        call_id = self.save_call(call_id, fun_id, bound, result)
         self.save_call_files(call_id, call_file_digests)
 
         self.save_external_files(call_id, external_srcs, external_dsts)

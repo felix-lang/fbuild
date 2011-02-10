@@ -168,7 +168,7 @@ class Database:
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
             fun_dirty, fun_id, fun_name, fun_digest,
-            call_dirty, call_id, call_bound, call_result,
+            call_id, call_bound, call_result,
             call_file_digests, external_srcs, external_dsts)
 
         if return_type is not None and issubclass(return_type, fbuild.db.DST):
