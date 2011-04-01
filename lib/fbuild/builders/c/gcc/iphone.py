@@ -27,14 +27,19 @@ def _iphone_sdkroot(sdk, simulator):
 
     return devroot / 'SDKs' / sdk
 
-def _builder(builder, *args, pre_flags=[], sdk=None, simulator, **kwargs):
+def _builder(builder, *args, pre_flags=[],
+        sdk=None,
+        arch=None,
+        simulator,
+        **kwargs):
     pre_flags = list(pre_flags)
     pre_flags.extend(('-isysroot', _iphone_sdkroot(sdk, simulator)))
 
     if not simulator:
-        pre_flags.extend(('-arch', 'arm'))
+        if arch is None:
+            arch = 'armv6'
 
-    return builder(*args, pre_flags=pre_flags, **kwargs)
+    return builder(*args, pre_flags=pre_flags, arch=arch, **kwargs)
 
 # ------------------------------------------------------------------------------
 

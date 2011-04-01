@@ -116,7 +116,9 @@ class Gcc(fbuild.db.PersistentObject):
             optimize=None,
             debug_flags=('-g',),
             profile_flags=('-pg',),
-            optimize_flags=('-O2',)):
+            optimize_flags=('-O2',),
+            arch=None,
+            machine_flags=()):
         super().__init__(ctx)
 
         self.exe = exe
@@ -125,15 +127,17 @@ class Gcc(fbuild.db.PersistentObject):
         self.includes = tuple(includes)
         self.macros = tuple(macros)
         self.warnings = tuple(warnings)
+        self.libpaths = tuple(libpaths)
+        self.libs = tuple(libs)
+        self.external_libs = tuple(external_libs)
         self.debug = debug
         self.profile = profile
         self.optimize = optimize
         self.debug_flags = tuple(debug_flags)
         self.profile_flags = tuple(profile_flags)
         self.optimize_flags = tuple(optimize_flags)
-        self.libpaths = tuple(libpaths)
-        self.libs = tuple(libs)
-        self.external_libs = tuple(external_libs)
+        self.arch = arch
+        self.machine_flags = tuple(machine_flags)
 
         if not self.check_flags(flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
@@ -159,6 +163,8 @@ class Gcc(fbuild.db.PersistentObject):
             debug=None,
             profile=None,
             optimize=None,
+            arch=None,
+            machine_flags=(),
             **kwargs):
         # Make sure we don't repeat includes
         new_includes = []
@@ -179,6 +185,9 @@ class Gcc(fbuild.db.PersistentObject):
 
         warnings = set(warnings)
         warnings.update(self.warnings)
+
+        machine_flags = set(machine_flags)
+        machine_flags.update(self.machine_flags)
 
         # Make sure we don't repeat library paths
         new_libpaths = []
@@ -253,11 +262,16 @@ class Gcc(fbuild.db.PersistentObject):
         if (optimize is None and self.optimize) or optimize:
             cmd.extend(self.optimize_flags)
 
+        arch = (arch is None and self.arch) or arch
+        if arch:
+            cmd.extend(('-arch', arch))
+
         # make sure that the path is converted into the native path format
         cmd.extend('-I' + Path(i) for i in sorted(includes) if i)
         cmd.extend('-D' + d for d in sorted(macros))
         cmd.extend('-W' + w for w in sorted(warnings))
         cmd.extend('-L' + Path(p) for p in sorted(libpaths) if p)
+        cmd.extend('-m' + m for m in sorted(machine_flags) if m)
 
         if dst is not None:
             cmd.extend(('-o', dst))
