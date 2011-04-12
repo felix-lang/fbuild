@@ -410,37 +410,3 @@ def guess_shared(*args, **kwargs):
         ({'posix'}, 'fbuild.builders.c.gcc.shared'),
         ({'windows'}, 'fbuild.builders.c.msvc.shared'),
     ), *args, **kwargs)
-
-# ------------------------------------------------------------------------------
-
-@fbuild.db.caches
-def config_little_endian(ctx, builder):
-    code = '''
-        #include <stdio.h>
-
-        enum enum_t {e_tag};
-        typedef void (*fp_t)(void);
-
-        union endian_t {
-            unsigned long x;
-            unsigned char y[sizeof(unsigned long)];
-        } endian;
-
-        int main(int argc, char** argv) {
-            endian.x = 1ul;
-            printf("%d\\n", endian.y[0]);
-            return 0;
-        }
-    '''
-
-    ctx.logger.check('checking if little endian')
-    try:
-        stdout = 1 == int(builder.tempfile_run(code)[0])
-    except fbuild.ExecutionError:
-        self.ctx.logger.failed()
-        raise fbuild.ConfigFailed('failed to detect endianness')
-
-    little_endian = int(stdout) == 1
-    ctx.logger.passed(little_endian)
-
-    return little_endian
