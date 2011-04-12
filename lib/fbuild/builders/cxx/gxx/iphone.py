@@ -7,8 +7,6 @@ def static(ctx, exe=None, *args, **kwargs):
     if exe is None:
         exe = iphone._iphone_devroot(False) / 'usr/bin/g++'
 
-    print('g++.iphone.static.exe=', exe)
-
     return iphone._builder(darwin.static, ctx, exe, *args,
         simulator=False,
         cross_compiler=True,
