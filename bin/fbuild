@@ -2,6 +2,7 @@
 
 import os
 import sys
+import signal
 
 # Make sure the current working directory is in the search path so we can find
 # the fbuildroot.py.
@@ -95,6 +96,20 @@ def main(argv=None):
     # --------------------------------------------------------------------------
 
     ctx = parse_args(sys.argv if argv is None else argv)
+
+    # --------------------------------------------------------------------------
+    # Replace the ctrl-c signal handler with one that will shut down the
+    # scheduler before moving on.
+
+    old_handler = signal.getsignal(signal.SIGINT)
+
+    def handle_interrupt(signum, frame):
+        ctx.scheduler.shutdown()
+        old_handler(signum, frame)
+
+    signal.signal(signal.SIGINT, handle_interrupt)
+
+    # --------------------------------------------------------------------------
 
     # If the fbuildroot doesn't exist, error out. We do this now so that
     # there's a chance to ask fbuild for help first.
