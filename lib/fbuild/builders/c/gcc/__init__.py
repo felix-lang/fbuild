@@ -1,5 +1,6 @@
-from itertools import chain
+import io
 import re
+from itertools import chain
 
 import fbuild
 import fbuild.builders
@@ -118,7 +119,10 @@ class Gcc(fbuild.db.PersistentObject):
             profile_flags=('-pg',),
             optimize_flags=('-O2',),
             arch=None,
-            machine_flags=()):
+            machine_flags=(),
+            requires_version=None,
+            requires_at_least_version=None,
+            requires_at_most_version=None):
         super().__init__(ctx)
 
         self.exe = exe
@@ -150,6 +154,12 @@ class Gcc(fbuild.db.PersistentObject):
 
         if optimize and optimize_flags and not self.check_flags(optimize_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
+
+        # Make sure we've got a valid version.
+        fbuild.builders.check_version(ctx, self, self.version,
+            requires_version=requires_version,
+            requires_at_least_version=requires_at_least_version,
+            requires_at_most_version=requires_at_most_version)
 
     def __call__(self, srcs, dst=None, *,
             pre_flags=(),
@@ -287,6 +297,12 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend('-l' + l for l in libs)
 
         return self.ctx.execute(cmd, msg2=msg2, **kwargs)
+
+    def version(self):
+        """Return the version of the gcc executable."""
+
+        stdout, stderr = self.ctx.execute((self.exe, '--version'), quieter=1)
+        return stdout.decode().split('\n')[0].split(' ')[2]
 
     def check_flags(self, flags):
         if flags:
