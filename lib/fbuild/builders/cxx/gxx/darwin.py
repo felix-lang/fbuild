@@ -8,6 +8,6 @@ def static(*args, **kwargs):
 
 def shared(*args, src_suffix='.cc', **kwargs):
     return darwin.shared(*args,
-        make_gcc=gxx.make_gxx,
+        make_cc=gxx.make_cxx,
         src_suffix=src_suffix,
         **kwargs)

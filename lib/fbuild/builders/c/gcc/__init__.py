@@ -310,7 +310,7 @@ class Gcc(fbuild.db.PersistentObject):
     def __str__(self):
         return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
 
-def make_gcc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
+def make_cc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
     return Gcc(ctx,
         fbuild.builders.find_program(ctx, [exe] if exe else default_exes),
         **kwargs)
@@ -318,16 +318,16 @@ def make_gcc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
 # ------------------------------------------------------------------------------
 
 class Compiler(fbuild.db.PersistentObject):
-    def __init__(self, ctx, gcc, flags, *, suffix):
+    def __init__(self, ctx, cc, flags, *, suffix):
         super().__init__(ctx)
 
-        self.gcc = gcc
+        self.cc = cc
         self.flags = tuple(flags)
         self.suffix = suffix
 
-        if flags and not gcc.check_flags(flags):
+        if flags and not cc.check_flags(flags):
             raise fbuild.ConfigFailed('%s does not support %s flags' %
-                (gcc, flags))
+                (cc, flags))
 
     def __call__(self, src, dst=None, *,
             suffix=None,
@@ -340,7 +340,7 @@ class Compiler(fbuild.db.PersistentObject):
         dst = Path(dst or src).addroot(buildroot).replaceext(suffix)
         dst.parent.makedirs()
 
-        stdout, stderr = self.gcc([src], dst,
+        stdout, stderr = self.cc([src], dst,
             pre_flags=list(chain(('-c',), self.flags)),
             msg1=str(self),
             color='compile',
@@ -349,22 +349,22 @@ class Compiler(fbuild.db.PersistentObject):
         return dst, stdout, stderr
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
+        return ' '.join(str(s) for s in chain((self.cc,), self.flags))
 
 # ------------------------------------------------------------------------------
 
 class Linker(fbuild.db.PersistentObject):
-    def __init__(self, ctx, gcc, flags=(), *, prefix, suffix):
+    def __init__(self, ctx, cc, flags=(), *, prefix, suffix):
         super().__init__(ctx)
 
-        self.gcc = gcc
+        self.cc = cc
         self.flags = tuple(flags)
         self.prefix = prefix
         self.suffix = suffix
 
-        if flags and not gcc.check_flags(flags):
+        if flags and not cc.check_flags(flags):
             raise fbuild.ConfigFailed('%s does not support %s' %
-                (gcc, ' '.join(flags)))
+                (cc, ' '.join(flags)))
 
     def __call__(self, dst, srcs, *,
             prefix=None,
@@ -378,7 +378,7 @@ class Linker(fbuild.db.PersistentObject):
         dst = dst.parent / prefix + dst.name + suffix
         dst.parent.makedirs()
 
-        self.gcc(srcs, dst,
+        self.cc(srcs, dst,
             pre_flags=self.flags,
             msg1=str(self),
             color='link',
@@ -387,7 +387,7 @@ class Linker(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.gcc,), self.flags))
+        return ' '.join(str(s) for s in chain((self.cc,), self.flags))
 
 # ------------------------------------------------------------------------------
 
@@ -471,7 +471,7 @@ class Builder(fbuild.builders.c.Builder):
 # ------------------------------------------------------------------------------
 
 def static(ctx, exe=None, *args,
-        make_gcc=make_gcc,
+        make_cc=make_cc,
         make_compiler=Compiler,
         make_lib_linker=Ar,
         make_exe_linker=Linker,
@@ -490,7 +490,7 @@ def static(ctx, exe=None, *args,
         exe_suffix=None,
         cross_compiler=False,
         **kwargs):
-    gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
+    cc = make_cc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
     # Allow the user to overload the file extensions.
     if obj_suffix is None:
@@ -506,7 +506,7 @@ def static(ctx, exe=None, *args,
         exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
 
     return Builder(ctx,
-        compiler=make_compiler(ctx, gcc,
+        compiler=make_compiler(ctx, cc,
             flags=list(chain(flags, compile_flags)),
             suffix=obj_suffix),
         lib_linker=make_lib_linker(ctx,
@@ -514,7 +514,7 @@ def static(ctx, exe=None, *args,
             libpaths=libpaths,
             prefix=lib_prefix,
             suffix=lib_suffix),
-        exe_linker=make_exe_linker(ctx, gcc,
+        exe_linker=make_exe_linker(ctx, cc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=exe_suffix),
@@ -525,7 +525,7 @@ def static(ctx, exe=None, *args,
 # ------------------------------------------------------------------------------
 
 def shared(ctx, exe=None, *args,
-        make_gcc=make_gcc,
+        make_cc=make_cc,
         make_compiler=Compiler,
         make_lib_linker=Linker,
         make_exe_linker=Linker,
@@ -544,7 +544,7 @@ def shared(ctx, exe=None, *args,
         exe_suffix=None,
         cross_compiler=False,
         **kwargs):
-    gcc = make_gcc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
+    cc = make_cc(ctx, exe, libpaths=libpaths, libs=libs, **kwargs)
 
     # Allow the user to overload the file extensions.
     if obj_suffix is None:
@@ -560,14 +560,14 @@ def shared(ctx, exe=None, *args,
         exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)
 
     return Builder(ctx,
-        compiler=make_compiler(ctx, gcc,
+        compiler=make_compiler(ctx, cc,
             flags=list(chain(flags, compile_flags)),
             suffix=obj_suffix),
-        lib_linker=make_lib_linker(ctx, gcc,
+        lib_linker=make_lib_linker(ctx, cc,
             flags=list(chain(flags, link_flags, lib_link_flags)),
             prefix=lib_prefix,
             suffix=lib_suffix),
-        exe_linker=make_exe_linker(ctx, gcc,
+        exe_linker=make_exe_linker(ctx, cc,
             flags=list(chain(flags, link_flags, exe_link_flags)),
             prefix='',
             suffix=exe_suffix),

@@ -21,7 +21,7 @@ class Gcc(fbuild.builders.c.gcc.Gcc):
 
 # ------------------------------------------------------------------------------
 
-def make_gcc(ctx, exe=None, default_exes=['avr-gcc'], **kwargs):
+def make_cc(ctx, exe=None, default_exes=['avr-gcc'], **kwargs):
     return Gcc(ctx,
         fbuild.builders.find_program(ctx, [exe] if exe else default_exes),
         **kwargs)
@@ -29,16 +29,16 @@ def make_gcc(ctx, exe=None, default_exes=['avr-gcc'], **kwargs):
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def static(*args, make_gcc=make_gcc, **kwargs):
+def static(*args, make_cc=make_cc, **kwargs):
     return fbuild.builders.c.gcc.static(*args,
-        make_gcc=make_gcc,
+        make_cc=make_cc,
         make_lib_linker=fbuild.builders.ar.avr.Ar,
         cross_compiler=True,
         **kwargs)
 
 @fbuild.db.caches
-def shared(*args, make_gcc=make_gcc, **kwargs):
+def shared(*args, make_cc=make_cc, **kwargs):
     return fbuild.builders.c.gcc.shared(*args,
-        make_gcc=make_gcc,
+        make_cc=make_cc,
         cross_compiler=True,
         **kwargs)
