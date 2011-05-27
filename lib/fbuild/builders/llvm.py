@@ -104,3 +104,70 @@ class LlvmConfig(fbuild.db.PersistentObject):
 
     def __str__(self):
         return self.exe.name
+
+# ------------------------------------------------------------------------------
+
+class Llc(fbuild.db.PersistentObject):
+    def __init__(self, ctx, exe=None, *,
+            platform=None,
+            flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe or 'llc'])
+        self.flags = flags
+        self.obj_suffix = fbuild.builders.platform.obj_suffix(ctx, platform)
+
+    @fbuild.db.cachemethod
+    def __call__(self, src, dst=None, *,
+            pre_flags=(),
+            flags=(),
+            arch=None,
+            relocation_model=None,
+            filetype=None,
+            **kwargs):
+        dst = fbuild.path.Path(dst or src).replaceext(self.obj_suffix)
+        dst = fbuild.path.Path(dst).addroot(self.ctx.buildroot)
+        dst.parent.makedirs()
+
+        cmd = [self.exe]
+        cmd.extend(pre_flags)
+        cmd.extend(('-o', dst))
+
+        if arch is not None:
+            cmd.append('-march=' + arch)
+
+        if relocation_model is not None:
+            cmd.append('-relocation-model=' + relocation_model)
+
+        if filetype is not None:
+            cmd.append('-filetype=' + filetype)
+
+        cmd.extend(flags)
+        cmd.append(src)
+
+        self.ctx.execute(cmd, **kwargs)
+
+        return dst
+
+# ------------------------------------------------------------------------------
+
+class Llvm_as(fbuild.db.PersistentObject):
+    def __init__(self, ctx, exe=None, *, flags=[]):
+        super().__init__(ctx)
+
+        self.exe = fbuild.builders.find_program(ctx, [exe or 'llvm-as'])
+        self.flags = flags
+
+    @fbuild.db.cachemethod
+    def __call__(self, src, dst=None, *, pre_flags=(), flags=(), **kwargs):
+        dst = fbuild.path.Path(dst or src).replaceext('.bc')
+
+        cmd = [self.exe]
+        cmd.extend(pre_flags)
+        cmd.extend(('-o', dst))
+        cmd.extend(flags)
+        cmd.append(src)
+
+        self.ctx.execute(cmd, **kwargs)
+
+        return dst
