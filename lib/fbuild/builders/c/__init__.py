@@ -369,10 +369,18 @@ def _guess_builder(name, functions, ctx, *args,
 
     for subplatform, function in functions:
         if subplatform <= platform:
+            new_kwargs = kwargs.copy()
+
             for p, kw in platform_options:
                 if p <= platform:
-                    kwargs.update(kw)
-            return fbuild.functools.call(function, ctx, *args, **kwargs)
+                    new_kwargs.update(kw)
+
+            # Try to use this compiler. If it doesn't work, skip this compiler
+            # and try another one.
+            try:
+                return fbuild.functools.call(function, ctx, *args, **new_kwargs)
+            except fbuild.ConfigFailed:
+                pass
 
     raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
         (name, platform))
