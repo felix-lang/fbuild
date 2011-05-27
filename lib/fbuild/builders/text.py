@@ -92,7 +92,7 @@ def autoconf_config_file(ctx, dst, src:fbuild.db.SRC, patterns, *,
 @fbuild.db.caches
 def autoconf_config_header(ctx, dst, src:fbuild.db.SRC, patterns, *,
         buildroot=None) -> fbuild.db.DST:
-    """L{autoconfig_config_header} replaces the I{patterns} in the file named
+    """L{autoconf_config_header} replaces the I{patterns} in the file named
     I{src} and saves the changes into file named I{dst}. It uses autoconf
     AC_CONFIG_HEADERS @word@ and #define patterns to find the insertion
     points."""

@@ -73,7 +73,7 @@ class LlvmConfig(fbuild.db.PersistentObject):
         """Return linker flags"""
         return self(tuple(chain(('--ldflags',), components)), *args, **kwargs)
 
-    def libs(self, componentes=(), *args, **kwargs):
+    def libs(self, components=(), *args, **kwargs):
         """Return library names needed to link against LLVM components."""
         return self(tuple(chain(('--libs',), components)), *args, **kwargs)
 
