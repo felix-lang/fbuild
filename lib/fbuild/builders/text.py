@@ -32,6 +32,37 @@ def substitute(ctx, dst, src:fbuild.db.SRC, patterns, *, buildroot=None) \
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
+def regex_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *,
+        buildroot=None) -> fbuild.db.DST:
+    """L{substitute} replaces the I{patterns} in the file named I{src}
+    and saves the changes into file named I{dst}."""
+
+    buildroot = buildroot or ctx.buildroot
+    src = fbuild.path.Path(src)
+    dst = fbuild.path.Path.addroot(dst, buildroot)
+    dst.parent.makedirs()
+
+    ctx.logger.log(' * creating ' + dst, color='yellow')
+
+    with open(src, 'r') as src_file:
+        code = src_file.read()
+        for items in patterns:
+            try:
+                pattern, text, flags = items
+            except ValueError:
+                pattern, text = items
+                flags = re.M
+
+            code = re.sub(pattern, text, code, flags=flags)
+
+    with open(dst, 'w') as dst_file:
+        dst_file.write(code)
+
+    return dst
+
+# ------------------------------------------------------------------------------
+
+@fbuild.db.caches
 def format_substitute(ctx, dst, src:fbuild.db.SRC, patterns, *,
         buildroot=None) -> fbuild.db.DST:
     """L{format_substitute} replaces the I{patterns} in the file named I{src}
