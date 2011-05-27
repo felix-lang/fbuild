@@ -38,7 +38,7 @@ or
 
     $ git clone https://github.com/felix-lang/fbuild.git
 
-if your firewall blocks port 9418 (but yoy have access to the https:// protocol).
+if your firewall blocks port 9418 (but you still have access to the https:// protocol).
 
 To install, run:
 
