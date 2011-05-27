@@ -34,6 +34,12 @@ command:
 
     $ git clone git://github.com/erickt/fbuild.git
 
+or
+
+    $ git clone https://github.com/felix-lang/fbuild.git
+
+if your firewall blocks port 9418 (but yoy have access to the https:// protocol).
+
 To install, run:
 
     $ python3 setup.py install
