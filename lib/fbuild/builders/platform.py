@@ -50,11 +50,11 @@ archmap = {
 # ------------------------------------------------------------------------------
 
 @fbuild.db.caches
-def platform(ctx, arch=None):
-    """L{platform} returns a platform set that describes the various features
-    of the specified I{platform}. If I{platform} is I{None}, try to determine
-    which platform the system is and return that value. If the platform cannot
-    be determined, return I{None}."""
+def guess_platform(ctx, arch=None):
+    """L{guess_platform} returns a platform set that describes the various
+    features of the specified I{platform}. If I{platform} is I{None}, try to
+    determine which platform the system is and return that value. If the
+    platform cannot be determined, return I{None}."""
     ctx.logger.check('determining platform')
     if arch is None:
         # First lets see if uname exists
@@ -81,81 +81,81 @@ def platform(ctx, arch=None):
         raise UnknownPlatform(arch)
     else:
         ctx.logger.passed(architecture)
-        return architecture
+        return frozenset(architecture)
 
 # ------------------------------------------------------------------------------
 
-def obj_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def obj_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '.obj'
     else:
         return '.o'
 
 # ------------------------------------------------------------------------------
 
-def static_obj_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def static_obj_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '_static.obj'
     else:
         return '.o'
 
-def static_lib_prefix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def static_lib_prefix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return ''
     else:
         return 'lib'
 
-def static_lib_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def static_lib_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '.lib'
     else:
         return '.a'
 
 # ------------------------------------------------------------------------------
 
-def shared_obj_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def shared_obj_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '_shared.obj'
     else:
         return '.os'
 
-def shared_lib_prefix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def shared_lib_prefix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return ''
     else:
         return 'lib'
 
-def shared_lib_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def shared_lib_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '.dll'
-    elif 'darwin' in arch:
+    elif 'darwin' in platform:
         return '.dylib'
     else:
         return '.so'
 
 # ------------------------------------------------------------------------------
 
-def exe_suffix(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def exe_suffix(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return '.exe'
     else:
         return ''
 
 # ------------------------------------------------------------------------------
 
-def runtime_env_libpath(ctx, arch=None):
-    arch = platform(ctx, arch)
-    if 'windows' in arch:
+def runtime_env_libpath(ctx, platform=None):
+    platform = platform if platform else guess_platform(ctx)
+    if 'windows' in platform:
         return 'PATH'
-    elif 'darwin' in arch:
+    elif 'darwin' in platform:
         return 'DYLD_LIBRARY_PATH'
     else:
         return 'LD_LIBRARY_PATH'
