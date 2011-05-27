@@ -365,7 +365,7 @@ def _guess_builder(name, functions, ctx, *args,
         platform_options=[],
         **kwargs):
     if platform is None:
-        platform = fbuild.builders.platform.platform(ctx, platform)
+        platform = fbuild.builders.platform.guess_platform(ctx, platform)
 
     for subplatform, function in functions:
         if subplatform <= platform:
