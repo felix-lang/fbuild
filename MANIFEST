@@ -74,7 +74,8 @@ lib/fbuild/__init__.py
 lib/fbuild/builders/__init__.py
 lib/fbuild/builders/bison.py
 lib/fbuild/builders/c/__init__.py
-lib/fbuild/builders/c/c99.py
+lib/fbuild/builders/c/clang/__init__.py
+lib/fbuild/builders/c/clang/darwin.py
 lib/fbuild/builders/c/gcc/__init__.py
 lib/fbuild/builders/c/gcc/avr.py
 lib/fbuild/builders/c/gcc/cygwin.py
@@ -82,16 +83,14 @@ lib/fbuild/builders/c/gcc/darwin.py
 lib/fbuild/builders/c/gcc/iphone.py
 lib/fbuild/builders/c/msvc.py
 lib/fbuild/builders/c/openmp.py
-lib/fbuild/builders/c/posix.py
-lib/fbuild/builders/c/std.py
-lib/fbuild/builders/c/win32.py
 lib/fbuild/builders/cxx/__init__.py
+lib/fbuild/builders/cxx/clangxx/__init__.py
+lib/fbuild/builders/cxx/clangxx/darwin.py
 lib/fbuild/builders/cxx/gxx/__init__.py
 lib/fbuild/builders/cxx/gxx/avr.py
 lib/fbuild/builders/cxx/gxx/darwin.py
 lib/fbuild/builders/cxx/gxx/iphone.py
 lib/fbuild/builders/cxx/msvc.py
-lib/fbuild/builders/cxx/std.py
 lib/fbuild/builders/felix.py
 lib/fbuild/builders/file.py
 lib/fbuild/builders/ghc.py
@@ -122,6 +121,7 @@ lib/fbuild/config/c/mpi.py
 lib/fbuild/config/c/openmp.py
 lib/fbuild/config/c/openssl.py
 lib/fbuild/config/c/pari.py
+lib/fbuild/config/c/platform.py
 lib/fbuild/config/c/posix.py
 lib/fbuild/config/c/posix01.py
 lib/fbuild/config/c/posix04.py
@@ -132,6 +132,7 @@ lib/fbuild/config/c/stdlib.py
 lib/fbuild/config/c/win32.py
 lib/fbuild/config/cxx/__init__.py
 lib/fbuild/config/cxx/cmath.py
+lib/fbuild/config/cxx/compiler.py
 lib/fbuild/config/cxx/cxx03.py
 lib/fbuild/config/cxx/gnu.py
 lib/fbuild/config/cxx/gtest.py
