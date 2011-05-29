@@ -33,7 +33,7 @@ just run this command:
 To download the development version, run this [git](http://git-scm.com)
 command:
 
-    $ git clone git://github.com/felix-lang/fbuild.git
+    $ git clone https://github.com/felix-lang/fbuild.git
 
 if your firewall blocks port 9418 (but you still have access to the https://
 protocol).
