@@ -10,7 +10,7 @@ setup(
     description='fbuild build system',
     author='Erick Tryzelaar',
     author_email='erickt@felix-lang.org',
-    url='http://felix-lang.org',
+    url='https://github.com/felix-lang/fbuild',
     license='BSD',
     packages=[
         'fbuild',
