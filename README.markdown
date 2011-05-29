@@ -22,23 +22,21 @@ large projects. It has extensive feature list:
 Download and Installation
 -------------------------
 
-Fbuild is hosted and developed on [Github](http://github.com/erickt/fbuild). It
-requires [Python 3](http://docs.python.org/py3k). To download the current
-Fbuild version, you visit the Fbuild website. Or, if you have access to the
-`curl` program, you can just run this command:
+Fbuild is hosted and developed on
+[Github](http://github.com/felix-lang/fbuild). It requires [Python
+3](http://docs.python.org/py3k). To download the current Fbuild version, you
+visit the Fbuild website. Or, if you have access to the `curl` program, you can
+just run this command:
 
-    $ curl -L https://github.com/erickt/fbuild/tarball/v0.2 | tar -zx
+    $ curl -L https://github.com/felix-lang/fbuild/tarball/v0.2 | tar -zx
 
 To download the development version, run this [git](http://git-scm.com)
 command:
 
-    $ git clone git://github.com/erickt/fbuild.git
+    $ git clone git://github.com/felix-lang/fbuild.git
 
-or
-
-    $ git clone https://github.com/felix-lang/fbuild.git
-
-if your firewall blocks port 9418 (but you still have access to the https:// protocol).
+if your firewall blocks port 9418 (but you still have access to the https://
+protocol).
 
 To install, run:
 

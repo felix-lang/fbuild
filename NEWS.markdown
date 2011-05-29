@@ -83,6 +83,6 @@ before you can compile.
 
 Please let us know if you run into any problems or need any help. You can:
 
- * File a bug at http://github.com/erickt/fbuild/issues
+ * File a bug at http://github.com/felix-lang/fbuild/issues
  * Contact our mailing list at http://groups.google.com/group/fbuild
  * Or find us on IRC on freenode.net in #felix
