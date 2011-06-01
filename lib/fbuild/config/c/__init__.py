@@ -551,7 +551,7 @@ class Test(fbuild.config.Test, metaclass=TestMeta):
         super().__init__(builder.ctx)
 
         if platform is None:
-            platform = fbuild.builders.platform.platform(builder.ctx)
+            platform = fbuild.builders.platform.guess_platform(builder.ctx)
 
         self.builder = builder
         self.platform = platform
