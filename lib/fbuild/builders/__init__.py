@@ -49,9 +49,9 @@ def find_program(ctx, names, paths=None, *, quieter=0):
         names = new_names
 
     for name in names:
-        ctx.logger.check('looking for program ' + name, verbose=quieter)
-
         filename = fbuild.path.Path(name)
+        ctx.logger.check('looking for ' + filename.name, verbose=quieter)
+
         if filename.exists() and filename.isfile():
             ctx.logger.passed('ok %s' % filename, verbose=quieter)
             return fbuild.path.Path(name)
