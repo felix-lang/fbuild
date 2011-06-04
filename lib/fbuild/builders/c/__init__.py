@@ -114,46 +114,6 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                         raise fbuild.ConfigFailed('failed to link lib to exe')
                     self.ctx.logger.passed()
 
-    @fbuild.db.cachemethod
-    def build_objects(self, srcs:fbuild.db.SRCS, **kwargs) -> fbuild.db.DSTS:
-        """Compile all of the passed in L{srcs} in parallel."""
-        # When a object has extra external dependencies, such as .c files
-        # depending on .h changes, depending on library changes, we need to add
-        # the dependencies in build_objects.  Unfortunately, the db doesn't
-        # know about these new files and so it can't tell when a function
-        # really needs to be rerun.  So, we'll just not cache this function.
-        # We need to add extra dependencies to our call.
-        objs = []
-        src_deps = []
-        dst_deps = []
-        for o, s, d in self.ctx.scheduler.map(
-                partial(self.compile.call, **kwargs),
-                srcs):
-            objs.append(o)
-            src_deps.extend(s)
-            dst_deps.extend(d)
-
-        self.ctx.db.add_external_dependencies_to_call(
-            srcs=src_deps,
-            dsts=dst_deps)
-
-        return objs
-
-    @fbuild.db.cachemethod
-    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            **kwargs) -> fbuild.db.DST:
-        """Link compiled c files into a library and caches the results."""
-        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
-
-    @fbuild.db.cachemethod
-    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
-            libs:fbuild.db.SRCS=(),
-            **kwargs) -> fbuild.db.DST:
-        """Link compiled c files into an executable without caching the
-        results.  This is needed when linking temporary files."""
-        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
-
     # --------------------------------------------------------------------------
 
     def build_lib(self, dst, srcs, *args, **kwargs):

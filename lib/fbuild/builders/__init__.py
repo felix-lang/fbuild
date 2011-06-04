@@ -2,6 +2,7 @@ import abc
 import contextlib
 import os
 import sys
+from functools import partial
 
 import fbuild
 import fbuild.db
@@ -126,17 +127,39 @@ class AbstractCompiler(fbuild.db.PersistentObject):
 
         self.src_suffix = src_suffix
 
-    @abc.abstractmethod
-    def compile(self, src, *args, **kwargs):
-        pass
+    @fbuild.db.cachemethod
+    def compile(self, src:fbuild.db.SRC, *args, **kwargs) -> fbuild.db.DST:
+        return self.uncached_compile(src, *args, **kwargs)
 
     @abc.abstractmethod
     def uncached_compile(self, src, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
-    def build_objects(self, srcs, *args, **kwargs):
-        pass
+    @fbuild.db.cachemethod
+    def build_objects(self, srcs:fbuild.db.SRCS, *args, **kwargs) -> \
+            fbuild.db.DSTS:
+        """Compile all of the passed in L{srcs} in parallel."""
+        # When a object has extra external dependencies, such as .c files
+        # depending on .h changes, depending on library changes, we need to add
+        # the dependencies in build_objects.  Unfortunately, the db doesn't
+        # know about these new files and so it can't tell when a function
+        # really needs to be rerun.  So, we'll just not cache this function.
+        # We need to add extra dependencies to our call.
+        objs = []
+        src_deps = []
+        dst_deps = []
+        for o, s, d in self.ctx.scheduler.map(
+                partial(self.compile.call, **kwargs),
+                srcs):
+            objs.append(o)
+            src_deps.extend(s)
+            dst_deps.extend(d)
+
+        self.ctx.db.add_external_dependencies_to_call(
+            srcs=src_deps,
+            dsts=dst_deps)
+
+        return objs
 
     # --------------------------------------------------------------------------
 
@@ -167,17 +190,22 @@ class AbstractCompiler(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class AbstractLibLinker(AbstractCompiler):
-    @abc.abstractmethod
-    def link_lib(self, *args, **kwargs):
-        pass
+    @fbuild.db.cachemethod
+    def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled files into a library and caches the results."""
+        return self.uncached_link_lib(dst, srcs, *args, libs=libs, **kwargs)
 
     @abc.abstractmethod
     def uncached_link_lib(self, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
-    def build_lib(self, dst, srcs, *args, **kwargs):
-        pass
+    def build_lib(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
+        """Compile all of the passed in L{srcs} in parallel, then link them
+        into a library."""
+        objs = objs + self.build_objects(srcs, **ckwargs)
+        return self.link_lib(dst, objs, libs=libs, **lkwargs)
 
     # --------------------------------------------------------------------------
 
@@ -231,17 +259,22 @@ class AbstractRunner(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class AbstractExeLinker(AbstractCompiler, AbstractRunner):
-    @abc.abstractmethod
-    def link_exe(self, *args, **kwargs):
-        pass
+    @fbuild.db.cachemethod
+    def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
+            libs:fbuild.db.SRCS=(),
+            **kwargs) -> fbuild.db.DST:
+        """Link compiled files into an executable."""
+        return self.uncached_link_exe(dst, srcs, *args, libs=libs, **kwargs)
 
     @abc.abstractmethod
     def uncached_link_exe(self, *args, **kwargs):
         pass
 
-    @abc.abstractmethod
-    def build_exe(self, dst, srcs, *args, **kwargs):
-        pass
+    def build_exe(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
+        """Compile all of the passed in L{srcs} in parallel, then link them
+        into an executable."""
+        objs = objs + self.build_objects(srcs, **ckwargs)
+        return self.link_exe(dst, objs, libs=libs, **lkwargs)
 
     # --------------------------------------------------------------------------
 
