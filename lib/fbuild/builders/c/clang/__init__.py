@@ -31,10 +31,8 @@ def make_cc(ctx, exe=None, default_exes=['clang'], **kwargs):
 
 # ------------------------------------------------------------------------------
 
-@fbuild.db.caches
 def static(*args, make_cc=make_cc, **kwargs):
     return fbuild.builders.c.gcc.static(*args, make_cc=make_cc, **kwargs)
 
-@fbuild.db.caches
 def shared(*args, make_cc=make_cc, **kwargs):
     return fbuild.builders.c.gcc.shared(*args, make_cc=make_cc, **kwargs)
