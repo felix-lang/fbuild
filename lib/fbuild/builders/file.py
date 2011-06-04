@@ -12,7 +12,7 @@ def _copy_or_move(ctx, src, dst, function, function_name):
     """
 
     src = Path(src)
-    dst = ctx.buildroot / Path(dst)
+    dst = Path(dst).addroot(ctx.buildroot)
 
     if not dst.exists():
         # if dst ends with the separator, treat it like a directory
@@ -57,7 +57,7 @@ def copy_regex(ctx, *, srcdir, dstdir, src_pattern, dst_pattern,
     """
 
     srcdir = Path(srcdir)
-    dstdir = ctx.buildroot / Path(dstdir)
+    dstdir = Path(dstdir).addroot(ctx.buildroot)
 
     srcs = []
     dsts = []
