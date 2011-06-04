@@ -98,7 +98,7 @@ class Ar(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(chain((self.exe.name,), self.flags))
+        return str(self.exe.name)
 
 # ------------------------------------------------------------------------------
 
@@ -324,7 +324,7 @@ class Gcc(fbuild.db.PersistentObject):
         return True
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.exe.name,), self.flags))
+        return str(self.exe.name)
 
 def make_cc(ctx, exe=None, default_exes=['gcc', 'cc'], **kwargs):
     return Gcc(ctx,
@@ -365,7 +365,7 @@ class Compiler(fbuild.db.PersistentObject):
         return dst, stdout, stderr
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.cc,), self.flags))
+        return str(self.cc)
 
 # ------------------------------------------------------------------------------
 
@@ -403,7 +403,7 @@ class Linker(fbuild.db.PersistentObject):
         return dst
 
     def __str__(self):
-        return ' '.join(str(s) for s in chain((self.cc,), self.flags))
+        return str(self.cc)
 
 # ------------------------------------------------------------------------------
 
