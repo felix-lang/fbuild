@@ -274,10 +274,6 @@ class Link(fbuild.db.PersistentObject):
                 return
 
             if isinstance(lib, fbuild.builders.c.Library):
-                for flag in lib.flags:
-                    if flag not in flags:
-                        flags.append(flag)
-
                 for libpath in lib.libpaths:
                     if libpath not in libpaths:
                         libpaths.append(libpath)
@@ -473,7 +469,6 @@ class Builder(fbuild.builders.c.Builder):
         This is needed when linking temporary files."""
         lib = self.lib_linker(*args, **kwargs)
         return fbuild.builders.c.Library(lib,
-            flags=kwargs.get('flags', []),
             libpaths=kwargs.get('libpaths', []),
             libs=kwargs.get('libs', []),
             external_libs=kwargs.get('external_libs', []))

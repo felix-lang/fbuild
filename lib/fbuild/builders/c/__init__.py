@@ -283,14 +283,12 @@ class Library(Path):
     was used to compile the library."""
 
     def __new__(cls, *args,
-            flags=(),
             libpaths=(),
             libs=(),
             external_libs=(),
             **kwargs):
         self = super().__new__(cls, *args, **kwargs)
 
-        self.flags = tuple(flags)
         self.libpaths = tuple(libpaths)
         self.libs = tuple(libs)
         self.external_libs = tuple(external_libs)
@@ -298,12 +296,11 @@ class Library(Path):
         return self
 
     def __repr__(self):
-        return 'Library({0}{1}{2}{3}{4})'.format(
+        return 'Library({}{}{}{})'.format(
             super().__repr__(),
-            ', flags={0}'.format(self.flags) if self.flags else '',
-            ', libpaths={0}'.format(self.libpaths) if self.libpaths else '',
-            ', libs={0}'.format(self.libs) if self.libs else '',
-            ', external_libs={0}'.format(self.external_libs)
+            ', libpaths={}'.format(self.libpaths) if self.libpaths else '',
+            ', libs={}'.format(self.libs) if self.libs else '',
+            ', external_libs={}'.format(self.external_libs)
                 if self.external_libs else '')
 
     def __eq__(self, other):
