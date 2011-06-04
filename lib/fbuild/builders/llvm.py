@@ -108,31 +108,29 @@ class LlvmConfig(fbuild.db.PersistentObject):
 
 # ------------------------------------------------------------------------------
 
-class Llc(fbuild.db.PersistentObject):
+class Llc(fbuild.builders.AbstractCompiler):
     def __init__(self, ctx, exe=None, *,
             platform=None,
             flags=[]):
-        super().__init__(ctx)
+        super().__init__(ctx, src_suffix='.ll')
 
         self.exe = fbuild.builders.find_program(ctx, [exe or 'llc'])
         self.flags = flags
         self.obj_suffix = fbuild.builders.platform.obj_suffix(ctx, platform)
 
-    @fbuild.db.cachemethod
-    def __call__(self, src, dst=None, *,
+    def __call__(self, *args,
             pre_flags=(),
             flags=(),
+            dst=None,
             arch=None,
             relocation_model=None,
             filetype=None,
             **kwargs):
-        dst = fbuild.path.Path(dst or src).replaceext(self.obj_suffix)
-        dst = fbuild.path.Path(dst).addroot(self.ctx.buildroot)
-        dst.parent.makedirs()
-
         cmd = [self.exe]
         cmd.extend(pre_flags)
-        cmd.extend(('-o', dst))
+
+        if dst is not None:
+            cmd.extend(('-o', dst))
 
         if arch is not None:
             cmd.append('-march=' + arch)
@@ -144,9 +142,16 @@ class Llc(fbuild.db.PersistentObject):
             cmd.append('-filetype=' + filetype)
 
         cmd.extend(flags)
-        cmd.append(src)
+        cmd.extend(args)
 
-        self.ctx.execute(cmd, **kwargs)
+        return self.ctx.execute(cmd, **kwargs)
+
+    def uncached_compile(self, src, dst=None, **kwargs):
+        dst = fbuild.path.Path(dst or src).replaceext(self.obj_suffix)
+        dst = dst.addroot(self.ctx.buildroot)
+        dst.parent.makedirs()
+
+        self(src, dst=dst, **kwargs)
 
         return dst
 
