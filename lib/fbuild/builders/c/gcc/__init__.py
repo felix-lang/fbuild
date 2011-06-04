@@ -18,7 +18,7 @@ class Ar(fbuild.db.PersistentObject):
             platform=None,
             prefix=None,
             suffix=None,
-            flags=('-rc',),
+            flags=('-rcs',),
             libpaths=(),
             libs=(),
             external_libs=(),
