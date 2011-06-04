@@ -21,6 +21,7 @@ class LlvmConfig(fbuild.db.PersistentObject):
             requires_at_least_version=requires_at_least_version,
             requires_at_most_version=requires_at_most_version)
 
+    @fbuild.db.cachemethod
     def __call__(self, cmd, *args, **kwargs):
         stdout, stderr = self.ctx.execute(list(chain((self.exe,), cmd)), quieter=1)
         return stdout.decode().strip()
