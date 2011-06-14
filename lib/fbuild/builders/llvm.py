@@ -151,7 +151,12 @@ class Llc(fbuild.builders.AbstractCompiler):
         dst = dst.addroot(self.ctx.buildroot)
         dst.parent.makedirs()
 
-        self(src, dst=dst, **kwargs)
+        self(src,
+            dst=dst,
+            msg1=self.exe.name,
+            msg2='{} -> {}'.format(src, dst),
+            color='compile',
+            **kwargs)
 
         return dst
 
@@ -174,6 +179,10 @@ class Llvm_as(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.append(src)
 
-        self.ctx.execute(cmd, **kwargs)
+        self.ctx.execute(cmd,
+            msg1=self.exe.name,
+            msg2='{} -> {}'.format(src, dst),
+            color='link',
+            **kwargs)
 
         return dst
