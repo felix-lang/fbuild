@@ -329,7 +329,7 @@ def _guess_builder(name, functions, ctx, *args,
             new_kwargs = kwargs.copy()
 
             for p, kw in platform_options:
-                if p <= platform:
+                if p <= subplatform:
                     new_kwargs.update(kw)
 
             # Try to use this compiler. If it doesn't work, skip this compiler
