@@ -105,7 +105,13 @@ class Context:
         if isinstance(cmd, str):
             cmd_string = cmd
         else:
-            cmd_string = ' '.join(cmd)
+            cmd_parts = []
+            # Wrap any space separated parts in quotes.
+            for c in cmd:
+                if ' ' in c:
+                    c = "'{}'".format(c.replace("'", "\\'"))
+                cmd_parts.append(c)
+            cmd_string = ' '.join(cmd_parts)
 
         if stdout_quieter is None:
             stdout_quieter = quieter
@@ -135,6 +141,12 @@ class Context:
                 libpaths += os.pathsep + runtime_libpaths
 
             env[runtime_env_libpath] = libpaths
+
+            # Add the runtime libpaths to the command string.
+            cmd_string = '{}={} {}'.format(
+                runtime_env_libpath,
+                libpaths,
+                cmd_string)
 
         self.logger.write('%-10s: starting %r\n' %
             (threading.current_thread().name, cmd_string),
