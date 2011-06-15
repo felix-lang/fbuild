@@ -3,6 +3,7 @@ import contextlib
 import os
 import sys
 from functools import partial
+from itertools import chain
 
 import fbuild
 import fbuild.db
@@ -204,7 +205,7 @@ class AbstractLibLinker(AbstractCompiler):
     def build_lib(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into a library."""
-        objs = objs + self.build_objects(srcs, **ckwargs)
+        objs = tuple(chain(objs, self.build_objects(srcs, **ckwargs)))
         return self.link_lib(dst, objs, libs=libs, **lkwargs)
 
     # --------------------------------------------------------------------------
@@ -273,7 +274,7 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
     def build_exe(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into an executable."""
-        objs = objs + self.build_objects(srcs, **ckwargs)
+        objs = tuple(chain(objs, self.build_objects(srcs, **ckwargs)))
         return self.link_exe(dst, objs, libs=libs, **lkwargs)
 
     # --------------------------------------------------------------------------
