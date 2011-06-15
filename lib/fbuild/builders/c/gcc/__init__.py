@@ -176,6 +176,8 @@ class Gcc(fbuild.db.PersistentObject):
             arch=None,
             machine_flags=(),
             **kwargs):
+        srcs = [Path(src) for src in srcs]
+
         # Make sure we don't repeat includes
         new_includes = []
         for include in chain(self.includes, includes, (s.parent for s in srcs)):
