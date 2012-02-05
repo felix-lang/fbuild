@@ -291,8 +291,8 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend(srcs)
 
         # Libraries must come last on linux in order to find symbols.
-        cmd.extend('-l' + l for l in external_libs)
         cmd.extend('-l' + l for l in libs)
+        cmd.extend('-l' + l for l in external_libs)
 
         return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
