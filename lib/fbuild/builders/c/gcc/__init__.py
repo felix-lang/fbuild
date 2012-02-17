@@ -439,7 +439,7 @@ class Builder(fbuild.builders.c.Builder):
                 stdout = f.read().replace(b'\\\n', b'')
 
         # Parse the output and return the module dependencies.
-        m = re.match(b'\S+:(?: (.*))?$', stdout)
+        m = re.match(b'\s*\S+:(?: (.*))?$', stdout)
         if not m:
             raise fbuild.ExecutionError('unable to understand %r' % stdout)
 
