@@ -42,7 +42,6 @@ class Flx(fbuild.db.PersistentObject):
         if static:
             cmd.append('--static')
 
-        cmd.append('--output_dir=' + src.parent)
         cmd.extend('-I' + i for i in sorted(includes) if Path(i).exists())
         cmd.extend(self.flags)
         cmd.extend(flags)
