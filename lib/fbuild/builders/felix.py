@@ -28,6 +28,7 @@ class Flx(fbuild.db.PersistentObject):
             includes=[],
             debug=None,
             static=False,
+            stdout=None,
             flags=[],
             cwd=None,
             **kwargs):
@@ -41,6 +42,9 @@ class Flx(fbuild.db.PersistentObject):
 
         if static:
             cmd.append('--static')
+
+        if stdout:
+            cmd.append('--stdout='+stdout)
 
         cmd.extend('-I' + i for i in sorted(includes) if Path(i).exists())
         cmd.extend(self.flags)
