@@ -1,3 +1,4 @@
+import platform
 import os
 
 import fbuild
@@ -63,14 +64,16 @@ def guess_platform(ctx, arch=None):
         except fbuild.builders.MissingProgram:
             # Maybe we're on windows. Let's just use what python thinks is the
             # platform.
-            arch = os.name
+            #arch = os.name
+            arch = platform.system().lower()
         else:
             # We've got uname, so let's see what platform it thinks we're on.
             try:
                 stdout, stderr = ctx.execute((uname, '-s'), quieter=1)
             except fbuild.ExecutionError:
                 # Ack, that failed too. Just fall back to python.
-                arch = os.name
+                #arch = os.name
+                arch = platform.system().lower()
             else:
                 arch = stdout.decode('utf-8').strip().lower()
 
