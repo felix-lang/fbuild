@@ -114,7 +114,10 @@ def main(argv=None):
     # If the fbuildroot doesn't exist, error out. We do this now so that
     # there's a chance to ask fbuild for help first.
     if isinstance(fbuildroot, Exception):
-        raise fbuildroot
+        if not os.path.exists('fbuildroot.py'):
+            raise fbuild.Error('Cannot find fbuildroot.py')
+        else:
+            raise fbuildroot
 
     # Exit early if we want to clean the buildroot.
     if ctx.options.clean_buildroot:
