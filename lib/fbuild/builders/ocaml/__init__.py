@@ -694,7 +694,7 @@ class Ocamlcp(BytecodeBuilder):
         if profile_flags is None:
             profile_flags = self.profile_flags
 
-        return super()._run(*args, flags=flags + profile_flags, **kwargs)
+        return super()._run(*args, flags=tuple(flags) + profile_flags, **kwargs)
 
 # ------------------------------------------------------------------------------
 
