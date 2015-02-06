@@ -204,6 +204,9 @@ class Popen(subprocess.Popen):
         if self.returncode is not None:
             return self.returncode
 
+        if timeout is None:
+            timeout = -1
+
         if mswindows:
             if timeout != -1:
                 timeout = timeout * 1000
