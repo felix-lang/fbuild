@@ -1,5 +1,8 @@
 import sys
-from distutils.core import setup
+try:
+    from setuptools import setup
+except:
+    from distutils.core import setup
 
 sys.path.append('lib')
 import fbuild
