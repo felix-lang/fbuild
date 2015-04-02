@@ -115,7 +115,7 @@ class Popen(subprocess.Popen):
                            creationflags, shell,
                            p2cread, p2cwrite,
                            c2pread, c2pwrite,
-                           errread, errwrite):
+                           errread, errwrite, *_):
             if not isinstance(args, str):
                 args = subprocess.list2cmdline(args)
 
