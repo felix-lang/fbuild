@@ -317,15 +317,23 @@ class Executable(Path):
 
 # ------------------------------------------------------------------------------
 
-def _guess_builder(name, functions, ctx, *args,
+def _guess_builder(name, compilers, functions, ctx, *args,
         platform=None,
+        platform_extra=set(),
         platform_options=[],
         **kwargs):
     if platform is None:
         platform = fbuild.builders.platform.guess_platform(ctx, platform)
+        if not platform_extra & compilers:
+            platform_extra = compilers
+        platform |= platform_extra
 
     for subplatform, function in functions:
-        if subplatform <= platform:
+        # XXX: this is slightly a hack to make sure:
+        # a) Clang can actually be detected
+        # b) Any compilers explicitly listed in platform_extra will have #1
+        #  priority
+        if subplatform - (compilers & platform_extra) <= platform:
             new_kwargs = kwargs.copy()
 
             for p, kw in platform_options:
@@ -345,19 +353,20 @@ def _guess_builder(name, functions, ctx, *args,
 def guess_static(*args, **kwargs):
     """L{static} tries to guess the static system c compiler according to the
     platform. It accepts a I{platform} keyword that overrides the system's
+    platform and a I{platform_extra} keyword that is joined to the system's
     platform. This can be used to use a non-default compiler. Any extra
     arguments and keywords are passed to the compiler's configuration
     functions."""
 
-    return _guess_builder('c static', (
+    return _guess_builder('c static', {'gcc', 'clang'}, (
         ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.static'),
-        ({'iphone', 'simulator'},
+        ({'iphone', 'simulator', 'gcc'},
             'fbuild.builders.c.gcc.iphone.static_simulator'),
-        ({'iphone'}, 'fbuild.builders.c.gcc.iphone.static'),
+        ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.static'),
         ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.static'),
-        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.static'),
+        ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.static'),
         ({'posix', 'clang'}, 'fbuild.builders.c.clang.static'),
-        ({'posix'}, 'fbuild.builders.c.gcc.static'),
+        ({'posix', 'gcc'}, 'fbuild.builders.c.gcc.static'),
         ({'windows'}, 'fbuild.builders.c.msvc.static'),
     ), *args, **kwargs)
 
@@ -368,14 +377,14 @@ def guess_shared(*args, **kwargs):
     arguments and keywords are passed to the compiler's configuration
     functions."""
 
-    return _guess_builder('c shared', (
+    return _guess_builder('c shared', {'gcc', 'clang'}, (
         ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.shared'),
-        ({'iphone', 'simulator'},
+        ({'iphone', 'simulator', 'gcc'},
             'fbuild.builders.c.gcc.iphone.shared_simulator'),
-        ({'iphone'}, 'fbuild.builders.c.gcc.iphone.shared'),
+        ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.shared'),
         ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.shared'),
-        ({'darwin'}, 'fbuild.builders.c.gcc.darwin.shared'),
+        ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.shared'),
         ({'posix', 'clang'}, 'fbuild.builders.c.clang.shared'),
-        ({'posix'}, 'fbuild.builders.c.gcc.shared'),
+        ({'posix', 'gcc'}, 'fbuild.builders.c.gcc.shared'),
         ({'windows'}, 'fbuild.builders.c.msvc.shared'),
     ), *args, **kwargs)
