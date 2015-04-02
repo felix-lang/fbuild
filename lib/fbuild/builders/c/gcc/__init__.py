@@ -175,12 +175,15 @@ class Gcc(fbuild.db.PersistentObject):
             optimize=None,
             arch=None,
             machine_flags=(),
+            include_source_dirs=True,
             **kwargs):
         srcs = [Path(src) for src in srcs]
 
         # Make sure we don't repeat includes
         new_includes = []
-        for include in chain(self.includes, includes, (s.parent for s in srcs)):
+        for include in chain(self.includes, includes,
+                             (s.parent for s in srcs) if include_source_dirs\
+                             else []):
             if include not in new_includes:
                 new_includes.append(include)
         includes = new_includes

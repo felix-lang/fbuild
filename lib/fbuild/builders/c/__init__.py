@@ -136,13 +136,15 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             libs=[],
             external_libs=[],
             lflags=[],
-            lkwargs={}):
+            lkwargs={},
+            include_source_dirs=True):
         """Actually compile and link the sources."""
         objs = objs + self.build_objects(srcs,
             includes=includes,
             macros=macros,
             warnings=warnings,
             flags=cflags,
+            include_source_dirs=include_source_dirs,
             **ckwargs)
 
         return function(dst, objs,
