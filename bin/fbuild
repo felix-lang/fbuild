@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 
+import sys, os
+
+try:
+    sys.path.remove(os.path.dirname(os.path.realpath(__file__)))
+except:
+    pass
+
 from fbuild.main import main
-import sys
 
 if __name__ == '__main__':
     sys.exit(main())

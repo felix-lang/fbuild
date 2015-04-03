@@ -31,6 +31,6 @@ setup(
         'fbuild.db',
         'fbuild.subprocess',
     ],
-    scripts=['bin/fbuild', 'bin/fbuild.py'],
+    scripts=['bin/fbuild'+('.py' if sys.platform == 'win32' else '')],
     package_dir={'': 'lib'},
 )
