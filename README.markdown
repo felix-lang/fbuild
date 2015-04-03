@@ -1,6 +1,8 @@
 Fbuild Build System v0.2
 ========================
 
+[![Build Status](//http://img.shields.io/travis/felix-lang/fbuild.svg)](https://travis-ci.org/felix-lang/fbuild)
+
 Overview
 --------
 
