@@ -4,7 +4,7 @@ Fbuild Build System v0.2
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/w4ygv26fit3gphfa?svg=true)](https://ci.appveyor.com/project/kirbyfan64/fbuild)
 
 
-[![Travis](//http://img.shields.io/travis/felix-lang/fbuild.svg)](https://travis-ci.org/felix-lang/fbuild)
+[![Travis](http://img.shields.io/travis/felix-lang/fbuild.svg)](https://travis-ci.org/felix-lang/fbuild)
 
 Overview
 --------
