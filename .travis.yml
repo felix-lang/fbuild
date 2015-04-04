@@ -9,5 +9,5 @@ before_install:
     - sudo apt-get install -qq build-essential clang-3.4 java-common scala ghc
     - sudo apt-get install -qq ocaml-core ocaml-batteries-included
 install:
-    - "pip install ."
+    - "python setup.py install"
 script: "./travis.sh"
