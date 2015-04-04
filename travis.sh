@@ -11,7 +11,7 @@ cd tests
 cd ../examples
 for dir in */; do
     cd $dir
-    fbuild || fail
+    ../../fbuild-light || fail
     cd ..
 done
 
