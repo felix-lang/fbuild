@@ -2,7 +2,7 @@ install:
     - cinst ocaml
     - cinst scala.install
     - cinst haskellplatform
-build:
+install:
     - C:/Python34/python.exe setup.py install
 test_script:
     - appveyor.bat
