@@ -1,8 +1,5 @@
+from setuptools import setup
 import sys
-try:
-    from setuptools import setup
-except:
-    from distutils.core import setup
 
 sys.path.append('lib')
 import fbuild
@@ -31,6 +28,8 @@ setup(
         'fbuild.db',
         'fbuild.subprocess',
     ],
-    scripts=['bin/fbuild'+('.py' if sys.platform == 'win32' else '')],
+    entry_points={
+        'console_scripts': ['fbuild = fbuild.main:main']
+    },
     package_dir={'': 'lib'},
 )
