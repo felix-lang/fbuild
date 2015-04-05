@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from os.path import realpath, join, dirname
-import sys
+import sys, os
 
 sys.path.append(realpath(join(dirname(sys.argv[0]), 'lib')))
 
 import fbuild
-print(fbuild.__file__)
+print(os.listdir(dirname(fbuild.__file__)))
 from fbuild.main import main
 
 # don't know why someone would need this...but oh well
