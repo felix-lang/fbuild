@@ -89,7 +89,9 @@ _colorcodes['link'] = _colorcodes['cyan']
 # ------------------------------------------------------------------------------
 
 class _ThreadStack(threading.local, collections.UserList):
-    pass
+    def __init__(self, *args):
+        threading.local.__init__(self)
+        collections.UserList.__init__(self, *args)
 
 # ------------------------------------------------------------------------------
 

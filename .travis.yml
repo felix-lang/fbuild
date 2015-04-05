@@ -3,7 +3,7 @@ python:
     - "3.2"
     - "3.3"
     - "3.4"
-    - "pypy3"
+    #- "pypy3"
 before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq build-essential clang-3.4 java-common scala ghc
