@@ -35,7 +35,7 @@ if sys.platform == 'win32':
         import struct
         csbi = ctypes.create_string_buffer(22)
         res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(handle, csbi)
-        assert res
+        assert res, str(ctypes.GetLastError())
 
         (bufx, bufy, curx, cury, wattr, left, top, right, bottom, maxxy,
             maxy) = struct.unpack('hhhhHhhhhhh', csbi.raw)
