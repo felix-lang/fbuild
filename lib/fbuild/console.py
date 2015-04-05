@@ -28,6 +28,7 @@ if sys.platform == 'win32':
         'light yellow' : 0xE,
         'bright white' : 0xF,
     }
+    _INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 
     def get_csbi_attributes(handle):
         # Based on IPython's winconsole.py, written by Alexander Belchenko
@@ -53,6 +54,7 @@ if sys.platform == 'win32':
             else:
                 import ctypes
                 handle = ctypes.windll.kernel32.GetStdHandle(_STD_OUTPUT_HANDLE)
+                assert handle != _INVALID_HANDLE_VALUE, str(ctypes.GetLastError())
                 reset = get_csbi_attributes(handle)
                 ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
                 sys.stdout.write(s)
