@@ -10,10 +10,7 @@ import os
 # ------------------------------------------------------------------------------
 
 def test_field(ctx, test, field):
-    if 'TRAVIS' in os.environ and field.__name__ == 'pthread_join':
-        # this test mysteriously fails on Travis
-        return True
-    elif getattr(test, field.__name__):
+    if getattr(test, field.__name__):
         return True
     else:
         ctx.logger.check('%r failed test' % str(test.builder),
