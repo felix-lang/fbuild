@@ -110,12 +110,30 @@ class Popen(subprocess.Popen):
             subprocess.Popen.__init__(self, *args, **kwargs)
 
     if mswindows:
-        def _execute_child(self, args, executable, preexec_fn, close_fds,
-                           pass_fds, cwd, env, startupinfo,
-                           creationflags, shell,
-                           p2cread, p2cwrite,
-                           c2pread, c2pwrite,
-                           errread, errwrite, *_):
+        def _execute_child(self, *params):
+            pyver = sys.version_info.minor
+            if pyver == 1:
+                args, executable, preexec_fn, close_fds,\
+                cwd, env, universal_newlines,\
+                startupinfo, creationflags, shell,\
+                p2cread, p2cwrite,\
+                errread, errwrite = params
+            elif pyver == 2:
+                args, executable, preexec_fn, close_fds,\
+                pass_fds, cwd, env, universal_newlines,\
+                startupinfo, creationflags, shell,\
+                p2cread, p2cwrite,\
+                c2pread, c2pwrite,\
+                errread, errwrite,\
+                unused_restore_signals, unused_start_new_session = params
+            else:
+                args, executable, preexec_fn, close_fds,\
+                pass_fds, cwd, env,\
+                startupinfo, creationflags, shell,\
+                p2cread, p2cwrite,\
+                c2pread, c2pwrite,\
+                errread, errwrite,\
+                unused_restore_signals, unused_start_new_session = params
             if not isinstance(args, str):
                 args = subprocess.list2cmdline(args)
 
