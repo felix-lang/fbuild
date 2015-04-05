@@ -2,6 +2,7 @@ import sys
 import threading
 import contextlib
 import collections
+import ctypes
 
 import fbuild
 
@@ -32,7 +33,6 @@ if sys.platform == 'win32':
 
     def get_csbi_attributes(handle):
         # Based on IPython's winconsole.py, written by Alexander Belchenko
-        import ctypes
         import struct
         csbi = ctypes.create_string_buffer(22)
         res = ctypes.windll.kernel32.GetConsoleScreenBufferInfo(handle, csbi)
@@ -52,7 +52,6 @@ if sys.platform == 'win32':
                 # we couldn't find the color so just ignore
                 sys.stdout.write(s)
             else:
-                import ctypes
                 handle = ctypes.windll.kernel32.GetStdHandle(_STD_OUTPUT_HANDLE)
                 assert handle != _INVALID_HANDLE_VALUE, str(ctypes.GetLastError())
                 reset = get_csbi_attributes(handle)
