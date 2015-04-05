@@ -3,8 +3,9 @@ from os.path import realpath, join, dirname
 import sys
 
 sys.path.append(realpath(join(dirname(sys.argv[0]), 'lib')))
-print(sys.path)
 
+import fbuild
+print(fbuild.__file__)
 from fbuild.main import main
 
 # don't know why someone would need this...but oh well
