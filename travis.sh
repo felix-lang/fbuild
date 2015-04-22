@@ -3,6 +3,7 @@
 errc=0
 
 fail() {
+    cat build/fbuild.log
     errc=1
 }
 
