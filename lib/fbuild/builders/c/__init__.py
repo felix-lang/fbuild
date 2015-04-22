@@ -323,11 +323,19 @@ def _guess_builder(name, compilers, functions, ctx, *args,
         platform=None,
         platform_extra=set(),
         platform_options=[],
+        exe=None,
         **kwargs):
     if platform is None:
         platform = fbuild.builders.platform.guess_platform(ctx, platform)
         if not platform_extra & compilers:
-            platform_extra = compilers
+            if exe is not None:
+                tp = identify_compiler(ctx, exe)
+                if tp is None:
+                    raise fbuild.ConfigFailed('cannot identify exe given for ' +\
+                                              name)
+                platform_extra |= tp
+            else:
+                platform_extra |= compilers
         platform |= platform_extra
 
     for subplatform, function in functions:
@@ -345,12 +353,47 @@ def _guess_builder(name, compilers, functions, ctx, *args,
             # Try to use this compiler. If it doesn't work, skip this compiler
             # and try another one.
             try:
-                return fbuild.functools.call(function, ctx, *args, **new_kwargs)
+                return fbuild.functools.call(function, ctx, exe, *args, **new_kwargs)
             except fbuild.ConfigFailed:
                 pass
 
     raise fbuild.ConfigFailed('cannot find a %s builder for %s' %
         (name, platform))
+
+@fbuild.db.caches
+def identify_compiler(ctx, exe):
+    res = None
+    ctx.logger.check('identifying exe %s' % exe)
+    # take a cue from the name
+    if exe == 'clang' or exe == 'clang++':
+        res = {'clang', 'clang++'}
+    elif exe == 'gcc' or exe == 'g++' or exe == 'colorgcc':
+        res = {'gcc', 'g++'}
+    elif exe == 'cl' or exe == 'cl.exe':
+        res = {'windows'}
+    else:
+        try:
+            out, err = ctx.execute((exe, '--version'), quieter=1)
+        except fbuild.ExecutionError:
+            try:
+                # is it MSVC?
+                out, err = ctx.execute((exe,), quieter=1)
+            except fbuild.ExecutionError:
+                pass
+            else:
+                if b'Microsoft' in out or b'Microsoft' in err:
+                    res = {'windows'}
+        else:
+            ccmap = {'Free Software Foundation': {'gcc', 'g++'},
+                     'clang': {'clang', 'clang++'}}
+            for cc in ccmap:
+                if bytes(cc, encoding='ascii') in out:
+                    res = ccmap[cc]
+    if res is None:
+        ctx.logger.failed()
+    else:
+        ctx.logger.passed(res)
+    return res
 
 def guess_static(*args, **kwargs):
     """L{static} tries to guess the static system c compiler according to the
