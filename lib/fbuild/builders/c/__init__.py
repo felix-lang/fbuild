@@ -1,4 +1,4 @@
-import abc
+import abc, copy
 from functools import partial
 from itertools import chain
 
@@ -344,11 +344,36 @@ def _guess_builder(name, compilers, functions, ctx, *args,
         # b) Any compilers explicitly listed in platform_extra will have #1
         #  priority
         if subplatform - (compilers & platform_extra) <= platform:
-            new_kwargs = kwargs.copy()
+            new_kwargs = copy.deepcopy(kwargs)
 
             for p, kw in platform_options:
                 if p <= subplatform:
-                    new_kwargs.update(kw)
+                    for k, v in kw.items():
+                        if k[-1] in '+-':
+                            func = k[-1]
+                            k = k[:-1]
+                            try:
+                                curval = new_kwargs[k]
+                            except:
+                                if isinstance(v, str):
+                                    curval = ''
+                                elif isinstance(v, list):
+                                    curval = []
+                                elif isinstance(v, tuple):
+                                    curval = ()
+                            if func == '+':
+                                curval += v
+                            elif func == '-':
+                                lst = list(curval)
+                                for x in v:
+                                    lst.pop(lst.index(x))
+                                if isinstance(curval, str):
+                                    curval = ''.join(lst)
+                                else:
+                                    curval = type(curval)(lst)
+                            new_kwargs[k] = curval
+                        else:
+                            new_kwargs[k] = v
 
             # Try to use this compiler. If it doesn't work, skip this compiler
             # and try another one.
