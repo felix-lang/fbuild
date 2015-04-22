@@ -327,16 +327,16 @@ def _guess_builder(name, compilers, functions, ctx, *args,
         **kwargs):
     if platform is None:
         platform = fbuild.builders.platform.guess_platform(ctx, platform)
-        if not platform_extra & compilers:
-            if exe is not None:
-                tp = identify_compiler(ctx, exe)
-                if tp is None:
-                    raise fbuild.ConfigFailed('cannot identify exe given for ' +\
-                                              name)
-                platform_extra |= tp
-            else:
-                platform_extra |= compilers
-        platform |= platform_extra
+    if not platform_extra & compilers:
+        if exe is not None:
+            tp = identify_compiler(ctx, exe)
+            if tp is None:
+                raise fbuild.ConfigFailed('cannot identify exe given for ' +\
+                                          name)
+            platform_extra |= tp
+        else:
+            platform_extra |= compilers
+    platform |= platform_extra
 
     for subplatform, function in functions:
         # XXX: this is slightly a hack to make sure:
