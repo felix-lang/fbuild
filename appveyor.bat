@@ -5,4 +5,7 @@ cd ../examples
 :: for /D %d in (*) do C:/Python34/Scripts/fbuild.py || set ERROR=1
 cd c
 C:/Python34/python.exe ../../fbuild-light || set ERROR=1
+set APPVEYOR_SET_PLATFORM=1
+C:/Python34/python.exe ../../fbuild-light || set ERROR=1
+cd ..
 exit %ERROR%
