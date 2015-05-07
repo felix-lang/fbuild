@@ -51,14 +51,20 @@ if sys.platform == 'win32':
             except KeyError:
                 # we couldn't find the color so just ignore
                 sys.stdout.write(s)
-            else:
+                return
+            try:
                 handle = ctypes.windll.kernel32.GetStdHandle(_STD_OUTPUT_HANDLE)
                 assert handle != _INVALID_HANDLE_VALUE, str(ctypes.GetLastError())
                 reset = get_csbi_attributes(handle)
+            except:
+                # we may not be printing to a console; just ignore it
+                sys.stdout.write(s)
+            else:
                 ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
                 sys.stdout.write(s)
                 sys.stdout.flush()
                 ctypes.windll.kernel32.SetConsoleTextAttribute(handle, reset)
+
 else:
     _colorcodes = {
         'black'  : 30,
