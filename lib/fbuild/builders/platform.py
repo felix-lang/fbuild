@@ -31,7 +31,7 @@ archmap = {
     'cygwin':         {'posix', 'cygwin'},
     'nocygwin':       {'posix', 'cygwin', 'nocygwin'},
     'mingw':          {'posix', 'mingw'},
-    'mingw32_nt-6.2': {'posix', 'mingw'}
+    'mingw32_nt-6.2': {'posix', 'mingw'},
     'windows':        {'windows', 'win32'},
     'nt':             {'windows', 'win32', 'nt'},
     'win32':          {'windows', 'win32'},
