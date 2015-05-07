@@ -193,7 +193,7 @@ class Context:
                 returncode = p.wait()
             except KeyboardInterrupt:
                 # Make sure if we get a keyboard interrupt to kill the process.
-                p.kill(group=True)
+                p.kill(group=True, sigint=True)
                 raise
             else:
                 # Detect Ctrl-C in subprocess.

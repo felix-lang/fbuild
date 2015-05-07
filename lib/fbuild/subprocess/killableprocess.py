@@ -198,9 +198,10 @@ class Popen(subprocess.Popen):
             if errwrite is not None:
                 errwrite.Close()
 
-    def kill(self, group=True):
+    def kill(self, group=True, sigint=False):
         """Kill the process. If group=True, all sub-processes will also be killed."""
         if mswindows:
+            # XXX: Windows shouldn't ignore the sigint parameter
             if group:
                 winprocess.TerminateJobObject(self._job, 127)
             else:
@@ -208,9 +209,9 @@ class Popen(subprocess.Popen):
             self.returncode = 127
         else:
             if group:
-                os.killpg(self.pid, signal.SIGKILL)
+                os.killpg(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
             else:
-                os.kill(self.pid, signal.SIGKILL)
+                os.kill(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
             self.returncode = -9
 
     def wait(self, timeout=-1, group=True):
