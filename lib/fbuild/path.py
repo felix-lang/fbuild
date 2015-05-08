@@ -385,8 +385,8 @@ class Path(str):
     def rmdir(self):
         return os.rmdir(self)
 
-    def rmtree(self):
-        return shutil.rmtree(self)
+    def rmtree(self, **kw):
+        return shutil.rmtree(self, **kw)
 
     def split(self):
         """Split a pathname.  Returns tuple "(head, tail)" where "tail" is
