@@ -22,7 +22,7 @@ large projects. It has extensive feature list:
  * Pretty output
  * ... and it is quite fast, too
 
- .. warning:: MinGW is currently NOT supported. It *should* be, but things quickly went haywire. You can try it still, but note that *building shared libraries does not work*. Using Visual C++ works as expected.
+**WARNING:** MinGW is currently NOT supported. It *should* be, but things quickly went haywire. You can try it still, but note that *building shared libraries does not work*. Using Visual C++ works as expected.
 
 Downloading and Installation
 ----------------------------
