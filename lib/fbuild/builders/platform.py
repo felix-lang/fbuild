@@ -31,7 +31,6 @@ archmap = {
     'cygwin':    {'posix', 'cygwin'},
     'nocygwin':  {'posix', 'cygwin', 'nocygwin'},
     'mingw':     {'posix', 'mingw'},
-    'mingw32':   {'posix', 'mingw'},
     'windows':   {'windows', 'win32'},
     'nt':        {'windows', 'win32', 'nt'},
     'win32':     {'windows', 'win32'},
@@ -59,7 +58,12 @@ def guess_platform(ctx, arch=None):
     platform cannot be determined, return I{None}."""
     ctx.logger.check('determining platform')
     if arch is None:
-        # First lets see if uname exists
+        # If we're on Windows, then don't even try uname
+        if os.name == 'nt':
+            res = archmap[platform.system().lower()]
+            ctx.logger.passed(res)
+            return frozenset(res)
+        # Let's see if uname exists
         try:
             uname = fbuild.builders.find_program(ctx, ['uname'], quieter=1)
         except fbuild.builders.MissingProgram:
@@ -79,7 +83,7 @@ def guess_platform(ctx, arch=None):
                 arch = stdout.decode('utf-8').strip().lower()
 
     if arch.startswith('mingw32'):
-        arch = 'mingw32'
+        arch = 'mingw'
     try:
         architecture = archmap[arch]
     except KeyError:
@@ -132,14 +136,14 @@ def shared_obj_suffix(ctx, platform=None):
 
 def shared_lib_prefix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if platform & {'windows', 'mingw'}:
         return ''
     else:
         return 'lib'
 
 def shared_lib_suffix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if platform & {'windows', 'mingw'}:
         return '.dll'
     elif 'darwin' in platform:
         return '.dylib'
@@ -150,7 +154,7 @@ def shared_lib_suffix(ctx, platform=None):
 
 def exe_suffix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if platform & {'windows', 'mingw'}:
         return '.exe'
     else:
         return ''
@@ -159,7 +163,7 @@ def exe_suffix(ctx, platform=None):
 
 def runtime_env_libpath(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if platform & {'windows', 'mingw'}:
         return 'PATH'
     elif 'darwin' in platform:
         return 'DYLD_LIBRARY_PATH'
