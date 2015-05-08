@@ -20,29 +20,29 @@ class UnknownPlatform(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 archmap = {
-    'irix':           {'posix', 'irix'},
-    'irix64':         {'posix', 'irix', 'irix64'},
-    'unix':           {'posix'},
-    'posix':          {'posix'},
-    'linux':          {'posix', 'linux'},
-    'gnu/linux':      {'posix', 'linux'},
-    'solaris':        {'posix', 'solaris'},
-    'sunos':          {'posix', 'solaris', 'sunos'},
-    'cygwin':         {'posix', 'cygwin'},
-    'nocygwin':       {'posix', 'cygwin', 'nocygwin'},
-    'mingw':          {'posix', 'mingw'},
-    'mingw32_nt-6.2': {'posix', 'mingw'},
-    'windows':        {'windows', 'win32'},
-    'nt':             {'windows', 'win32', 'nt'},
-    'win32':          {'windows', 'win32'},
-    'win64':          {'windows', 'win64'},
-    'windows32':      {'windows', 'win32'},
-    'windows64':      {'windows', 'win64'},
-    'freebsd':        {'posix', 'bsd', 'freebsd'},
-    'netbsd':         {'posix', 'bsd', 'netbsd'},
-    'openbsd':        {'posix', 'bsd', 'openbsd'},
-    'darwin':         {'posix', 'bsd', 'darwin', 'macosx'},
-    'osx':            {'posix', 'bsd', 'darwin', 'macosx'},
+    'irix':      {'posix', 'irix'},
+    'irix64':    {'posix', 'irix', 'irix64'},
+    'unix':      {'posix'},
+    'posix':     {'posix'},
+    'linux':     {'posix', 'linux'},
+    'gnu/linux': {'posix', 'linux'},
+    'solaris':   {'posix', 'solaris'},
+    'sunos':     {'posix', 'solaris', 'sunos'},
+    'cygwin':    {'posix', 'cygwin'},
+    'nocygwin':  {'posix', 'cygwin', 'nocygwin'},
+    'mingw':     {'posix', 'mingw'},
+    'mingw32':   {'posix', 'mingw'},
+    'windows':   {'windows', 'win32'},
+    'nt':        {'windows', 'win32', 'nt'},
+    'win32':     {'windows', 'win32'},
+    'win64':     {'windows', 'win64'},
+    'windows32': {'windows', 'win32'},
+    'windows64': {'windows', 'win64'},
+    'freebsd':   {'posix', 'bsd', 'freebsd'},
+    'netbsd':    {'posix', 'bsd', 'netbsd'},
+    'openbsd':   {'posix', 'bsd', 'openbsd'},
+    'darwin':    {'posix', 'bsd', 'darwin', 'macosx'},
+    'osx':       {'posix', 'bsd', 'darwin', 'macosx'},
 
     'iphone':           {'posix', 'bsd', 'darwin', 'iphone'},
     'iphone-sim':       {'posix', 'bsd', 'darwin', 'iphone', 'simulator'},
@@ -78,6 +78,8 @@ def guess_platform(ctx, arch=None):
             else:
                 arch = stdout.decode('utf-8').strip().lower()
 
+    if arch.startswith('mingw32'):
+        arch = 'mingw32'
     try:
         architecture = archmap[arch]
     except KeyError:

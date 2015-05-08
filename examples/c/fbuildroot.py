@@ -4,11 +4,9 @@ import os
 
 def build(ctx):
     # XXX: this is a tiny hack
-    # Basically, we want this example, when run under AppVeyor, to try
-    # using Visual Studio instead of MinGW.
-    # Therefore, if a certain environment variable is set (see ../../appveyor.bat)
-    # we forcibly set the platform to "windows".
-    plat = {'windows'} if 'APPVEYOR_SET_PLATFORM' in os.environ else None
+    # Basically, MinGW doesn't work. AppVeyor's Python wants us to use MinGW.
+    # So we override it.
+    plat = {'windows'} if 'APPVEYOR' in os.environ else None
     static = fbuild.builders.c.guess_static(ctx, platform=plat)
     lib1 = static.build_lib('static1', ['lib1/lib1.c'], macros=['STATIC_LINK'])
     lib2 = static.build_lib('static2', ['lib2/lib2.c'], macros=['STATIC_LINK'],
