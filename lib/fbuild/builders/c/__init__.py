@@ -145,6 +145,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             warnings=warnings,
             flags=cflags,
             include_source_dirs=include_source_dirs,
+            buildroot = self.ctx.buildroot / 'obj' / dst,
             **ckwargs)
 
         return function(dst, objs,
