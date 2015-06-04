@@ -50,6 +50,8 @@ To install, run:
 Introduction
 ------------
 
+**NOTE:** There are some incomplete docs at [RTD](http://fbuild.readthedocs.org/en/latest/).
+
 Fbuild has extensive support for advanced build systems, but this doesn't
 complicate simple projects. Here is the classic "Hello World" example, written
 in a C file named `helloworld.c`:
