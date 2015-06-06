@@ -265,9 +265,9 @@ class Context:
             self.options.buildroot = old_buildroot
             sys.modules['fbuildroot'] = prev_root
 
-    def install(self, path, category):
+    def install(self, path, category, addroot=''):
         try:
-            self.to_install[category].append(Path(path).abspath())
+            self.to_install[category].append((Path(path).abspath(), addroot))
         except AttributeError:
             pass
         except KeyError:

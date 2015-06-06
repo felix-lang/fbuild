@@ -55,10 +55,11 @@ def install_files(ctx):
     for subdir, files in ctx.to_install.items():
         # Generate the full subdirectory.
         target_root = fbuild.path.Path(subdir).addroot(ctx.install_prefix)
-        for file in files:
+        for file, froot in files:
             file = file.relpath(file.getcwd())
             # Generate the target path.
-            target = file.removeroot(ctx.buildroot + os.sep).addroot(target_root)
+            target = file.removeroot(ctx.buildroot / '').addroot(target_root /
+                froot)
             # Copy the file.
             fbuild.builders.file.copy(ctx, file, target)
 
