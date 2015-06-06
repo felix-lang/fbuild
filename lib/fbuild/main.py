@@ -12,6 +12,7 @@ import fbuild.target
 import fbuild.path
 import fbuild.context
 import fbuild.options
+import fbuild.builders.file
 
 # If we can't import fbuildroot, save the exception and raise it later.
 try:
@@ -50,6 +51,19 @@ def parse_args(argv):
 
 # ------------------------------------------------------------------------------
 
+def install_files(ctx):
+    for subdir, files in ctx.to_install.items():
+        # Generate the full subdirectory.
+        target_root = fbuild.path.Path(subdir).addroot(ctx.install_prefix)
+        for file in files:
+            file = file.relpath(file.getcwd())
+            # Generate the target path.
+            target = file.removeroot(ctx.buildroot + os.sep).addroot(target_root)
+            # Copy the file.
+            fbuild.builders.file.copy(ctx, file, target)
+
+# ------------------------------------------------------------------------------
+
 def build(ctx):
     # Exit early if we're just viewing the state.
     if ctx.options.dump_state:
@@ -73,11 +87,20 @@ def build(ctx):
     # We'll use the arguments as our targets.
     targets = ctx.args or ['build']
 
+    # Installation stuff.
+    if 'install' in targets:
+        if targets[-1] != 'install':
+            raise fbuild.Error('install must be last target')
+        if not set(targets) - {'configure', 'install'}:
+            targets.insert(targets.index('install')-1, 'build')
+
     # Step through each target and execute it.
     for target_name in targets:
-        target = fbuild.target.find(target_name)
-
-        target.function(ctx)
+        if target_name == 'install':
+            install_files(ctx)
+        else:
+            target = fbuild.target.find(target_name)
+            target.function(ctx)
 
     return 0
 

@@ -19,7 +19,7 @@ from fbuild.path import Path
 class Context:
     def __init__(self, options, args):
         # Convert the paths to Path objects.
-        options.buildroot = fbuild.path.Path(options.buildroot)
+        options.buildroot = Path(options.buildroot)
         options.state_file = options.buildroot / options.state_file
 
         self.logger = fbuild.console.Log(
@@ -36,6 +36,9 @@ class Context:
 
         self.options = options
         self.args = args
+
+        self.install_prefix = Path('/usr/local')
+        self.to_install = {'bin': [], 'lib': [], 'share': [], 'include': []}
 
     @property
     def buildroot(self):
@@ -261,6 +264,14 @@ class Context:
             sys.path.pop(0)
             self.options.buildroot = old_buildroot
             sys.modules['fbuildroot'] = prev_root
+
+    def install(self, path, category):
+        try:
+            self.to_install[category].append(Path(path).abspath())
+        except AttributeError:
+            pass
+        except KeyError:
+            raise fbuild.Error('invalid install category: {}'.format(category))
 
 # ------------------------------------------------------------------------------
 
