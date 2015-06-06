@@ -1,3 +1,4 @@
+import sys
 import os
 import signal
 import threading
@@ -10,6 +11,8 @@ import fbuild.db.database
 import fbuild.path
 import fbuild.sched
 import fbuild.subprocess.killableprocess
+
+from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
@@ -237,6 +240,27 @@ class Context:
             raise fbuild.ExecutionError(cmd, stdout, stderr, returncode)
 
         return stdout, stderr
+
+    def recurse(self, dir, target='build'):
+        """Recurse into the given directory and run the given target.
+           The target should return either None or a dictionary. """
+        dir = Path(dir)
+        sys.path.insert(0, dir.abspath())
+        prev_root = sys.modules.pop('fbuildroot')
+        old_buildroot = self.options.buildroot
+        full_buildroot = old_buildroot.abspath()
+        cwd = os.getcwd()
+        self.logger.log('recursing into {}:{}'.format(dir, target))
+        try:
+            os.chdir(dir)
+            self.options.buildroot = full_buildroot
+            import fbuildroot
+            return getattr(fbuildroot, target)(self)
+        finally:
+            os.chdir(cwd)
+            sys.path.pop(0)
+            self.options.buildroot = old_buildroot
+            sys.modules['fbuildroot'] = prev_root
 
 # ------------------------------------------------------------------------------
 
