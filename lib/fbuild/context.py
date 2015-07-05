@@ -1,3 +1,4 @@
+import sys
 import os
 import signal
 import threading
@@ -7,9 +8,10 @@ import fbuild
 import fbuild.builders.platform
 import fbuild.console
 import fbuild.db.database
-import fbuild.path
 import fbuild.sched
 import fbuild.subprocess.killableprocess
+
+from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
@@ -18,6 +20,7 @@ class Context:
         # Convert the paths to Path objects.
         options.buildroot = Path(options.buildroot)
         options.state_file = options.buildroot / options.state_file
+        options.log_file = options.buildroot / options.log_file
 
         self.logger = fbuild.console.Log(
             verbose=options.verbose,
@@ -46,8 +49,7 @@ class Context:
         self.buildroot.makedirs()
 
         # Load the logger options into the logger.
-        self.logger.file = open(
-            self.options.buildroot / self.options.log_file, 'w')
+        self.logger.file = open(self.options.log_file, 'w')
 
         # Make sure the state file directory exists.
         self.options.state_file.parent.makedirs()
@@ -71,6 +73,30 @@ class Context:
                 self.db.close()
             finally:
                 signal.signal(signal.SIGINT, prev_handler)
+
+    def prune(self, prune_get_all, prune_get_bad):
+        """Delete all destination files that were not referenced during this
+           build. This will leave any files outside the build directory. To
+           override this function's behavior, use prune_get_all and
+           prune_get_bad."""
+        all_targets = set(prune_get_all(self))
+        bad_targets = prune_get_bad(self, all_targets - self.db.active_files -
+                                          {self.options.state_file,
+                                           self.options.log_file})
+        def error_handler(func, path, exc):
+            self.logger.log('error deleting file %s: %s' % (path, exc[1]),
+                color='red')
+        for file in bad_targets:
+            file = Path(file)
+            # XXX: There should be a color better than 'compile' for this.
+            self.logger.check(' * prune', file, color='compile')
+            if file.isdir():
+                file.rmtree(ignore_errors=True, on_error=error_handler)
+            else:
+                try:
+                    file.remove()
+                except:
+                    error_handler(None, file, sys.exc_info())
 
     # --------------------------------------------------------------------------
     # Logging wrapper functions

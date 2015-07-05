@@ -115,6 +115,24 @@ def main(argv=None):
         except AttributeError:
             pass
 
+    # Get the prune handlers.
+    try:
+        prune_get_all = fbuildroot.prune_get_all
+    except:
+        def prune_get_all(ctx, root=None):
+            files = set()
+            if root is None:
+                root = ctx.buildroot
+            for dirpath, dirnames, filenames in root.walk():
+                files.update(map(dirpath.__truediv__, filenames))
+            return files
+
+    try:
+        prune_get_bad = fbuildroot.prune_get_bad
+    except:
+        def prune_get_bad(ctx, files):
+            return files
+
     # --------------------------------------------------------------------------
 
     ctx = parse_args(sys.argv if argv is None else argv)
@@ -159,6 +177,8 @@ def main(argv=None):
         # ... and then run the build.
         try:
             result = build(ctx)
+            if ctx.options.prune:
+                ctx.prune(prune_get_all, prune_get_bad)
         except fbuild.Error as e:
             ctx.logger.log(e, color='red')
             return 1
