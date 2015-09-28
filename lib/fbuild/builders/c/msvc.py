@@ -171,6 +171,7 @@ class Lib(fbuild.db.PersistentObject):
             flags=[],
             libpaths=[],
             libs=[],
+            ldlibs=[],
             external_libs=[]):
         super().__init__(ctx)
 
@@ -183,6 +184,7 @@ class Lib(fbuild.db.PersistentObject):
         self.flags = flags
         self.libpaths = libpaths
         self.libs = libs
+        self.ldlibs = ldlibs
         self.external_libs = external_libs
 
     def __call__(self, dst, srcs, *,
@@ -190,6 +192,7 @@ class Lib(fbuild.db.PersistentObject):
             flags=[],
             libpaths=[],
             libs=[],
+            ldlibs=[],
             external_libs=[],
             buildroot=None,
             **kwargs):
@@ -205,6 +208,7 @@ class Lib(fbuild.db.PersistentObject):
         cmd.extend(self.flags)
         cmd.extend(flags)
         cmd.extend(srcs)
+        cmd.extend(tuple(self.ldlibs)+tuple(ldlibs))
 
         # We'll ignore linking libraries to libraries for now.
         #cmd.extend('/DEFAULTLIB:' + l for l in self.external_libs)
@@ -377,7 +381,6 @@ class DllLink(Link):
             quieter=0,
             stdout_quieter=0,
             **kwargs):
-        print(kwargs.get('ldlibs'))
         obj, stdout, stderr = self._run(
             self._make_dst(dst, self.prefix, self.suffix, buildroot),
             flags=list(chain(flags, ['/DLL'])),
