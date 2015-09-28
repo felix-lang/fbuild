@@ -45,6 +45,7 @@ class Ar(fbuild.db.PersistentObject):
     @fbuild.db.cachemethod
     def __call__(self, dst, srcs:fbuild.db.SRCS, *,
             libs:fbuild.db.SRCS=(),
+            ldlibs=(),
             external_libs=(),
             flags=(),
             ranlib_flags=(),
@@ -111,6 +112,7 @@ class Gcc(fbuild.db.PersistentObject):
             warnings=(),
             libpaths=(),
             libs=(),
+            ldlibs=(),
             external_libs=(),
             debug=None,
             profile=None,
@@ -133,6 +135,7 @@ class Gcc(fbuild.db.PersistentObject):
         self.warnings = tuple(warnings)
         self.libpaths = tuple(libpaths)
         self.libs = tuple(libs)
+        self.ldlibs = tuple(ldlibs)
         self.external_libs = tuple(external_libs)
         self.debug = debug
         self.profile = profile
@@ -169,6 +172,7 @@ class Gcc(fbuild.db.PersistentObject):
             warnings=(),
             libpaths=(),
             libs=(),
+            ldlibs=(),
             external_libs=(),
             debug=None,
             profile=None,
@@ -296,6 +300,9 @@ class Gcc(fbuild.db.PersistentObject):
         # Libraries must come last on linux in order to find symbols.
         cmd.extend('-l' + l for l in libs)
         cmd.extend('-l' + l for l in external_libs)
+
+        # Add ldlibs.
+        cmd.extend(self.ldlibs+tuple(ldlibs))
 
         return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
