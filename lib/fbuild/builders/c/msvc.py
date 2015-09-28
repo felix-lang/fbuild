@@ -377,6 +377,7 @@ class DllLink(Link):
             quieter=0,
             stdout_quieter=0,
             **kwargs):
+        print(kwargs.get('ldlibs'))
         obj, stdout, stderr = self._run(
             self._make_dst(dst, self.prefix, self.suffix, buildroot),
             flags=list(chain(flags, ['/DLL'])),
