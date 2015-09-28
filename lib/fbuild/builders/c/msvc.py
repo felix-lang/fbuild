@@ -235,6 +235,7 @@ class Link(fbuild.db.PersistentObject):
             flags=[],
             libpaths=[],
             libs=[],
+            ldlibs=[],
             external_libs=[]):
         super().__init__(ctx)
 
@@ -245,6 +246,7 @@ class Link(fbuild.db.PersistentObject):
         self.flags = flags
         self.libpaths = libpaths
         self.libs = libs
+        self.ldlibs = ldlibs
         self.external_libs = external_libs
 
     def _run(self, dst, srcs, *,
@@ -252,6 +254,7 @@ class Link(fbuild.db.PersistentObject):
             flags=[],
             libpaths=[],
             libs=[],
+            ldlibs=[],
             external_libs=[],
             buildroot=None,
             **kwargs):
@@ -316,6 +319,8 @@ class Link(fbuild.db.PersistentObject):
                 cmd.append('/DEFAULTLIB:' + lib)
 
         cmd.extend(srcs)
+
+        cmd.extend(ldlibs)
 
         stdout, stderr = self.ctx.execute(cmd, str(self),
             '%s -> %s' % (' '.join(chain(srcs, libs)), dst),
