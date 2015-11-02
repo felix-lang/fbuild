@@ -438,8 +438,8 @@ def guess_static(*args, **kwargs):
         ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.static'),
         ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.static'),
         ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.static'),
-        ({'posix', 'clang'}, 'fbuild.builders.c.clang.static'),
-        ({'posix', 'gcc'}, 'fbuild.builders.c.gcc.static'),
+        ({'clang'}, 'fbuild.builders.c.clang.static'),
+        ({'gcc'}, 'fbuild.builders.c.gcc.static'),
         ({'windows'}, 'fbuild.builders.c.msvc.static'),
     ), *args, **kwargs)
 
@@ -457,7 +457,7 @@ def guess_shared(*args, **kwargs):
         ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.shared'),
         ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.shared'),
         ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.shared'),
-        ({'posix', 'clang'}, 'fbuild.builders.c.clang.shared'),
-        ({'posix', 'gcc'}, 'fbuild.builders.c.gcc.shared'),
+        ({'clang'}, 'fbuild.builders.c.clang.shared'),
+        ({'gcc'}, 'fbuild.builders.c.gcc.shared'),
         ({'windows'}, 'fbuild.builders.c.msvc.shared'),
     ), *args, **kwargs)
