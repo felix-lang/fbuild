@@ -350,7 +350,7 @@ def _guess_builder(name, compilers, functions, ctx, *args,
             new_kwargs = copy.deepcopy(kwargs)
 
             for p, kw in platform_options:
-                if p <= subplatform:
+                if (p - subplatform & compilers) <= subplatform:
                     for k, v in kw.items():
                         if k[-1] in '+-':
                             func = k[-1]
