@@ -33,9 +33,9 @@ class Ar(fbuild.db.PersistentObject):
             self.ranlib = None
 
         self.prefix = prefix or \
-            fbuild.builders.platform.static_lib_prefix(platform)
+            fbuild.builders.platform.static_lib_prefix(ctx, platform)
         self.suffix = suffix or \
-            fbuild.builders.platform.static_lib_suffix(platform)
+            fbuild.builders.platform.static_lib_suffix(ctx, platform)
         self.libpaths = tuple(libpaths)
         self.libs = tuple(libs)
         self.external_libs = tuple(external_libs)
