@@ -115,14 +115,14 @@ def static_obj_suffix(ctx, platform=None):
 
 def static_lib_prefix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if 'windows' in platform and 'mingw' not in platform:
         return ''
     else:
         return 'lib'
 
 def static_lib_suffix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if 'windows' in platform:
+    if 'windows' in platform and 'mingw' not in platform:
         return '.lib'
     else:
         return '.a'
