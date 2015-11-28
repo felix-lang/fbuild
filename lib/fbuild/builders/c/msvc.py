@@ -176,10 +176,8 @@ class Lib(fbuild.db.PersistentObject):
         super().__init__(ctx)
 
         self.exe = fbuild.builders.find_program(ctx, [exe])
-        self.prefix = prefix or \
-            fbuild.builders.platform.static_lib_prefix(ctx, platform)
-        self.suffix = suffix or \
-            fbuild.builders.platform.static_lib_suffix(ctx, platform)
+        self.prefix = '' # XXX: This probably should't even be here!
+        self.suffix = '.lib'
         self.pre_flags = pre_flags
         self.flags = flags
         self.libpaths = libpaths
@@ -523,11 +521,8 @@ def static(ctx, exe=None, *args,
     if obj_suffix is None:
         obj_suffix = fbuild.builders.platform.static_obj_suffix(ctx, platform)
 
-    if lib_prefix is None:
-        lib_prefix = fbuild.builders.platform.static_lib_prefix(ctx, platform)
-
-    if lib_suffix is None:
-        lib_suffix = fbuild.builders.platform.static_lib_suffix(ctx, platform)
+    lib_prefix = ''
+    lib_suffix = '.lib'
 
     if exe_suffix is None:
         exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)

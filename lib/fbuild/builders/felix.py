@@ -24,7 +24,7 @@ class Flx(fbuild.db.PersistentObject):
         if not self.check_flags([]):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
-    def __call__(self, src, *args,
+    def __call__(self, src, dst, *args,
             includes=[],
             debug=None,
             static=False,
@@ -134,7 +134,7 @@ class Felix(fbuild.builders.AbstractCompiler):
         cmd_flags.extend(self.flags)
         cmd_flags.extend(flags)
 
-        self.flx(src, self.flx, '%s -> %s' % (src, dst),
+        self.flx(src, dst, self.flx, '%s -> %s' % (src, dst),
             includes=includes,
             static=static,
             flags=cmd_flags,

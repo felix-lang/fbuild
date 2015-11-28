@@ -32,10 +32,8 @@ class Ar(fbuild.db.PersistentObject):
         except fbuild.ConfigFailed:
             self.ranlib = None
 
-        self.prefix = prefix or \
-            fbuild.builders.platform.static_lib_prefix(ctx, platform)
-        self.suffix = suffix or \
-            fbuild.builders.platform.static_lib_suffix(ctx, platform)
+        self.prefix = prefix or 'lib'
+        self.suffix = suffix or '.a'
         self.libpaths = tuple(libpaths)
         self.libs = tuple(libs)
         self.external_libs = tuple(external_libs)
@@ -521,11 +519,8 @@ def static(ctx, exe=None, *args,
     if obj_suffix is None:
         obj_suffix = fbuild.builders.platform.static_obj_suffix(ctx, platform)
 
-    if lib_prefix is None:
-        lib_prefix = fbuild.builders.platform.static_lib_prefix(ctx, platform)
-
-    if lib_suffix is None:
-        lib_suffix = fbuild.builders.platform.static_lib_suffix(ctx, platform)
+    lib_prefix = lib_prefix or 'lib'
+    lib_suffix = lib_suffix or '.a'
 
     if exe_suffix is None:
         exe_suffix = fbuild.builders.platform.exe_suffix(ctx, platform)

@@ -709,6 +709,7 @@ class Ocamlopt(Builder):
             make_ocamlc=Ocamlc,
             profile=False,
             profile_flags=('-p',),
+            linker=None,
             **kwargs):
         # We need the bytecode compiler to compile .mli files.
         # Note we purposely don't pass the profile to ocamlc.
@@ -718,7 +719,7 @@ class Ocamlopt(Builder):
 
         self.native_obj_suffix = \
             fbuild.builders.platform.obj_suffix(ctx, platform)
-        self.native_lib_suffix = \
+        self.native_lib_suffix = linker.lib_suffix if linker else \
             fbuild.builders.platform.static_lib_suffix(ctx, platform)
 
         self.profile = profile
