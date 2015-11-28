@@ -297,12 +297,14 @@ class Gcc(fbuild.db.PersistentObject):
         cmd.extend(flags)
         cmd.extend(srcs)
 
-        # Libraries must come last on linux in order to find symbols.
-        cmd.extend('-l' + l for l in libs)
-        cmd.extend('-l' + l for l in external_libs)
+        # Avoid passing libraries if just compiling.
+        if '-c' not in cmd:
+            # Libraries must come last on linux in order to find symbols.
+            cmd.extend('-l' + l for l in libs)
+            cmd.extend('-l' + l for l in external_libs)
 
-        # Add ldlibs.
-        cmd.extend(self.ldlibs+tuple(ldlibs))
+            # Add ldlibs.
+            cmd.extend(self.ldlibs+tuple(ldlibs))
 
         return self.ctx.execute(cmd, msg2=msg2, **kwargs)
 
