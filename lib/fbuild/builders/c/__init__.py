@@ -73,6 +73,8 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     #endif
                     #if defined _WIN32 || defined __CYGWIN__
                     __declspec(dllexport)
+                    #elif defined __GNUC__
+                    __attribute__ ((visibility ("default")))
                     #endif
                     int foo() { return 5; }
                     #ifdef __cplusplus
@@ -350,8 +352,7 @@ def _guess_builder(name, compilers, functions, ctx, *args,
             new_kwargs = copy.deepcopy(kwargs)
 
             for p, kw in platform_options:
-                subp = p - subplatform & compilers
-                if subp and subp <= subplatform:
+                if (p - subplatform & (compilers | {'windows'})) <= subplatform:
                     for k, v in kw.items():
                         if k[-1] in '+-':
                             func = k[-1]
