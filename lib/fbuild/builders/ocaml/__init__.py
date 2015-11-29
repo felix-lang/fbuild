@@ -719,7 +719,7 @@ class Ocamlopt(Builder):
 
         self.native_obj_suffix = \
             fbuild.builders.platform.obj_suffix(ctx, platform)
-        self.native_lib_suffix = linker.lib_suffix if linker else \
+        self.native_lib_suffix = linker.suffix if linker else \
             fbuild.builders.platform.static_lib_suffix(ctx, platform)
 
         self.profile = profile
@@ -834,6 +834,7 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
             make_ocamlcp=Ocamlcp,
             make_ocamlopt=Ocamlopt,
             profile=False,
+            linker=None,
             **kwargs):
         self.ocamldep = ocamldep or make_ocamldep(ctx)
 
@@ -857,6 +858,7 @@ class Ocaml(fbuild.builders.AbstractCompilerBuilder):
             make_ocamldep=make_ocamldep,
             make_ocamlc=make_ocamlc,
             profile=profile,
+            linker=linker,
             **kwargs)
 
     # --------------------------------------------------------------------------

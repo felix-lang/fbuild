@@ -350,7 +350,8 @@ def _guess_builder(name, compilers, functions, ctx, *args,
             new_kwargs = copy.deepcopy(kwargs)
 
             for p, kw in platform_options:
-                if (p - subplatform & compilers) <= subplatform:
+                subp = p - subplatform & compilers
+                if subp and subp <= subplatform:
                     for k, v in kw.items():
                         if k[-1] in '+-':
                             func = k[-1]
@@ -380,6 +381,7 @@ def _guess_builder(name, compilers, functions, ctx, *args,
 
             # Try to use this compiler. If it doesn't work, skip this compiler
             # and try another one.
+
             try:
                 return fbuild.functools.call(function, ctx, exe, *args, **new_kwargs)
             except fbuild.ConfigFailed:
