@@ -15,6 +15,7 @@ addons:
             - ghc
             - ocaml
             - ocaml-native-compilers
+            - ocaml-nox
             - ocaml-findlib
             - ocaml-interp
             - ocaml-batteries-included
