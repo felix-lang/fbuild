@@ -3,6 +3,7 @@
 errc=0
 
 fail() {
+    echo "Example $1 FAILED; showing log"
     cat build/fbuild.log
     errc=1
 }
@@ -14,7 +15,7 @@ for dir in */; do
     [ $dir == "config/" -o $dir == "scala/" ] && continue
     echo "Running example $dir"
     cd $dir
-    ../../fbuild-light || fail
+    ../../fbuild-light || fail $dir
     cd ..
 done
 
