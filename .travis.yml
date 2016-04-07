@@ -1,13 +1,21 @@
+sudo: false
 language: python
 python:
     - "3.2"
     - "3.3"
     - "3.4"
     #- "pypy3"
-before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq build-essential clang-3.4 java-common scala ghc
-    - sudo apt-get install -qq ocaml-core ocaml-batteries-included
-install:
-    - "python setup.py install"
+addons:
+    apt:
+        packages:
+            - build-essential
+            - clang
+            - java-common
+            - scala
+            - ghc
+            - ocaml
+            - ocaml-native-compilers
+            - ocaml-findlib
+            - ocaml-interp
+            - ocaml-batteries-included
 script: "./travis.sh"
