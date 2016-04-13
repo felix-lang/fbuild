@@ -1,10 +1,24 @@
-Tutorial
-========
-
-This is a simple tutorial to get you up on your feet with using Fbuild.
+Manual
+======
 
 Basics
 ******
+
+Getting Started
+^^^^^^^^^^^^^^^
+
+This manual is for the most recent version of Fbuild from Git. In order to get it,
+just run::
+   
+   $ git clone https://github.com/felix-lang/fbuild.git
+   $ cd fbuild
+   $ python3 setup.py install
+
+You can also use Fbuild without installing it by running the ``fbuild-light``
+script.
+
+Compiling C
+^^^^^^^^^^^
 
 Let's start with a simple build script: it just builds a "Hello, world!" program
 written in C. Here's the C code:
@@ -58,14 +72,17 @@ That just:
 - Built our program.
 
 Builders
-********
+^^^^^^^^
 
 In Fbuild, a *builder* is an object that...builds stuff. In the last example, the
 builder could build C executables and libraries. Most of Fbuild revolves around
 builders, and all of them are located within ``fbuild.builders``.
 
-Rewind: How Does All This Work?
-*******************************
+Rewind: The Core of Fbuild
+**************************
+
+Graphs and Caching
+^^^^^^^^^^^^^^^^^^
 
 Let's take a step back for a moment. How does all this stuff even work??
 
@@ -158,8 +175,8 @@ almost every internal function is cached like this. Remember ``guess_static``? I
 you run that script again, the C compiler won't be re-configured. Fbuild cached
 the result of calling ``guess_static`` and loaded it back up from the database.
 
-Rewind: Dependencies
-********************
+Dependencies
+^^^^^^^^^^^^
 
 All this is really cool, but it doesn't seem that practical at the moment. Build
 systems don't just configure builders; they also...well, build stuff. Caching
@@ -321,7 +338,7 @@ This isn't quite enough, however, but before I go to the next topic, there's one
 more basic thing that needs to be covered: paths.
 
 Path Objects
-************
+^^^^^^^^^^^^
 
 Remember the error message when I forgot to create ``myfile``? It mentioned that
 the missing file was ``Path('myfile')``. The ``Path`` here is for Fbuild's *path
@@ -338,7 +355,7 @@ them, you can use ``/``. For instance, ``Path('src') / 'dst'`` returns
 ``Path('src/dst')`` on Posix and ``Path('src\\dst')`` on Windows.
 
 Rule Destinations and Cached Objects
-************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Back on topic: recall the very first Fbuild script in the tutorial:
 
@@ -412,8 +429,11 @@ what I've just shown here, with three exceptions:
 
 Many examples of this are in the Fbuild source.
 
+Back to a higher level: user interaction and commands
+*****************************************************
+
 Logging
-*******
+^^^^^^^
 
 Of course, a build system is mostly useless without being able to run external
 commands. First, I need to mention an important concept of Fbuild that I've
@@ -449,12 +469,29 @@ and here's the output:
 .. image:: http://s23.postimg.org/6exhuh3ff/fbuild_log.png
 
 Finding programs
-****************
+^^^^^^^^^^^^^^^^
 
-TODO
+Actually, there's *one* more thing to mention first. A frequently needed
+capability of a build system is to locate a program. For instance, you may want
+to find the ``awk`` executable on the system. For this, Fbuild has
+``fbuild.builders.find_program``. It works like this:
+
+.. code-block:: python
+   
+   from fbuild.builders import find_program
+   
+   def build(ctx):
+       awk = find_program(ctx, ['awk', 'gawk'])
+       print(awk)
+
+It takes two arguments: the context object and a list of programs to search for.
+The return value is the first program it found. If none are found, it will throw
+an exception of type ``fbuild.ConfigFailed``.
 
 Executing shell commands
-************************
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
 
 TODO
 ****
