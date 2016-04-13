@@ -519,7 +519,7 @@ That's a lot of arguments! I'll break them down one by one:
 - ``cmd`` is the command to run. Although there are some edge cases, in general,
   this should be a list, such as ``['clang', '-o', 'x', 'x.c']``.
 
-- ``msg1``, ``msg2``, and ``color`` will be explained below.
+- ``msg1``, ``msg2``, and ``color`` will be explained in the example below.
 
 - ``quieter`` is the same as the ``quieter`` argument with ``logger.log``; it
   determines whether or not ``msg1`` and ``msg2`` will be displayed or just sent
@@ -529,7 +529,7 @@ That's a lot of arguments! I'll break them down one by one:
 - ``stdout_quieter`` and ``stderr_quieter`` are the same thing as ``quieter``,
   except they are for whether or not the output of the command will be shown.
 
-- ``input`` is a string to be sent to the command's standard input.
+- ``input`` is a byte string to be sent to the command's standard input.
 
 - ``stdin`` is ignored if ``input`` is truthy; otherwise, it will be the ``stdin``
   argument passed to ``subprocess.Popen``.
@@ -549,6 +549,37 @@ That's a lot of arguments! I'll break them down one by one:
   thrown if the command fails.
 
 - ``kwargs`` is just passed on to ``subprocess.Popen``.
+
+That's a lot to take in at once, so here are some examples of using ``execute``:
+
+.. code-block:: python
+   
+   def build(ctx):
+       ctx.execute(['echo', '123']) # Run `echo 123` and print the output.
+   
+       # Run echo, but print the message "running echo" first, with NO NEWLINE.
+       ctx.execute(['echo', 'Echoed text here!'], msg1='running echo')
+       # Run echo, but print the message "running echo: 123" first.
+       ctx.execute(['echo', 'Echoed text here!'], msg1='running echo', msg2='123')
+       # This is the color of `msg2`.
+       ctx.execute(['echo', '123'], msg1='running echo', msg2='123', color='compile')
+       # This would normally be an error, but ignore_error is True.
+       ctx.execute(['printf'], ignore_error=True)
+   
+       ctx.execute(['echo', '123'], stdout_quieter=1) # Don't print the output.
+       # msg1 and msg2 will still be printed.
+       ctx.execute(['echo', '123'], msg1='running echo', msg2='123', stdout_quieter=1)
+   
+       ctx.execute(['cat'], input=b'Input here!') # Send some text to stdin.
+   
+       # This will throw an error because running `sleep` timed out.
+       ctx.execute(['sleep', '1'], msg1='running sleep', msg2='1', timeout=0.5)
+
+And the output:
+
+.. image:: http://s5.postimg.org/vcuu3zhfr/fbuild_exec.png
+
+Note that ``execute`` is *not* cached!
 
 TODO
 ****
