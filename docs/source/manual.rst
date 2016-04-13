@@ -488,10 +488,67 @@ It takes two arguments: the context object and a list of programs to search for.
 The return value is the first program it found. If none are found, it will throw
 an exception of type ``fbuild.ConfigFailed``.
 
+In addition, ``find_program`` is cached, so it won't re-run every single time you
+run ``fbuild``.
+
 Executing shell commands
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+*Now* comes executing shell commands! Every context object has a method for this:
+``execute``. Here's the definition from the source code:
+
+.. code-block:: python
+   
+   def execute(self, cmd, msg1=None, msg2=None, *,
+           color=None,
+           quieter=0,
+           stdout_quieter=None,
+           stderr_quieter=None,
+           input=None,
+           stdin=None,
+           stdout=fbuild.subprocess.PIPE,
+           stderr=fbuild.subprocess.PIPE,
+           timeout=None,
+           env=None,
+           runtime_libpaths=None,
+           ignore_error=False,
+           **kwargs):
+
+That's a lot of arguments! I'll break them down one by one:
+
+- ``cmd`` is the command to run. Although there are some edge cases, in general,
+  this should be a list, such as ``['clang', '-o', 'x', 'x.c']``.
+
+- ``msg1``, ``msg2``, and ``color`` will be explained below.
+
+- ``quieter`` is the same as the ``quieter`` argument with ``logger.log``; it
+  determines whether or not ``msg1`` and ``msg2`` will be displayed or just sent
+  to the log file. In addition, this will be the default value fo
+  ``stdout_quieter`` and ``stderr_quieter`` if they are ``None``.
+
+- ``stdout_quieter`` and ``stderr_quieter`` are the same thing as ``quieter``,
+  except they are for whether or not the output of the command will be shown.
+
+- ``input`` is a string to be sent to the command's standard input.
+
+- ``stdin`` is ignored if ``input`` is truthy; otherwise, it will be the ``stdin``
+  argument passed to ``subprocess.Popen``.
+
+- ``stdout`` and ``stderr`` are passed to ``subprocess.Popen``.
+
+- ``timeout`` is the maximum number of seconds to wait for the command to finish
+  before killing it. If you pass a falsy value, it will never kill the command.
+
+- ``env`` is a dictionary of environment variables to pass to the function; if
+  ``None``, then the current environment in ``os.environ`` will be passed.
+
+- ``runtime_libpaths`` is a list of strings to be added to the platform's DLL/
+  shared library search path.
+
+- ``ignore_error`` will determine whether or not an ``fbuild.ExecutionError`` is
+  thrown if the command fails.
+
+- ``kwargs`` is just passed on to ``subprocess.Popen``.
 
 TODO
 ****
