@@ -275,3 +275,50 @@ You can also create functions that take multiple sources:
 
 As you might expect by now, ``fbuild.db.SRCS`` takes a list of source files, not
 just one.
+
+Nevertheless, this is only part of the equation. A build system usually needs to
+also keep track of its output files. Unlike other example scripts, this is
+actually not just a toy; it's actually a quite useful function:
+
+.. code-block:: python
+   
+   import fbuild.db, shutil, io
+   
+   @fbuild.db.caches
+   def merge_files(ctx, srcs: fbuild.db.SRCS, dst: fbuild.db.DST):
+       print('Merging files...')
+   
+       result = io.StringIO()
+       for src in srcs:
+           with open(src) as f:
+               shutil.copyfileobj(f, result)
+   
+       result.seek(0)
+       with open(dst, 'w') as f:
+           shutil.copyfileobj(result, f)
+   
+   def build(ctx):
+       merge_files(ctx, ['input1', 'input2'], 'output')
+
+The details of ``merge_files`` don't really matter as much as the function
+annotations. Note that another annotation was added: ``fbuild.db.DST``, which
+annotates the destination parameter. The results of running it are like you'd
+expect::
+   
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 1 > input1
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 2 > input2
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+   Merging files...
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ cat output 
+   1
+   2
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ 
+
+As before, any changes to ``input1`` or ``input2`` will cause ``output`` to be
+re-built.
+
+This isn't quite enough, however, but before I go to the next topic, there's one
+more basic thing that needs to be covered: paths.
+
+Path objects
+************
