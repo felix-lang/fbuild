@@ -320,7 +320,7 @@ re-built.
 This isn't quite enough, however, but before I go to the next topic, there's one
 more basic thing that needs to be covered: paths.
 
-Path objects
+Path Objects
 ************
 
 Remember the error message when I forgot to create ``myfile``? It mentioned that
@@ -337,7 +337,7 @@ source code. Here I'll mention just one capability of paths: in order to join
 them, you can use ``/``. For instance, ``Path('src') / 'dst'`` returns
 ``Path('src/dst')`` on Posix and ``Path('src\\dst')`` on Windows.
 
-Rule destinations and cached objects
+Rule Destinations and Cached Objects
 ************************************
 
 Back on topic: recall the very first Fbuild script in the tutorial:
@@ -412,8 +412,52 @@ what I've just shown here, with three exceptions:
 
 Many examples of this are in the Fbuild source.
 
+Logging
+*******
+
+Of course, a build system is mostly useless without being able to run external
+commands. First, I need to mention an important concept of Fbuild that I've
+glossed over thus far: logging.
+
+Notice that, in all the above examples, ``print`` was used to print information.
+Technically, you're not supposed to do this! In order to handle this, Fbuild
+provides ``ctx.logger``. Here's a basic example:
+
+.. code-block:: python
+   
+   def build(ctx):
+       ctx.logger.log('This will be written to the log file: build/fbuild.log.',
+                      verbose=1)
+       ctx.logger.log('This will be written to the console.')
+   
+       ctx.logger.log('This will be written to the console in red.', color='red')
+       ctx.logger.log('This will be written to the console in a color designated for '
+                      'compiling files.', color='compile')
+       ctx.logger.log('And for linking files!', color='link')
+   
+       ctx.logger.check('this is used when configuring various things in Fbuild')
+       ctx.logger.passed()
+   
+       ctx.logger.check('you can also give custom messages and colors', color='blue')
+       ctx.logger.passed('it worked!')
+   
+       ctx.logger.check('things can also fail')
+       ctx.logger.failed('dang it!')
+
+and here's the output:
+
+.. image:: http://s23.postimg.org/6exhuh3ff/fbuild_log.png
+
+Finding programs
+****************
+
+TODO
+
+Executing shell commands
+************************
+
 TODO
 ****
 
 Document ``fbuild.config``, ``Record``, ``pre_options``, and
-``ctx.db.add_external_dependencies_to_call``. And ``ctx.install``.
+``ctx.db.add_external_dependencies_to_call``. And ``ctx.install``!
