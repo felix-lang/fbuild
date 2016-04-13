@@ -322,3 +322,98 @@ more basic thing that needs to be covered: paths.
 
 Path objects
 ************
+
+Remember the error message when I forgot to create ``myfile``? It mentioned that
+the missing file was ``Path('myfile')``. The ``Path`` here is for Fbuild's *path
+objects*. I won't go over every single detail, but path objects (defined in
+``fbuild.path``) are...well, path objects. The class ``fbuild.path.Path`` is a
+subclass of ``str``, so it supports all the normal operations of ``str``, and you
+can pass it to any normal Python function expecting a string, However, path
+objects also have a bunch of methods useful for file system/path manipulation.
+
+For thorough documentation on all the methods, check out `lib/fbuild/path.py <
+https://github.com/felix-lang/fbuild/blob/master/lib/fbuild/path.py>_` in the
+source code. Here I'll mention just one capability of paths: in order to join
+them, you can use ``/``. For instance, ``Path('src') / 'dst'`` returns
+``Path('src/dst')`` on Posix and ``Path('src\\dst')`` on Windows.
+
+Rule destinations and cached objects
+************************************
+
+Back on topic: recall the very first Fbuild script in the tutorial:
+
+.. code-block:: python
+   
+   from fbuild.builders.c import guess_static
+   
+   def build(ctx):
+       builder = guess_static(ctx)
+       builder.build_exe('hello', ['hello.c'])
+
+See ``builder.build_exe``? That function actually returns a value: the full path
+to the resulting executable. The reason is that, usually, the developer doesn't
+care where the executable is stored or what extension it has, but they may very
+well want to know where it's located. To handle this case, Fbuild supports
+annotating the function's *return value* as a destination. For example:
+
+.. code-block:: python
+   
+   from fbuild.path import Path
+   import fbuild.db, shutil
+   
+   @fbuild.db.caches
+   def do_something(ctx, src: fbuild.db.SRC) -> fbuild.db.DST:
+       src = Path(src)
+       dst = ctx.buildroot / src.replaceext('.out')
+       print('Copying %s to %s...' % (src, dst))
+       src.copy(dst)
+       return dst
+   
+   def build(ctx):
+       do_something(ctx, 'x.in')
+
+Let's run it::
+
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ echo 123 > x.in
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ fbuild
+   Copying x.in to build/x.out...
+   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ 
+
+This script has a lot of new stuff! It uses the ``Path`` objects mentioned in the
+previous section. In particular:
+
+- This is the first example script to use ``ctx.buildroot``, which is a ``Path``
+  that points to the output directory. In this case, it's ``build``.
+
+- ``Path.replaceext`` replaces the given file extension, e.g.
+  ``Path('x.in').replaceext('.out')`` results in ``Path('x.out')``.
+
+- ``Path.copy`` copies the given file. ``Path(src).copy(dst)``` is equivalent to
+  ``shutil.copy(src, dst)``.
+
+- **Most importantly,** ``do_something`` returns the resulting output file. This
+  will cause Fbuild to place it in the database.
+
+The entirety of Fbuild, including the C builder that I first showed, consists of
+what I've just shown here, with three exceptions:
+
+1. In ``fbuild.db``, there's a very important class:
+   ``fbuild.db.PersistentObject``. If you want to contain any cached functions
+   within a class, the class must derive from ``PersistentObject``, and the cached
+   functions should instead use ``cachemethod`` (see below).
+
+2. ``fbuild.db.cachemethod`` is equivalent to ``fbuild.db.caches``, but it is
+   instead designed to annotate methods.
+
+3. Sometimes, you may not want to return a whole object. For this case, Fbuild
+   provides ``fbuild.record.Record``. A ``Record`` is basically a ``dict``, except
+   that you can also set and get keys via attributes. For example, ``my_record.a``
+   is equivalent to ``my_record['a']``.
+
+Many examples of this are in the Fbuild source.
+
+TODO
+****
+
+Document ``fbuild.config``, ``Record``, ``pre_options``, and
+``ctx.db.add_external_dependencies_to_call``. And ``ctx.install``.
