@@ -1,8 +1,11 @@
 Manual
 ======
 
-Basics
-******
+This is the Fbuild manual, which is aiming at being the authorative guide to using
+Fbuild in your projects. Note that this is still a work-in-progress!
+
+Basics: Getting Fbuild, C Compilation, and Builders
+***************************************************
 
 Getting Started
 ^^^^^^^^^^^^^^^
@@ -417,10 +420,38 @@ what I've just shown here, with three exceptions:
 1. In ``fbuild.db``, there's a very important class:
    ``fbuild.db.PersistentObject``. If you want to contain any cached functions
    within a class, the class must derive from ``PersistentObject``, and the cached
-   functions should instead use ``cachemethod`` (see below).
+   functions should instead use ``cachemethod`` (see below). Note that the default
+   constructor for objects derived from ``PersistentObject`` takes a context
+   object as its argument. If you define a custom ``__init__``, you need to take a
+   context object and assign it to ``self.ctx``. Example:
+   
+   .. code-block:: python
+      
+      class MyObject(fbuild.db.PersistentObject):
+          def __init__(self, ctx):
+              self.ctx = ctx
+      
+      def build(ctx):
+          obj = MyObject(ctx)
 
 2. ``fbuild.db.cachemethod`` is equivalent to ``fbuild.db.caches``, but it is
-   instead designed to annotate methods.
+   instead designed to annotate methods that are in a subclass of
+   ``PersistentObject``. In addition, methods annotated with ``cachemethod`` don't
+   need to be passed a context argument. Example:
+   
+   .. code-block:: python
+      
+      class MyObject(fbuild.db.PersistentObject):
+          def __init__(self, ctx):
+              self.ctx = ctx
+          
+          @fbuild.db.cachemethod
+          def myfunc(self, msg):
+              print('Message:', msg)
+      
+      def build(ctx):
+          obj = MyObject(ctx)
+          obj.myfunc('Hello, world!')
 
 3. Sometimes, you may not want to return a whole object. For this case, Fbuild
    provides ``fbuild.record.Record``. A ``Record`` is basically a ``dict``, except
@@ -527,6 +558,9 @@ That's a lot of arguments! I'll break them down one by one:
 
 - ``kwargs`` is just passed on to ``subprocess.Popen``.
 
+In addition, it will return a tuple ``(stdout, stderr)``, where both ``stdout``
+and ``stderr`` are byte strings.
+
 That's a lot to take in at once, so here are some examples of using ``execute``:
 
 .. code-block:: python
@@ -622,6 +656,94 @@ Here's a simple example of command-line arguments in Fbuild:
 
 The example is mostly self-explanatory; if you have any questions, consult the
 `optparse documentation <https://docs.python.org/3/library/optparse.html>`_.
+
+Advanced Core Topics: Adding External Dependencies and Installing Files
+***********************************************************************
+
+External Dependencies
+^^^^^^^^^^^^^^^^^^^^^
+
+Let's say you're creating your own programming language called Qux. When you run
+it, it looks kind of like this::
+   
+   ryan@DevPC-LX:~$ qux myfile.qux myfile.out
+   Qux version 0.0.0
+   Building myfile.qux...
+   NOTE: myfile.qux imports myotherfile.qux!
+   Building myotherfile.qux...
+   Successfully built myfile.out!
+   ryan@DevPC-LX:~$ 
+
+Take this simple rule for building Qux programs:
+
+.. code-block:: python
+   
+   from fbuild.builders import find_program
+   from fbuild.path import Path
+   import fbuild.db
+   
+   class QuxBuilder(fbuild.db.PersistentObject):
+       def __init__(self, ctx):
+           self.ctx = ctx
+           self.qux = find_program(ctx, ['qux'])
+   
+       @fbuild.db.cachemethod
+       def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
+           dst = self.ctx.buildroot / Path(src).replaceext('.out')
+           self.ctx.execute([self.qux, src, dst])
+           return dst
+   
+   def build(ctx):
+       qux = QuxBuilder(ctx)
+       qux.build('myfile.qux')
+
+This *sort of* works. Remember, ``myfile.qux`` depends on ``myotherfile.qux``, but
+Fbuild doesn't know that. Therefore, if you edit ``myotherfile.qux``,
+``myfile.out`` won't get rebuilt.
+
+For this purpose, Fbuild has ``ctx.db.add_external_dependencies_to_call``:
+
+.. code-block:: python
+   
+   from fbuild.builders import find_program
+   from fbuild.path import Path
+   import fbuild.db, re
+   
+   class QuxBuilder(fbuild.db.PersistentObject):
+       def __init__(self, ctx):
+           self.ctx = ctx
+           self.qux = find_program(ctx, ['qux'])
+   
+       @fbuild.db.cachemethod
+       def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
+           dst = self.ctx.buildroot / Path(src).replaceext('.out')
+   
+           stdout, stderr = self.ctx.execute([self.qux, src, dst])
+           regex = re.compile(r'Building (.*)...$')
+           for line in stdout.decode('ascii').splitlines():
+               m = regex.match(line)
+               if m:
+                   self.ctx.db.add_external_dependencies_to_call(srcs=[m.group(1)])
+   
+           return dst
+   
+   def build(ctx):
+       qux = QuxBuilder(ctx)
+       qux.build('myfile.qux')
+
+This is quite a bit more complex than the last example! If you're unfamiliar with
+Python's `re module <https://docs.python.org/3/library/re.html>`_, this may look
+confusing. All the regex is going is locating all the files that Qux is building.
+The important part is the call to
+``self.ctx.db.add_external_dependencies_to_call``, which takes two keyword
+arguments: ``srcs`` and ``dsts``. These add extra dependencies/outputs to the
+build rule *while it's still executing*. Now, if you edit ``myotherfile.qux``,
+then ``myfile.out`` *will* be rebuild!
+
+Installing
+^^^^^^^^^^
+
+TODO
 
 TODO
 ****
