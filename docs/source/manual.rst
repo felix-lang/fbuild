@@ -740,13 +740,30 @@ arguments: ``srcs`` and ``dsts``. These add extra dependencies/outputs to the
 build rule *while it's still executing*. Now, if you edit ``myotherfile.qux``,
 then ``myfile.out`` *will* be rebuild!
 
-Installing
-^^^^^^^^^^
+Installing Files
+^^^^^^^^^^^^^^^^
 
-TODO
+When your application is built, you probably want some way to install it onto the
+user's system. Fbuild has this covered with ``ctx.install``. It's defined like
+this:
+
+.. code-block:: python
+   
+   def install(self, path, category, addroot=''):
+
+The ``path`` is the path to install. If it's inside of ``ctx.buildroot``, then
+that will be stripped off; for instance, if you have ``build/myfile.exe``, then
+the ``build/`` portion will be removed to result in ``myfile.exe``.
+
+``category`` is the subdirectory of ``ctx.installroot`` to install the file into.
+
+``addroot`` is a *furthur* subdirectory of ``ctx.installroot`` that the files will
+be put into.
+
+For instance, ``ctx.install('x', 'y', 'z')`` will install ``x`` into
+``ctx.installroot / 'y' / 'z'``.
 
 TODO
 ****
 
-Document ``fbuild.config``, and ``ctx.db.add_external_dependencies_to_call``. And
-``ctx.install``!
+Document ``fbuild.config`` and more C/C++ compilation stuff.
