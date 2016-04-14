@@ -763,6 +763,48 @@ be put into.
 For instance, ``ctx.install('x', 'y', 'z')`` will install ``x`` into
 ``ctx.installroot / 'y' / 'z'``.
 
+Platforms
+^^^^^^^^^
+
+Within ``fbuild.builders`` is a module that you will likely rarely use, but it
+is important to the implementation of various builders: ``platform``. It defines
+a couple of interesting functions, but the most important one is
+``guess_platform``.
+
+``guess_platform`` returns a set of strings that aims at identifying the
+platform that Fbuild is running on. The following are possible members of the set
+
+- ``posix``: This is a Posix system.
+- ``linux``: This is a Linux system.
+- ``solaris``: This is a Solaris system.
+- ``sunos``: This is a Sun Solaris system.
+- ``cygwin``: This is a Windows system, but Fbuild is being run within Cygwin.
+- ``mingw``: This is a Windows system, but Fbuild is being run within MinGW.
+- ``windows``: This is a Windows system.
+- ``win32``: This is a 32-bit Windows system.
+- ``win64``: This is a 64-bit Windows system.
+- ``bsd``: This is a BSD system.
+- ``freebsd``: This is a FreeBSD system.
+- ``openbsd``: This is a OpenBSD system.
+- ``netbsd``: This is a NetBSD system.
+- ``darwin``, ``osx``: This is a Mac OS X system.
+
+Some examples of sets returned by ``guess_platform`` would include
+``{'windows', 'win32'}`` and ``{'posix', 'linux'}``.
+
+Building C/C++ Files
+********************
+
+A major portion of any build system usually revolves around C and C++. As a
+result, Fbuild provides a large amount of tools to help with this. Note that this
+section of the manual is *not* aimed at documenting every single feature, but it
+focuses on the important parts.
+
+Builders, ``guess_static``, and ``guess_shared``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
+
 TODO
 ****
 
