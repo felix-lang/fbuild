@@ -349,7 +349,7 @@ can pass it to any normal Python function expecting a string, However, path
 objects also have a bunch of methods useful for file system/path manipulation.
 
 For thorough documentation on all the methods, check out `lib/fbuild/path.py <
-https://github.com/felix-lang/fbuild/blob/master/lib/fbuild/path.py>_` in the
+https://github.com/felix-lang/fbuild/blob/master/lib/fbuild/path.py>`_ in the
 source code. Here I'll mention just one capability of paths: in order to join
 them, you can use ``/``. For instance, ``Path('src') / 'dst'`` returns
 ``Path('src/dst')`` on Posix and ``Path('src\\dst')`` on Windows.
@@ -429,8 +429,8 @@ what I've just shown here, with three exceptions:
 
 Many examples of this are in the Fbuild source.
 
-Back to a higher level: user interaction and commands
-*****************************************************
+Back to a Higher Level: Logging and Running External Commands
+*************************************************************
 
 Logging
 ^^^^^^^
@@ -468,30 +468,7 @@ and here's the output:
 
 .. image:: http://s23.postimg.org/6exhuh3ff/fbuild_log.png
 
-Finding programs
-^^^^^^^^^^^^^^^^
-
-Actually, there's *one* more thing to mention first. A frequently needed
-capability of a build system is to locate a program. For instance, you may want
-to find the ``awk`` executable on the system. For this, Fbuild has
-``fbuild.builders.find_program``. It works like this:
-
-.. code-block:: python
-   
-   from fbuild.builders import find_program
-   
-   def build(ctx):
-       awk = find_program(ctx, ['awk', 'gawk'])
-       print(awk)
-
-It takes two arguments: the context object and a list of programs to search for.
-The return value is the first program it found. If none are found, it will throw
-an exception of type ``fbuild.ConfigFailed``.
-
-In addition, ``find_program`` is cached, so it won't re-run every single time you
-run ``fbuild``.
-
-Executing shell commands
+Executing Shell Commands
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Now* comes executing shell commands! Every context object has a method for this:
@@ -581,8 +558,73 @@ And the output:
 
 Note that ``execute`` is *not* cached!
 
+Configuration: Locating Programs and Defining Command-line Options
+******************************************************************
+
+Finding Programs
+^^^^^^^^^^^^^^^^
+
+A frequently needed capability of a build system is to locate a program. For
+instance, you may want to find the ``awk`` executable on the system. For this,
+Fbuild has ``fbuild.builders.find_program``. It works like this:
+
+.. code-block:: python
+   
+   from fbuild.builders import find_program
+   
+   def build(ctx):
+       awk = find_program(ctx, ['awk', 'gawk'])
+       print(awk)
+
+It takes two arguments: the context object and a list of programs to search for.
+The return value is the first program it found. If none are found, it will throw
+an exception of type ``fbuild.ConfigFailed``.
+
+In addition, ``find_program`` is cached, so it won't re-run every single time you
+run Fbuild.
+
+Command-line Options
+^^^^^^^^^^^^^^^^^^^^
+
+Other common build system feature is the ability for the user to pass information
+to the build system in some way, usually either environment variables or
+command-line arguments. Unfortunately, both are often implemented in odd ways,
+like weird execution environments (Make and CMake are the worst offenders here) or
+even defining arguments in a totally different file.
+
+Fbuild takes the easy route: since your build rules are in one function, your
+arguments can be defined in another. Instead of using some weird, arcane,
+home-grown, undocumented module for this, Fbuild uses the `optparse module <
+https://docs.python.org/3/library/optparse.html>`_. Note that argparse isn't used
+because Fbuild build scripts are designed to run under Python 3.1, which didn't
+include argparse yet.
+
+Here's a simple example of command-line arguments in Fbuild:
+
+.. code-block:: python
+   
+   from optparse import make_option
+   
+   def pre_options(parser):
+       group = parser.add_option_group('config options')
+       group.add_options((
+           make_option('--build-mode', help='Define the desired build mode',
+                       choices=['debug', 'release']),
+           make_option('--mini', help='Attempt to minify the built code',
+                       action='store_true', dest='minify'),
+           make_option('--arch', help='The target build architecture', default='x64'),
+       ))
+   
+   def build(ctx):
+       print('Build mode:', ctx.options.build_mode)
+       print('Minify?', ctx.options.minify)
+       print('Arch:', ctx.options.arch)
+
+The example is mostly self-explanatory; if you have any questions, consult the
+`optparse documentation <https://docs.python.org/3/library/optparse.html>`_.
+
 TODO
 ****
 
-Document ``fbuild.config``, ``Record``, ``pre_options``, and
-``ctx.db.add_external_dependencies_to_call``. And ``ctx.install``!
+Document ``fbuild.config``, and ``ctx.db.add_external_dependencies_to_call``. And
+``ctx.install``!
