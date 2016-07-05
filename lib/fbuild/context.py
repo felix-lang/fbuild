@@ -10,6 +10,7 @@ import fbuild.console
 import fbuild.db.database
 import fbuild.sched
 import fbuild.subprocess.killableprocess
+import fbuild.temp
 
 from fbuild.path import Path
 
@@ -53,6 +54,12 @@ class Context:
 
         # Make sure the state file directory exists.
         self.options.state_file.parent.makedirs()
+
+        # Make sure the temporary directory exists.
+        tmpdir = self.buildroot / '.tmp'
+        if not tmpdir.exists():
+            tmpdir.mkdir()
+        fbuild.temp.set_default_tempdir(tmpdir)
 
     def load_configuration(self):
         # Optionally do `not` load the old database by deleting the old state

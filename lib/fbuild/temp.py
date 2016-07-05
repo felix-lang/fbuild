@@ -1,19 +1,31 @@
 import contextlib
 import tempfile as _tempfile
 import textwrap
+import os
 
 from fbuild.path import Path
+
+_default_tempdir = None
+
+# ------------------------------------------------------------------------------
+
+def set_default_tempdir(tmp):
+    '''
+    Set the directory to use as the default temporary directory.
+    '''
+    global _default_tempdir
+    _default_tempdir = Path(tmp).abspath()
 
 # ------------------------------------------------------------------------------
 
 @contextlib.contextmanager
-def tempdir(*args, **kwargs):
+def tempdir(dir=None, *args, **kwargs):
     '''
     Create a temporary directory and yield it's path. When we regain context,
     remove the directory.
     '''
 
-    path = Path(_tempfile.mkdtemp(*args, **kwargs))
+    path = Path(_tempfile.mkdtemp(dir=dir or _default_tempdir, *args, **kwargs))
     try:
         yield path
     finally:
