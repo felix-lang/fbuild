@@ -41,6 +41,9 @@ class Context:
         self.install_prefix = Path('/usr/local')
         self.to_install = {'bin': [], 'lib': [], 'share': [], 'include': []}
 
+        self.tmpdir = self.buildroot / '.tmp'
+        fbuild.temp.set_default_tempdir(self.tmpdir)
+
     @property
     def buildroot(self):
         return self.options.buildroot
@@ -56,10 +59,8 @@ class Context:
         self.options.state_file.parent.makedirs()
 
         # Make sure the temporary directory exists.
-        tmpdir = self.buildroot / '.tmp'
-        if not tmpdir.exists():
-            tmpdir.mkdir()
-        fbuild.temp.set_default_tempdir(tmpdir)
+        self.clear_temp_dir()
+        self.tmpdir.mkdir()
 
     def load_configuration(self):
         # Optionally do `not` load the old database by deleting the old state
@@ -80,6 +81,9 @@ class Context:
                 self.db.close()
             finally:
                 signal.signal(signal.SIGINT, prev_handler)
+
+    def clear_temp_dir(self):
+        self.tmpdir.rmtree(ignore_errors=True)
 
     def prune(self, prune_get_all, prune_get_bad):
         """Delete all destination files that were not referenced during this

@@ -190,6 +190,9 @@ def main(argv=None):
             # then cause deadlocks if that lock was ever acquired again.  Oiy.
             print('Interrupted, saving state...')
             raise
+        else:
+            # Only delete the temporary directory if the build succeeded.
+            ctx.clear_temp_dir()
         finally:
             ctx.save_configuration()
             ctx.db.shutdown()

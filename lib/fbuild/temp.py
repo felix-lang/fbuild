@@ -19,17 +19,18 @@ def set_default_tempdir(tmp):
 # ------------------------------------------------------------------------------
 
 @contextlib.contextmanager
-def tempdir(dir=None, *args, **kwargs):
+def tempdir(dir=None, delete=False, *args, **kwargs):
     '''
-    Create a temporary directory and yield it's path. When we regain context,
-    remove the directory.
+    Create a temporary directory and yield it's path. If *delete* is truthy,
+    when we regain context, remove the directory.
     '''
 
     path = Path(_tempfile.mkdtemp(dir=dir or _default_tempdir, *args, **kwargs))
     try:
         yield path
     finally:
-        path.rmtree(ignore_errors=True)
+        if delete:
+            path.rmtree(ignore_errors=True)
 
 # ------------------------------------------------------------------------------
 
