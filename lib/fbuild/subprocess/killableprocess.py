@@ -217,7 +217,7 @@ class Popen(subprocess.Popen):
     def _try_wait(self, wait_flags):
         if wait_flags == 0:
             wait_flags = os.WUNTRACED
-        subprocess.Popen._try_wait(wait_flags)
+        subprocess.Popen._try_wait(self, wait_flags)
 
     def wait(self, timeout=-1, group=True):
         """Wait for the process to terminate. Returns returncode attribute.
