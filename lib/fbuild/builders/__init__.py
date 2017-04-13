@@ -69,6 +69,7 @@ def find_program(ctx, names, paths=None, *, quieter=0):
 
 # ------------------------------------------------------------------------------
 
+@fbuild.db.caches
 def check_version(ctx, builder, version_function, *,
         requires_version=None,
         requires_at_least_version=None,
