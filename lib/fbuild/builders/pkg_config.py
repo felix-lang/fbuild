@@ -23,7 +23,7 @@ class PkgConfig(fbuild.db.PersistentObject):
         """Return the version of the pkg-config executable."""
         return self(('--version',), *args, **kwargs)
 
-    def version(self, *args, **kwargs):
+    def modversion(self, *args, **kwargs):
         """Return the version of the current package."""
         return self(('--modversion',), *args, **kwargs)
 
@@ -36,10 +36,10 @@ class PkgConfig(fbuild.db.PersistentObject):
         """Return linker flags needed for linking against the given package."""
         return self(tuple(chain(('--libs',), components)), *args, **kwargs)
 
-    def require_version(self, require_version=None,
+    def require_version(self, requires_version=None,
         requires_at_least_version=None, requires_at_most_version=None):
         """Require a version of the current module."""
-        fbuild.builders.check_version(ctx, self, self.modversion,
+        fbuild.builders.check_version(self.ctx, self, self.modversion,
             requires_version=requires_version,
             requires_at_least_version=requires_at_least_version,
             requires_at_most_version=requires_at_most_version)
