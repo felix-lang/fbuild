@@ -6,7 +6,7 @@ import fbuild.builders.c.gcc
 
 class Clang(fbuild.builders.c.gcc.Gcc):
     def version(self, *args, **kwargs):
-        """Return the version of the llvm-config executable."""
+        """Return the version of the Clang executable."""
 
         stdout, stderr = self.ctx.execute((self.exe, '--version'), quieter=1)
 

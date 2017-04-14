@@ -36,6 +36,7 @@ class PkgConfig(fbuild.db.PersistentObject):
         """Return linker flags needed for linking against the given package."""
         return self(tuple(chain(('--libs',), components)), *args, **kwargs)
 
+    @fbuild.db.cachemethod
     def require_version(self, requires_version=None,
         requires_at_least_version=None, requires_at_most_version=None):
         """Require a version of the current module."""
