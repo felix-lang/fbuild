@@ -2,8 +2,32 @@ import abc
 import functools
 import types
 import itertools
+import inspect
+import fbuild
 
 # ------------------------------------------------------------------------------
+
+
+_CTX_ERRORS = {
+    'caches.call': "'%s' expects a Context object as its first argument, but " \
+                   "it was given a '%s' object instead.",
+    'PersistentMeta.__call__': "'%s.__init__' expects a Context object as " \
+                               "its first argument, but it was given a '%s' " \
+                               "object instead.",
+    'cache<member>.call': "'%s.ctx' is supposed to be a Context " \
+                          "object, but it has been modified to instead " \
+                          "be a '%s' object.",
+}
+
+
+def _check_ctx(ctx, name, kind):
+    """Ensure that the given object is a Context object."""
+
+    from fbuild.context import Context
+
+    if not isinstance(ctx, Context):
+        raise TypeError(_CTX_ERRORS[kind] % (name, type(ctx).__name__))
+
 
 def _update_fun_map(fun, member_of=None):
     """Add the given function to the global function map."""
@@ -94,6 +118,7 @@ class PersistentMeta(abc.ABCMeta):
         return super().__call__(*args, **kwargs)
 
     def __call__(cls, ctx, *args, **kwargs):
+        _check_ctx(ctx, cls.__name__, 'PersistentMeta.__call__')
         result, srcs, objs = ctx.db.call(cls.__call_super__, ctx,
             *args, **kwargs)
 
@@ -104,6 +129,8 @@ class PersistentObject(metaclass=PersistentMeta):
     """An abstract baseclass that will cache instances in the database."""
 
     def __init__(self, ctx):
+        # No _check_ctx is needed because that's covered by
+        # PersistentMeta.__call__.
         self.ctx = ctx
 
     def __eq__(self, other):
@@ -153,6 +180,7 @@ class caches:
         return result
 
     def call(self, ctx, *args, **kwargs):
+        _check_ctx(ctx, self.function.__name__, 'caches.call')
         return ctx.db.call(self.function, ctx, *args, **kwargs)
 
 
@@ -194,6 +222,9 @@ class cachemethod_wrapper:
         return result
 
     def call(self, *args, **kwargs):
+        _check_ctx(self.method.__self__.ctx,
+                   self.method.__self__.__class__.__name__,
+                   'cache<member>.call')
         return self.method.__self__.ctx.db.call(self.method, *args, **kwargs)
 
 
@@ -229,4 +260,6 @@ class cacheproperty:
         return result
 
     def call(self, instance):
+        _check_ctx(instance.ctx, instance.__class__.__name__,
+                   'cache<member>.call')
         return instance.ctx.db.call(types.MethodType(self.method, instance))
