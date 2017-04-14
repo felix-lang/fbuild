@@ -58,9 +58,10 @@ def make_parser():
             help='where to store the build files (default build)'),
         make_option('--state-file',
             action='store',
-            default='fbuild-state.db',
+            default=None,
             help='the name of the state file ' \
-                 '(default buildroot/fbuild-state.db)'),
+                 '(default: buildroot/fbuild-state.db for pickle engine, ' \
+                 'buildroot/fbuild-state.sqldb for sqlite engine)'),
         make_option('--log-file',
             action='store',
             default='fbuild.log',
@@ -96,8 +97,8 @@ def make_parser():
             action='store',
             choices=('pickle', 'sqlite', 'cache'),
             default='pickle',
-            help='which database engine to use: (pickle, sqlite). pickle is ' \
-                'the default'),
+            help='which database engine to use: (pickle, sqlite, cache). ' \
+                 'pickle is the default'),
     ])
 
     return parser
