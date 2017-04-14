@@ -37,6 +37,14 @@ class PickleBackend(fbuild.db.cache_backend.CacheBackend):
         f = io.BytesIO()
         pickler = fbuild.db.backend.Pickler(self._ctx, f)
 
+        print((
+            self._LATEST_VERSION,
+            self._functions,
+            self._function_calls,
+            self._files,
+            self._call_files,
+            self._external_srcs,
+            self._external_dsts))
         pickler.dump((
             self._LATEST_VERSION,
             self._functions,
