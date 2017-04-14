@@ -353,36 +353,11 @@ def _guess_builder(name, compilers, functions, ctx, *args,
         #  priority
 
         if subplatform - (compilers & platform_extra) <= platform:
+            # Parse the platform options.
             new_kwargs = copy.deepcopy(kwargs)
-
-            for p, kw in platform_options:
-                if (p - (subplatform & full_compilers)) <= platform:
-                    for k, v in kw.items():
-                        if k[-1] in '+-':
-                            func = k[-1]
-                            k = k[:-1]
-                            try:
-                                curval = new_kwargs[k]
-                            except:
-                                if isinstance(v, str):
-                                    curval = ''
-                                elif isinstance(v, list):
-                                    curval = []
-                                elif isinstance(v, tuple):
-                                    curval = ()
-                            if func == '+':
-                                curval += v
-                            elif func == '-':
-                                lst = list(curval)
-                                for x in v:
-                                    lst.pop(lst.index(x))
-                                if isinstance(curval, str):
-                                    curval = ''.join(lst)
-                                else:
-                                    curval = type(curval)(lst)
-                            new_kwargs[k] = curval
-                        else:
-                            new_kwargs[k] = v
+            fbuild.builders.platform.parse_platform_options(
+                ctx, platform, platform_options, (subplatform & full_compilers),
+                new_kwargs)
 
             # Try to use this compiler. If it doesn't work, skip this compiler
             # and try another one.
