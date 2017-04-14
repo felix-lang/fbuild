@@ -56,15 +56,13 @@ class SqliteBackend(fbuild.db.backend.Backend):
     def close(self):
         # Update the version.
 
-        if self._version == self._NULL_VERSION and False:
-            self.cursor.execute()
+        if self._version == self._NULL_VERSION:
+            self.cursor.execute('INSERT INTO Version (version) VALUES (?)',
+                                self._LATEST_VERSION)
         else:
-            rows_updated = self.cursor.execute('UPDATE Version SET version=?',
-                                               self._LATEST_VERSION)
-            if not list(rows_updated):
-                self.cursor.execute('INSERT INTO Version (version) VALUES (?)',
-                                    self._LATEST_VERSION)
-            self.conn.commit()
+            self.cursor.execute('UPDATE Version SET version=?',
+                                self._LATEST_VERSION)
+        self.conn.commit()
 
         self.conn.close()
 
