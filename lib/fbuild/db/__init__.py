@@ -223,7 +223,7 @@ class cacheproperty:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        _update_fun_map(self.method, member_Of=instance)
+        _update_fun_map(self.method, member_of=instance)
         result, srcs, dsts = self.call(instance)
         return result
 
