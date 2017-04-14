@@ -1,8 +1,13 @@
 Fbuild Build System v0.2
 ========================
 
+**MASTER BRANCH:**
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/felix-lang/fbuild?svg=true)](https://ci.appveyor.com/project/erickt/fbuild)
 [![Travis](https://travis-ci.org/felix-lang/fbuild.svg?branch=master)](https://travis-ci.org/felix-lang/fbuild)
+
+**DEV BRANCH:**
+[![AppVeyor](https://ci.appveyor.com/api/projects/status/github/felix-lang/fbuild/branch/dev?svg=true)](https://ci.appveyor.com/project/erickt/fbuild)
+[![Travis](https://travis-ci.org/felix-lang/fbuild.svg?branch=dev)](https://travis-ci.org/felix-lang/fbuild)
 
 Overview
 --------
@@ -29,28 +34,24 @@ Downloading and Installation
 
 Fbuild is hosted and developed on
 [Github](http://github.com/felix-lang/fbuild). It requires [Python
-3](http://docs.python.org/py3k). To download the current Fbuild version, you
-visit the Fbuild website. Or, if you have access to the `curl` program, you can
-just run this command:
-
-    $ curl -L https://github.com/felix-lang/fbuild/tarball/v0.2 | tar -zx
-
-To download the development version, run this [git](http://git-scm.com)
-command:
+3](http://docs.python.org/py3k). As the last Fbuild release was a very long
+time ago, your best bet is to get Fbuild straight from [git](http://git-scm.com):
 
     $ git clone https://github.com/felix-lang/fbuild.git
 
-if your firewall blocks port 9418 (but you still have access to the https://
-protocol).
+If you want the *bleeding-edge* development version, run:
+
+    $ git clone https://github.com/felix-lang/fbuild.git -b dev
 
 To install, run:
 
+    $ cd fbuild
     $ python3 setup.py install
 
 Introduction
 ------------
 
-**NOTE:** There are some incomplete docs at [RTD](http://fbuild.readthedocs.org/en/latest/).
+**NOTE:** There are some incomplete docs at [ReadTheDocs](http://fbuild.readthedocs.org/en/latest/).
 
 Fbuild has extensive support for advanced build systems, but this doesn't
 complicate simple projects. Here is the classic "Hello World" example, written
