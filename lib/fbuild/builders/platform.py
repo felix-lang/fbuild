@@ -1,5 +1,6 @@
 import platform
 import os
+import functools
 
 import fbuild
 import fbuild.builders
@@ -171,3 +172,60 @@ def runtime_env_libpath(ctx, platform=None):
         return 'DYLD_LIBRARY_PATH'
     else:
         return 'LD_LIBRARY_PATH'
+
+# ------------------------------------------------------------------------------
+
+def parse_platform_options(ctx, platform, platform_options, subplatform,
+                           kwargs):
+    supports_defaults = (str, list, tuple)
+
+    if platform is None:
+        platform = guess_platform(ctx)
+
+    for plat, options in platform_options:
+        if (plat - subplatform) <= platform:
+            # It matches! Use it to update kwargs.
+            for opt, modifier in options.items():
+                if opt[-1] in '+-':
+                    # Addition/removal.
+                    operation = opt[-1]
+                    opt = opt[:-1]
+
+                    value = kwargs.get(opt)
+                    if value is None:
+                        assert isinstance(modifier, supports_defaults), \
+                               "type '%s' does not support defaults" % type(modifier)
+                        value = type(modifier)()
+
+                    if operation == '+':
+                        value += modifier
+                    elif operation == '-':
+                        filtered = (x for x in value if x not in modifier)
+
+                        if isinstance(value, str):
+                            value = ''.join(filtered)
+                        elif isinstance(value, (list, tuple)):
+                            value = type(value)(filtered)
+                    else:
+                        assert False
+
+                    kwargs[opt] = value
+                else:
+                    kwargs[opt] = modifier
+
+
+def auto_platform_options(subplatform=None):
+    def _inner(func):
+        nonlocal subplatform
+        if subplatform is None:
+            subplatform = set()
+
+        @functools.wraps(func)
+        def _wrapper(*args, **kw):
+            parse_platform_options(args[0], kw.get('platform', None),
+                                   kw.get('platform_options', []), subplatform,
+                                   kw)
+            func(*args, **kw)
+
+        return _wrapper
+    return _inner
