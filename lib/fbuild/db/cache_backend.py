@@ -55,8 +55,9 @@ class CacheBackend(fbuild.db.backend.Backend):
 
         # Make sure we have the right types.
         assert fun_id is fun_name or fun_id is None, (fun_id, fun_name)
-        assert isinstance(fun_name, str), fun_name
-        assert isinstance(fun_digest, str), fun_digest
+        assert isinstance(fun_name, str), (fun_name, type(fun_name))
+        assert isinstance(fun_digest, str), (fun_name, fun_digest,
+                                             type(fun_digest))
 
         # We don't have separate code paths for existing and non-existing
         # functions.
