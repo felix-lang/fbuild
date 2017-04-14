@@ -78,7 +78,8 @@ class SqliteBackend(fbuild.db.backend.Backend):
             CREATE TABLE IF NOT EXISTS Function (
                 fun_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fun_name TEXT UNIQUE,
-                fun_digest TEXT);
+                fun_digest TEXT,
+                fun_dependents TEXT);
             CREATE INDEX IF NOT EXISTS Function_name_index ON
                 Function (fun_name);
 
@@ -144,19 +145,23 @@ class SqliteBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
 
         self.cursor.execute(
-            'SELECT fun_id,fun_digest FROM Function WHERE fun_name=?',
+            'SELECT fun_id,fun_digest,fun_dependents FROM Function WHERE fun_name=?',
             (fun_name,))
 
         rows = self.cursor.fetchall()
 
         if not rows:
-            return None, None
+            return None, None, None
         else:
-            (fun_id, fun_digest), = rows
-            return fun_id, fun_digest
+            (fun_id, fun_digest, fun_dependents), = rows
+            if fun_dependents:
+                split_dependents = fun_dependents.split('\0')
+            else:
+                split_dependents = []
+            return fun_id, fun_digest, split_dependents
 
 
-    def save_function(self, fun_id, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest, fun_dependents):
         """Insert or update the function's digest."""
 
         # Make sure we got the right types.
@@ -164,16 +169,18 @@ class SqliteBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
         assert isinstance(fun_digest, str), fun_digest
 
+        joined_dependents = '\0'.join(fun_dependents)
+
         if fun_id is None:
             self.cursor.execute(
-                'INSERT INTO Function (fun_name, fun_digest) VALUES (?,?)',
-                (fun_name, fun_digest))
+                'INSERT INTO Function (fun_name, fun_digest, fun_dependents) VALUES (?,?,?)',
+                (fun_name, fun_digest, joined_dependents))
 
             fun_id = self.cursor.lastrowid
         else:
             self.cursor.execute(
-                'UPDATE Function SET fun_digest=? WHERE fun_id=?',
-                (fun_digest, fun_id))
+                'UPDATE Function SET fun_digest=?, fun_dependents=? WHERE fun_id=?',
+                (fun_digest, joined_dependents, fun_id))
 
         return fun_id
 
