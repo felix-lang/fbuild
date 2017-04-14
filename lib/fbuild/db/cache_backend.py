@@ -5,7 +5,7 @@ import fbuild.db.backend
 class CacheBackend(fbuild.db.backend.Backend):
     _LATEST_VERSION = '1'
 
-    def _connect(self):
+    def _connect(self, filename=None):
         """Create the database cache (backend implementation)."""
 
         if not hasattr(self, '_file_name'):
