@@ -7,7 +7,7 @@ import fbuild.path
 # ------------------------------------------------------------------------------
 
 class PickleBackend(fbuild.db.cache_backend.CacheBackend):
-    _LATEST_VERSION = '1'
+    _LATEST_VERSION = '2'
 
     def _connect(self, filename):
         """Load the database from the file."""

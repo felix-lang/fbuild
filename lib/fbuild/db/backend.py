@@ -48,7 +48,7 @@ class Backend:
         """Queries all the information needed to cache a function."""
 
         # Check if the function changed.
-        fun_dirty, fun_id = self.check_function(fun_name, fun_digest)
+        fun_dirty, fun_id = self.check_function(fun_name)
 
         # Check if this is a new call and get the index.
         if fun_dirty or fun_id is None:
@@ -87,6 +87,7 @@ class Backend:
             fun_id,
             fun_name,
             fun_digest,
+            fun_dependents,
             call_id,
             bound,
             result,
@@ -104,7 +105,8 @@ class Backend:
                 # The fun_id is now invalid.
                 fun_id = None
 
-            fun_id = self.save_function(fun_id, fun_name, fun_digest)
+            fun_id = self.save_function(fun_id, fun_name, fun_digest,
+                                        fun_dependents)
 
         # Get the real call_id to use in the call files.
         call_id = self.save_call(call_id, fun_id, bound, result)
@@ -114,18 +116,27 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def check_function(self, fun_name, fun_digest):
+    def check_function(self, fun_name):
         """Returns whether or not the function is dirty. Returns True or false
         as well as the function's digest."""
 
-        # Make sure we got the right types.
-        assert isinstance(fun_digest, str), fun_digest
+        # Work around a circular import.
+        from fbuild.db.database import Database
 
-        fun_id, old_digest = self.find_function(fun_name)
+        fun_digest = Database.get_function_digest_from_map(fun_name)
+        fun_id, old_digest, fun_dependents = self.find_function(fun_name)
 
-        # Check if the function changed. If it didn't, assume that the function
-        # didn't change either (although any sub-functions could have).
-        return old_digest is None or fun_digest != old_digest, fun_id
+        # Has the function changed?
+        fun_dirty = old_digest is None or fun_digest != old_digest
+        if not fun_dirty:
+            # Have any of it's dependents changed?
+            for dep in fun_dependents:
+                dep_dirty, _ = self.check_function(dep)
+                if dep_dirty:
+                    fun_dirty = True
+                    break
+
+        return fun_dirty, fun_id
 
 
     def find_function(self, fun_name):
@@ -133,7 +144,7 @@ class Backend:
         raise NotImplementedError
 
 
-    def save_function(self, fun_id, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest, fun_dependents):
         """Insert or update the function's digest."""
         raise NotImplementedError
 

@@ -21,7 +21,7 @@ class SqliteBackend(fbuild.db.backend.Backend):
     A sqlite-based fbuild backend database.
     """
 
-    _LATEST_VERSION = '1'
+    _LATEST_VERSION = '2'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

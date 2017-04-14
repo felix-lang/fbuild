@@ -37,19 +37,20 @@ class CacheBackend(fbuild.db.backend.Backend):
         assert isinstance(fun_name, str), fun_name
 
         try:
-            fun_digest = self._functions[fun_name]
+            fun_digest, fun_dependents = self._functions[fun_name]
         except KeyError:
             # This is the first time we've seen this function.
             fun_id = None
             fun_digest = None
+            fun_dependents = ()
         else:
             # The name is the id.
             fun_id = fun_name
 
-        return fun_id, fun_digest
+        return fun_id, fun_digest, fun_dependents
 
 
-    def save_function(self, fun_id, fun_name, fun_digest):
+    def save_function(self, fun_id, fun_name, fun_digest, fun_dependents):
         """Insert or update the function's digest."""
 
         # Make sure we have the right types.
@@ -59,7 +60,7 @@ class CacheBackend(fbuild.db.backend.Backend):
 
         # We don't have separate code paths for existing and non-existing
         # functions.
-        self._functions[fun_name] = fun_digest
+        self._functions[fun_name] = (fun_digest, fun_dependents)
 
         # The name is the id.
         return fun_name

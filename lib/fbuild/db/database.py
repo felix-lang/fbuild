@@ -19,11 +19,14 @@ import fbuild.db.sqlite_backend
 class Database:
     """L{Database} persistently stores the results of argument calls."""
 
+    _FUN_DIGESTS = {}
+
     def __init__(self, ctx, *, engine, explain=False):
         def handle_rpc(method, *args, **kwargs):
             return method(*args, **kwargs)
 
         self._ctx = ctx
+        self._callstack = []
         self._explain = explain
         self._connected = False
 
@@ -82,8 +85,13 @@ class Database:
             args,
             kwargs)
 
-        # Compute the function digest.
-        fun_digest = self._digest_function(function, args, kwargs)
+        # If there is a call stack, then this function is a dependent of the
+        # parent.
+        if self._callstack:
+            self._callstack[-1].append(fun_name)
+
+        # Get the function digest.
+        fun_digest = self.get_function_digest_from_map(fun_name)
 
         # Find the call filenames for the function.
         call_bound, srcs, dsts, return_type = self._find_call_filenames(
@@ -156,6 +164,8 @@ class Database:
                 for dst in dirty_dsts:
                     self._ctx.logger.log('\t%s' % dst)
 
+        self._callstack.append([])
+
         # Clear external srcs and dsts since they'll be recomputed inside
         # the function.
         external_srcs = set()
@@ -163,6 +173,7 @@ class Database:
 
         # The call was dirty, so recompute it.
         call_result = function(*args, **kwargs)
+        fun_dependents = tuple(self._callstack.pop())
 
         # Make sure the result is not a generator.
         assert not fbuild.inspect.isgenerator(call_result), \
@@ -170,7 +181,7 @@ class Database:
 
         # Save the results in the database.
         self._rpc.call(self._backend.cache,
-            fun_dirty, fun_id, fun_name, fun_digest,
+            fun_dirty, fun_id, fun_name, fun_digest, fun_dependents,
             call_id, call_bound, call_result,
             call_file_digests, external_srcs, external_dsts)
 
@@ -200,12 +211,30 @@ class Database:
         """Print the database."""
         pprint.pprint(self._backend.__dict__)
 
-    def _find_function_name(self, function, args, kwargs):
-        """Extract the function name from the function."""
+    @classmethod
+    def add_function_to_map(self, function, member_of=None):
+        """Add the function to the global function map."""
+        fun_name, _, _, _ = self._find_function_name(function, (), {}, member_of)
+        if fun_name not in self._FUN_DIGESTS:
+            self._FUN_DIGESTS[fun_name] = self._digest_function(function)
 
-        if not fbuild.inspect.ismethod(function):
+    @classmethod
+    def get_function_digest_from_map(self, fun_name):
+        """Get the function digest from the global function map."""
+        return self._FUN_DIGESTS[fun_name]
+
+    @staticmethod
+    def _find_function_name(function, args, kwargs, member_of=None):
+        """Extract the function name from the function."""
+        if member_of is not None:
+            # An unbound method with an explicit parent.
+            fun_name = '%s.%s.%s' % (function.__module__, member_of.__name__,
+                                     function.__name__)
+        elif not fbuild.inspect.ismethod(function):
+            # Normal function.
             fun_name = function.__module__ + '.' + function.__name__
         else:
+            # Method.
             # If we're caching a PersistentObject creation, use the class's
             # name as our function name.
             if function.__name__ == '__call_super__' and \
@@ -226,35 +255,18 @@ class Database:
 
         return fun_name, function, args, kwargs
 
-    # Create an in-process cache of the function digests, since they shouldn't
-    # change while we're running.
-    _digest_function_lock = threading.Lock()
-    _digest_function_cache = {}
-    def _digest_function(self, function, args, kwargs):
-        """Compute the digest for a function or a function object. Cache this
-        for this instance."""
-        with self._digest_function_lock:
-            # If we're caching a PersistentObject creation, use the class's
-            # __init__ as our function.
-            if fbuild.inspect.isroutine(function) and \
-                    len(args) > 0 and \
-                    function.__name__ == '__call_super__' and \
-                    isinstance(args[0], fbuild.db.PersistentMeta):
-                function = args[0].__init__
-
-            try:
-                digest = self._digest_function_cache[function]
-            except KeyError:
-                if fbuild.inspect.isroutine(function):
-                    # The function is a function, method, or lambda, so digest
-                    # the source. If the function is a builtin, we will raise
-                    # an exception.
-                    src = fbuild.inspect.getsource(function)
-                    digest = hashlib.md5(src.encode()).hexdigest()
-                else:
-                    # The function is a functor so let it digest itself.
-                    digest = hash(function)
-                self._digest_function_cache[function] = digest
+    @staticmethod
+    def _digest_function(function):
+        """Compute the digest for a function or a function object."""
+        if fbuild.inspect.isroutine(function):
+            # The function is a function, method, or lambda, so digest
+            # the source. If the function is a builtin, we will raise
+            # an exception.
+            src = fbuild.inspect.getsource(function)
+            digest = hashlib.md5(src.encode()).hexdigest()
+        else:
+            # The function is a functor so let it digest itself.
+            digest = hash(function)
 
         return digest
 
