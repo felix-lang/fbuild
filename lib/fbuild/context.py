@@ -16,10 +16,22 @@ from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
+
+STATE_FILE_DEFAULTS = {
+    'pickle': 'fbuild-state.db',
+    'cache': 'fbuild-state.db',
+    'sqlite': 'fbuild-state.sqldb',
+}
+
+
 class Context:
     def __init__(self, options, args):
         # Convert the paths to Path objects.
         options.buildroot = Path(options.buildroot)
+
+        if options.state_file is None:
+            options.state_file = STATE_FILE_DEFAULTS[options.database_engine]
+
         options.state_file = options.buildroot / options.state_file
         options.log_file = options.buildroot / options.log_file
 
