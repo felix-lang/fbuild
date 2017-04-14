@@ -266,7 +266,7 @@ class Database:
             digest = hashlib.md5(src.encode()).hexdigest()
         else:
             # The function is a functor so let it digest itself.
-            digest = hash(function)
+            digest = str(hash(function))
 
         return digest
 

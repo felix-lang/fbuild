@@ -77,10 +77,12 @@ class PersistentMeta(abc.ABCMeta):
         if name != 'PersistentObject':
             # Add all the cached methods and properties to the global function
             # map.
-            all_members = dict_.values()
-            for base in bases:
-                all_members = itertools.chain(all_members,
-                    map(functools.partial(getattr, base), dir(base)))
+
+            def get_members(cls):
+                return map(functools.partial(getattr, cls), dir(cls))
+
+            all_members = itertools.chain(get_members(cls),
+                                          *map(get_members, bases))
 
             for member in all_members:
                 if isinstance(member, (cachemethod, cacheproperty)):
@@ -223,7 +225,6 @@ class cacheproperty:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        _update_fun_map(self.method, member_of=instance)
         result, srcs, dsts = self.call(instance)
         return result
 
