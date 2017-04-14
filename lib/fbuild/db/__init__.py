@@ -1,6 +1,16 @@
 import abc
 import functools
 import types
+import itertools
+
+# ------------------------------------------------------------------------------
+
+def _update_fun_map(fun, member_of=None):
+    """Add the given function to the global function map."""
+
+    # Prevent a circular import.
+    from .database import Database
+    Database.add_function_to_map(fun, member_of)
 
 # ------------------------------------------------------------------------------
 
@@ -56,10 +66,28 @@ class OPTIONAL_DST(DST):
 
 # ------------------------------------------------------------------------------
 
+
 class PersistentMeta(abc.ABCMeta):
     """A metaclass that searches the db for an already instantiated class with
     the same arguments.  It subclasses from ABCMeta so that subclasses can
     implement abstract methods."""
+    def __init__(cls, name, bases, dict_):
+        # PersistentObject is created too early in the import cycle and
+        # basically makes it impossible to add. Just skip it.
+        if name != 'PersistentObject':
+            # Add all the cached methods and properties to the global function
+            # map.
+            all_members = dict_.values()
+            for base in bases:
+                all_members = itertools.chain(all_members,
+                    map(functools.partial(getattr, base), dir(base)))
+
+            for member in all_members:
+                if isinstance(member, (cachemethod, cacheproperty)):
+                    _update_fun_map(member.method, member_of=cls)
+
+            _update_fun_map(cls.__call_super__)
+
     def __call_super__(cls, *args, **kwargs):
         return super().__call__(*args, **kwargs)
 
@@ -114,6 +142,7 @@ class caches:
     """
 
     def __init__(self, function):
+        _update_fun_map(function)
         functools.update_wrapper(self, function)
         self.function = function
 
@@ -194,6 +223,7 @@ class cacheproperty:
     def __get__(self, instance, owner):
         if instance is None:
             return self
+        _update_fun_map(self.method, member_Of=instance)
         result, srcs, dsts = self.call(instance)
         return result
 
