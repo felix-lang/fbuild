@@ -7,7 +7,9 @@ import fbuild.path
 # ------------------------------------------------------------------------------
 
 class PickleBackend(fbuild.db.cache_backend.CacheBackend):
-    def connect(self, filename):
+    _LATEST_VERSION = '1'
+
+    def _connect(self, filename):
         """Load the database from the file."""
 
         self._file_name = fbuild.path.Path(filename)
@@ -15,12 +17,18 @@ class PickleBackend(fbuild.db.cache_backend.CacheBackend):
         if self._file_name.exists():
             with open(self._file_name, 'rb') as f:
                 unpickler = fbuild.db.backend.Unpickler(self._ctx, f)
+                data = unpickler.load()
 
-                self._functions, self._function_calls, self._files, \
-                    self._call_files, self._external_srcs, \
-                    self._external_dsts = unpickler.load()
+                if len(data) == 6:
+                    # This was created before DB versioning was introduced. Use
+                    # a fake version.
+                    data = (self._NULL_VERSION,) + data
+
+                self._version, self._functions, self._function_calls, \
+                    self._files, self._call_files, self._external_srcs, \
+                    self._external_dsts = data
         else:
-            super().connect()
+            super()._connect()
 
 
     def close(self):
@@ -30,6 +38,7 @@ class PickleBackend(fbuild.db.cache_backend.CacheBackend):
         pickler = fbuild.db.backend.Pickler(self._ctx, f)
 
         pickler.dump((
+            self._LATEST_VERSION,
             self._functions,
             self._function_calls,
             self._files,

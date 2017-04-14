@@ -7,18 +7,39 @@ from fbuild.path import Path
 # ------------------------------------------------------------------------------
 
 class Backend:
+    # Version used for databases created before db versioning was introduced.
+    _NULL_VERSION = '0'
+
     def __init__(self, ctx):
         self._ctx = ctx
+
+    def version(self):
+        """Return a string detailing the database specification version used."""
+        return self._version
+
+    @classmethod
+    def latest_version(self):
+        """Return a string detailing the latest database specification version."""
+        return self._LATEST_VERSION
 
     # --------------------------------------------------------------------------
 
     def connect(self, *args, **kwargs):
         """Connect to the database."""
+        self._connect(*args, **kwargs)
+        if self._file_name is not None and self.version() != self.latest_version():
+            # Database cache spec has been updated in the mean time, so re-create it.
+            self.close()
+            self._file_name.remove()
+            self._connect(*args, **kwargs)
+
+    def _connect(self, *args, **kwargs):
+        """Connect to the database (backend implementation)."""
         raise NotImplementedError
 
 
     def close(self, *args, **kwargs):
-        """Connect to the database backend."""
+        """Close the connection to the database backend."""
         raise NotImplementedError
 
     # --------------------------------------------------------------------------

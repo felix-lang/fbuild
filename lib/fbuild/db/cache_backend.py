@@ -3,9 +3,14 @@ import fbuild.db.backend
 # ------------------------------------------------------------------------------
 
 class CacheBackend(fbuild.db.backend.Backend):
-    def connect(self):
-        """Create the database cache."""
+    _LATEST_VERSION = '1'
 
+    def _connect(self):
+        """Create the database cache (backend implementation)."""
+
+        if not hasattr(self, '_file_name'):
+            self._file_name = None
+        self._version = self._LATEST_VERSION
         self._functions = {}
         self._function_calls = {}
         self._files = {}

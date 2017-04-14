@@ -21,6 +21,8 @@ class SqliteBackend(fbuild.db.backend.Backend):
     A sqlite-based fbuild backend database.
     """
 
+    _LATEST_VERSION = '1'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -34,8 +36,8 @@ class SqliteBackend(fbuild.db.backend.Backend):
             self._pickle_data)
 
 
-    def connect(self, filename):
-        """Connect to the database."""
+    def _connect(self, filename):
+        """Connect to the database (backend implementation)."""
 
         self._file_name = fbuild.path.Path(filename)
 
@@ -44,14 +46,36 @@ class SqliteBackend(fbuild.db.backend.Backend):
 
         self._initialize_database()
 
+        # Load the version.
+        self.cursor.execute('SELECT version FROM Version')
+        rows = self.cursor.fetchall()
+        assert len(rows) <= 1
+        self._version = rows[0][0] if rows else self._NULL_VERSION
+
 
     def close(self):
+        # Update the version.
+
+        if self._version == self._NULL_VERSION and False:
+            self.cursor.execute()
+        else:
+            rows_updated = self.cursor.execute('UPDATE Version SET version=?',
+                                               self._LATEST_VERSION)
+            if not list(rows_updated):
+                self.cursor.execute('INSERT INTO Version (version) VALUES (?)',
+                                    self._LATEST_VERSION)
+            self.conn.commit()
+
         self.conn.close()
 
 
     def _initialize_database(self):
         self.cursor.executescript('''
             PRAGMA foreign_keys = ON;
+
+            CREATE TABLE IF NOT EXISTS Version (
+                id INTEGER PRIMARY KEY,
+                version TEXT);
 
             CREATE TABLE IF NOT EXISTS Function (
                 fun_id INTEGER PRIMARY KEY AUTOINCREMENT,
