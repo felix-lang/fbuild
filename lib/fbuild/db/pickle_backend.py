@@ -17,7 +17,12 @@ class PickleBackend(fbuild.db.cache_backend.CacheBackend):
         if self._file_name.exists():
             with open(self._file_name, 'rb') as f:
                 unpickler = fbuild.db.backend.Unpickler(self._ctx, f)
-                data = unpickler.load()
+                try:
+                    data = unpickler.load()
+                except AttributeError:
+                    # Likely a moved member. Just start clean!
+                    super()._connect()
+                    return
 
                 if len(data) == 6:
                     # This was created before DB versioning was introduced. Use
