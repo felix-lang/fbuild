@@ -80,6 +80,9 @@ class Database:
             for arg in itertools.chain(args, kwargs.values())), \
             "Cannot store generator in database"
 
+        orig_function = function
+        function = fbuild.functools.unwrap(function)
+
         fun_name, function, args, kwargs = self._find_function_name(
             function,
             args,
@@ -172,7 +175,7 @@ class Database:
         external_dsts = set()
 
         # The call was dirty, so recompute it.
-        call_result = function(*args, **kwargs)
+        call_result = orig_function(*args, **kwargs)
         fun_dependents = tuple(self._callstack.pop())
 
         # Make sure the result is not a generator.
@@ -214,6 +217,7 @@ class Database:
     @classmethod
     def add_function_to_map(self, function, member_of=None):
         """Add the function to the global function map."""
+        function = fbuild.functools.unwrap(function)
         fun_name, _, _, _ = self._find_function_name(function, (), {}, member_of)
         if fun_name not in self._FUN_DIGESTS:
             self._FUN_DIGESTS[fun_name] = self._digest_function(function)

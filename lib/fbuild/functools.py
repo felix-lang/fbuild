@@ -6,6 +6,13 @@ import types
 
 # ------------------------------------------------------------------------------
 
+def unwrap(func):
+    """unwrap will unwrap any Fbuild-originating decorators and return the
+    original function."""
+    return getattr(func, '__fbuild_wrapped__', func)
+
+# ------------------------------------------------------------------------------
+
 def import_module(module):
     """L{import_module} is a shortcut that will import and return L{module}
     if it is a I{str}. If not, then it is assumed that L{module} is an actual
@@ -197,7 +204,7 @@ def bind_args(function, args, kwargs):
     True
     """
 
-    function = getattr(function, '__fbuild_wrapped__', function)
+    function = unwrap(function)
     args, kwargs = normalize_args(function, args, kwargs)
     spec = inspect.getfullargspec(function)
     fn_args = spec.args
