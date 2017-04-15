@@ -3,7 +3,6 @@ import os
 import functools
 
 import fbuild
-import fbuild.builders
 import fbuild.db
 
 # ------------------------------------------------------------------------------
@@ -57,6 +56,9 @@ def guess_platform(ctx, arch=None):
     features of the specified I{platform}. If I{platform} is I{None}, try to
     determine which platform the system is and return that value. If the
     platform cannot be determined, return I{None}."""
+
+    import fbuild.builders
+
     ctx.logger.check('determining platform')
     if arch is None:
         # If we're on Windows, then don't even try uname
@@ -214,7 +216,7 @@ def parse_platform_options(ctx, platform, platform_options, subplatform,
                     kwargs[opt] = modifier
 
 
-def auto_platform_options(subplatform=None):
+def auto_platform_options(pass_platform=False, subplatform=None):
     def _inner(func):
         nonlocal subplatform
         if subplatform is None:
@@ -222,10 +224,24 @@ def auto_platform_options(subplatform=None):
 
         @functools.wraps(func)
         def _wrapper(*args, **kw):
-            parse_platform_options(args[0], kw.get('platform', None),
-                                   kw.get('platform_options', []), subplatform,
-                                   kw)
-            func(*args, **kw)
+            from fbuild.context import Context
 
+            # XXX: This check for methods is stupid, stupid, stupid.
+            if not isinstance(args[0], Context) and \
+               isinstance(getattr(args[0], 'ctx', None), Context):
+                ctx = args[0].ctx
+            elif len(args) > 1 and isinstance(args[1], Context):
+                ctx = args[1]
+            else:
+                ctx = args[0]
+
+            parse_platform_options(ctx, kw.get('platform', None),
+                                   kw.pop('platform_options', []), subplatform,
+                                   kw)
+            if not pass_platform:
+                kw.pop('platform', None)
+            return func(*args, **kw)
+
+        _wrapper.__fbuild_wrapped__ = func
         return _wrapper
     return _inner

@@ -9,6 +9,7 @@ import fbuild
 import fbuild.db
 import fbuild.path
 import fbuild.temp
+from . import platform
 
 # ------------------------------------------------------------------------------
 
@@ -137,6 +138,7 @@ class AbstractCompiler(fbuild.db.PersistentObject):
         pass
 
     @fbuild.db.cachemethod
+    @platform.auto_platform_options()
     def build_objects(self, srcs:fbuild.db.SRCS, *args, **kwargs) -> \
             fbuild.db.DSTS:
         """Compile all of the passed in L{srcs} in parallel."""
@@ -172,6 +174,7 @@ class AbstractCompiler(fbuild.db.PersistentObject):
         with self.tempfile(code) as src:
             yield self.uncached_compile(src, quieter=quieter, **kwargs)
 
+    @platform.auto_platform_options()
     def try_compile(self, *args, **kwargs):
         try:
             with self.tempfile_compile(*args, **kwargs):
@@ -179,6 +182,7 @@ class AbstractCompiler(fbuild.db.PersistentObject):
         except fbuild.ExecutionError:
             return False
 
+    @platform.auto_platform_options()
     def check_compile(self, code, msg, *args, **kwargs):
         self.ctx.logger.check(msg)
         if self.try_compile(code, *args, **kwargs):
@@ -192,6 +196,7 @@ class AbstractCompiler(fbuild.db.PersistentObject):
 
 class AbstractLibLinker(AbstractCompiler):
     @fbuild.db.cachemethod
+    @platform.auto_platform_options()
     def link_lib(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=(),
             **kwargs) -> fbuild.db.DST:
@@ -202,6 +207,7 @@ class AbstractLibLinker(AbstractCompiler):
     def uncached_link_lib(self, *args, **kwargs):
         pass
 
+    @platform.auto_platform_options()
     def build_lib(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into a library."""
@@ -211,6 +217,7 @@ class AbstractLibLinker(AbstractCompiler):
     # --------------------------------------------------------------------------
 
     @contextlib.contextmanager
+    @platform.auto_platform_options()
     def tempfile_link_lib(self, code='', *, quieter=1, ckwargs={}, **kwargs):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
@@ -261,6 +268,7 @@ class AbstractRunner(fbuild.db.PersistentObject):
 
 class AbstractExeLinker(AbstractCompiler, AbstractRunner):
     @fbuild.db.cachemethod
+    @platform.auto_platform_options()
     def link_exe(self, dst, srcs:fbuild.db.SRCS, *args,
             libs:fbuild.db.SRCS=(),
             **kwargs) -> fbuild.db.DST:
@@ -271,6 +279,7 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
     def uncached_link_exe(self, *args, **kwargs):
         pass
 
+    @platform.auto_platform_options()
     def build_exe(self, dst, srcs, *, objs=(), libs=(), ckwargs={}, lkwargs={}):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into an executable."""
@@ -280,12 +289,14 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
     # --------------------------------------------------------------------------
 
     @contextlib.contextmanager
+    @platform.auto_platform_options()
     def tempfile_link_exe(self, code='', *, quieter=1, ckwargs={}, **kwargs):
         with self.tempfile(code) as src:
             dst = src.parent / 'temp'
             obj = self.uncached_compile(src, quieter=quieter, **ckwargs)
             yield self.uncached_link_exe(dst, [obj], quieter=quieter, **kwargs)
 
+    @platform.auto_platform_options()
     def try_link_exe(self, *args, **kwargs):
         try:
             with self.tempfile_link_exe(*args, **kwargs):
@@ -293,6 +304,7 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
         except fbuild.ExecutionError:
             return False
 
+    @platform.auto_platform_options()
     def check_link_exe(self, code, msg, *args, **kwargs):
         self.ctx.logger.check(msg)
         if self.try_link_exe(code, *args, **kwargs):
@@ -302,6 +314,7 @@ class AbstractExeLinker(AbstractCompiler, AbstractRunner):
             self.ctx.logger.failed()
             return False
 
+    @platform.auto_platform_options()
     def tempfile_run(self, *args, quieter=1, ckwargs={}, lkwargs={}, **kwargs):
         with self.tempfile_link_exe(*args,
                 quieter=quieter,

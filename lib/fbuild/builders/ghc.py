@@ -77,6 +77,7 @@ class Ghc(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractExeLinker):
+    @fbuild.builders.platform.auto_platform_options(pass_platform=True)
     def __init__(self, ctx, *,
             ghc='ghc',
             platform=None,
@@ -93,6 +94,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
         """Compile a haskell file and cache the results."""
         return self.uncached_compile(src, *args, **kwargs)
 
+    @fbuild.builders.platform.auto_platform_options()
     def uncached_compile(self, src, dst=None, *args,
             pre_flags=[],
             odir=None,
@@ -129,6 +131,7 @@ class Builder(fbuild.builders.AbstractExeLinker):
         """Link all the L{srcs} into an executable and cache the result."""
         return self.uncached_link_exe(dst, srcs, *args, **kwargs)
 
+    @fbuild.builders.platform.auto_platform_options(pass_platform=True)
     def uncached_link_exe(self, dst, srcs, *args, buildroot=None, **kwargs):
         """Link all the L{srcs} into an executable."""
         dst = fbuild.path.Path(dst).addroot(buildroot or self.ctx.buildroot)
@@ -141,12 +144,14 @@ class Builder(fbuild.builders.AbstractExeLinker):
     # --------------------------------------------------------------------------
 
     @fbuild.db.cachemethod
+    @fbuild.builders.platform.auto_platform_options(pass_platform=True)
     def build_objects(self, srcs:fbuild.db.SRCS,
             **kwargs) -> fbuild.db.DSTS:
         """Compile all the L{srcs} in parallel."""
 
         return self.ctx.scheduler.map(partial(self.compile, **kwargs), srcs)
 
+    @fbuild.builders.platform.auto_platform_options(pass_platform=True)
     def build_exe(self, dst, srcs:fbuild.db.SRCS, *args,
             ckwargs={},
             lkwargs={},

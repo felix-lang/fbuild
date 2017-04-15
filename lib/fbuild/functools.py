@@ -1,5 +1,6 @@
 import abc
 import functools
+import itertools
 import inspect
 import types
 
@@ -195,6 +196,8 @@ def bind_args(function, args, kwargs):
     ...     'args': (4, 5), 'kwargs': {'f': 8}}
     True
     """
+
+    function = getattr(function, '__fbuild_wrapped__', function)
     args, kwargs = normalize_args(function, args, kwargs)
     spec = inspect.getfullargspec(function)
     fn_args = spec.args
@@ -204,6 +207,7 @@ def bind_args(function, args, kwargs):
 
     bound = {}
     arg_iterator = iter(args)
+
     for key, value in zip(fn_args, arg_iterator):
         bound[key] = value
 

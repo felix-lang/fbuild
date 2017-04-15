@@ -80,6 +80,7 @@ class Flx(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class Felix(fbuild.builders.AbstractCompiler):
+    @fbuild.builders.platform.auto_platform_options(pass_platform=True)
     def __init__(self, ctx, exe='flx', *,
             platform=None,
             includes=[],
@@ -101,6 +102,7 @@ class Felix(fbuild.builders.AbstractCompiler):
         """Compile a felix file and cache the results."""
         return self.uncached_compile(src, *args, **kwargs)
 
+    @fbuild.builders.platform.auto_platform_options()
     def uncached_compile(self, src, *,
             static=None,
             includes=[],
@@ -143,15 +145,18 @@ class Felix(fbuild.builders.AbstractCompiler):
 
         return dst
 
+    @fbuild.builders.platform.auto_platform_options()
     def build_objects(self, srcs, **kwargs):
         return fbuild.scheduler.map(partial(self.compile, **kwargs), srcs)
 
+    @fbuild.builders.platform.auto_platform_options()
     def run(self, src, *args, **kwargs):
         src = src.replaceexts({self.exe_suffix: '', self.lib_suffix: ''})
         return self.flx(src, *args, **kwargs)
 
     # --------------------------------------------------------------------------
 
+    @fbuild.builders.platform.auto_platform_options()
     def tempfile_run(self, code='', *, quieter=1, **kwargs):
         with self.tempfile(code) as src:
             exe = self.uncached_compile(src, quieter=quieter, **ckwargs)
