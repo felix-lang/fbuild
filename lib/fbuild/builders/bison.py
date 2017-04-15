@@ -14,7 +14,7 @@ class Bison(fbuild.db.PersistentObject):
         self.suffix = suffix
 
     @fbuild.db.cachemethod
-    @fbuild.builders.auto_platform_options()
+    @fbuild.builders.platform.auto_platform_options()
     def __call__(self, src:fbuild.db.SRC, dst=None, *,
             suffix=None,
             verbose=False,
