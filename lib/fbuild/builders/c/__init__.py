@@ -25,6 +25,7 @@ class MissingHeader(fbuild.ConfigFailed):
 # ------------------------------------------------------------------------------
 
 class Builder(fbuild.builders.AbstractCompilerBuilder):
+    @fbuild.builders.platform.auto_platform_options()
     def __init__(self, *args, flags=(), cross_compiler=False, **kwargs):
         self.flags = tuple(flags)
 
@@ -118,16 +119,19 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # --------------------------------------------------------------------------
 
+    @fbuild.builders.platform.auto_platform_options()
     def build_lib(self, dst, srcs, *args, **kwargs):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into a library."""
         return self._build_link(self.link_lib, dst, srcs, *args, **kwargs)
 
+    @fbuild.builders.platform.auto_platform_options()
     def build_exe(self, dst, srcs, *args, **kwargs):
         """Compile all of the passed in L{srcs} in parallel, then link them
         into an executable."""
         return self._build_link(self.link_exe, dst, srcs, *args, **kwargs)
 
+    @fbuild.builders.platform.auto_platform_options()
     def _build_link(self, function, dst, srcs, *,
             objs=[],
             includes=[],
@@ -160,6 +164,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
 
     # -------------------------------------------------------------------------
 
+    @fbuild.builders.platform.auto_platform_options()
     def run(self, cmd, *args, runtime_libpaths=[], **kwargs):
         """Executes a c executable."""
         exe = cmd[0]
@@ -168,6 +173,7 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
             **kwargs)
 
 
+    @fbuild.builders.platform.auto_platform_options()
     def tempfile_run(self, *args,
             quieter=1,
             ckwargs={},
