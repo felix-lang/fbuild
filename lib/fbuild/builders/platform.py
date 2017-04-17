@@ -224,6 +224,7 @@ def auto_platform_options(pass_platform=False, subplatform=None):
 
         @functools.wraps(func)
         def _wrapper(*args, **kw):
+            inner = kw.pop('__FBUILD_INNER', func)
             from fbuild.context import Context
 
             # XXX: This check for methods is stupid, stupid, stupid.
@@ -240,7 +241,7 @@ def auto_platform_options(pass_platform=False, subplatform=None):
                                    kw)
             if not pass_platform:
                 kw.pop('platform', None)
-            return func(*args, **kw)
+            return inner(*args, **kw)
 
         _wrapper.__fbuild_wrapped__ = func
         return _wrapper

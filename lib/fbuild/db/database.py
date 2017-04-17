@@ -80,13 +80,17 @@ class Database:
             for arg in itertools.chain(args, kwargs.values())), \
             "Cannot store generator in database"
 
-        orig_function = function
-        function = fbuild.functools.unwrap(function)
-
+        outer_function = function
         fun_name, function, args, kwargs = self._find_function_name(
             function,
             args,
             kwargs)
+
+        # Decorator magic.
+        if hasattr(outer_function, '__fbuild_wrapped__'):
+            kwargs['__FBUILD_INNER'] = function
+        else:
+            outer_function = function
 
         # If there is a call stack, then this function is a dependent of the
         # parent.
@@ -175,7 +179,7 @@ class Database:
         external_dsts = set()
 
         # The call was dirty, so recompute it.
-        call_result = orig_function(*args, **kwargs)
+        call_result = outer_function(*args, **kwargs)
         fun_dependents = tuple(self._callstack.pop())
 
         # Make sure the result is not a generator.
@@ -217,8 +221,8 @@ class Database:
     @classmethod
     def add_function_to_map(self, function, member_of=None):
         """Add the function to the global function map."""
-        function = fbuild.functools.unwrap(function)
-        fun_name, _, _, _ = self._find_function_name(function, (), {}, member_of)
+        fun_name, function, _, _ = self._find_function_name(function, (), {},
+                                                            member_of)
         if fun_name not in self._FUN_DIGESTS:
             self._FUN_DIGESTS[fun_name] = self._digest_function(function)
 
@@ -230,6 +234,8 @@ class Database:
     @staticmethod
     def _find_function_name(function, args, kwargs, member_of=None):
         """Extract the function name from the function."""
+        function = fbuild.functools.unwrap(function)
+
         if member_of is not None:
             # An unbound method with an explicit parent.
             fun_name = '%s.%s.%s' % (function.__module__, member_of.__name__,
