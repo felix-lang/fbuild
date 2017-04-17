@@ -1,9 +1,9 @@
 import platform
 import os
-import functools
 
 import fbuild
 import fbuild.db
+import fbuild.functools
 
 # ------------------------------------------------------------------------------
 
@@ -217,32 +217,36 @@ def parse_platform_options(ctx, platform, platform_options, subplatform,
 
 
 def auto_platform_options(pass_platform=False, subplatform=None):
-    def _inner(func):
+    def _decorator(func):
         nonlocal subplatform
         if subplatform is None:
             subplatform = set()
 
-        @functools.wraps(func)
+        @fbuild.functools.wraps(func)
         def _wrapper(*args, **kw):
-            inner = kw.pop('__FBUILD_INNER', func)
+            inner = kw.pop('__FBUILD_INNER')
             from fbuild.context import Context
 
             # XXX: This check for methods is stupid, stupid, stupid.
-            if not isinstance(args[0], Context) and \
-               isinstance(getattr(args[0], 'ctx', None), Context):
+            if not args:
+                ctx = None
+            elif not isinstance(args[0], Context) and \
+                 isinstance(getattr(args[0], 'ctx', None), Context):
                 ctx = args[0].ctx
             elif len(args) > 1 and isinstance(args[1], Context):
                 ctx = args[1]
             else:
                 ctx = args[0]
 
-            parse_platform_options(ctx, kw.get('platform', None),
-                                   kw.pop('platform_options', []), subplatform,
-                                   kw)
+            if ctx is not None:
+                parse_platform_options(ctx, kw.get('platform', None),
+                                       kw.pop('platform_options', []),
+                                       subplatform,
+                                       kw)
             if not pass_platform:
                 kw.pop('platform', None)
             return inner(*args, **kw)
 
-        _wrapper.__fbuild_wrapped__ = func
         return _wrapper
-    return _inner
+
+    return _decorator

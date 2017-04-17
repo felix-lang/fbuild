@@ -29,12 +29,12 @@ def _check_ctx(ctx, name, kind):
         raise TypeError(_CTX_ERRORS[kind] % (name, type(ctx).__name__))
 
 
-def _update_fun_map(fun, member_of=None):
+def _update_fun_map(fun):
     """Add the given function to the global function map."""
 
     # Prevent a circular import.
     from .database import Database
-    Database.add_function_to_map(fun, member_of)
+    Database.add_function_to_map(fun)
 
 # ------------------------------------------------------------------------------
 
@@ -110,7 +110,8 @@ class PersistentMeta(abc.ABCMeta):
 
             for member in all_members:
                 if isinstance(member, (cachemethod, cacheproperty)):
-                    _update_fun_map(member.method, member_of=cls)
+                    member.method.__fbuild_member_of__ = cls
+                    _update_fun_map(member.method)
 
             _update_fun_map(cls.__call_super__)
 

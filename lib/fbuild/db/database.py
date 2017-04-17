@@ -89,6 +89,8 @@ class Database:
         # Decorator magic.
         if hasattr(outer_function, '__fbuild_wrapped__'):
             kwargs['__FBUILD_INNER'] = function
+            # XXX: This is a hack to prevent a duplicated self!
+            outer_function = outer_function.__func__
         else:
             outer_function = function
 
@@ -219,10 +221,9 @@ class Database:
         pprint.pprint(self._backend.__dict__)
 
     @classmethod
-    def add_function_to_map(self, function, member_of=None):
+    def add_function_to_map(self, function):
         """Add the function to the global function map."""
-        fun_name, function, _, _ = self._find_function_name(function, (), {},
-                                                            member_of)
+        fun_name, function, _, _ = self._find_function_name(function, (), {})
         if fun_name not in self._FUN_DIGESTS:
             self._FUN_DIGESTS[fun_name] = self._digest_function(function)
 
@@ -232,33 +233,41 @@ class Database:
         return self._FUN_DIGESTS[fun_name]
 
     @staticmethod
-    def _find_function_name(function, args, kwargs, member_of=None):
+    def _find_function_name(wrapped_function, args, kwargs):
         """Extract the function name from the function."""
-        function = fbuild.functools.unwrap(function)
+        member_of = getattr(wrapped_function, '__fbuild_member_of__', None)
+        function = fbuild.functools.unwrap(wrapped_function)
 
-        if member_of is not None:
-            # An unbound method with an explicit parent.
-            fun_name = '%s.%s.%s' % (function.__module__, member_of.__name__,
-                                     function.__name__)
-        elif not fbuild.inspect.ismethod(function):
+        if not fbuild.inspect.ismethod(wrapped_function) and member_of is None:
             # Normal function.
             fun_name = function.__module__ + '.' + function.__name__
         else:
             # Method.
+
+            is_bound_method = False
+
             # If we're caching a PersistentObject creation, use the class's
             # name as our function name.
-            if function.__name__ == '__call_super__' and \
+            if function.__name__ == '__call_super__' and member_of is None and \
                     isinstance(function.__self__, fbuild.db.PersistentMeta):
                 fun_name = '%s.%s' % (
                     function.__self__.__module__,
                     function.__self__.__name__)
             else:
-                fun_name = '%s.%s.%s' % (
-                    function.__module__,
-                    function.__self__.__class__.__name__,
-                    function.__name__)
-            args = (function.__self__,) + args
-            function = function.__func__
+                if hasattr(wrapped_function, '__self__'):
+                    is_bound_method = True
+                    cls = wrapped_function.__self__.__class__
+                else:
+                    assert member_of, function
+                    cls = member_of
+
+                fun_name = '%s.%s.%s' % (function.__module__, cls.__name__,
+                                         function.__name__)
+
+            if is_bound_method:
+                args = (wrapped_function.__self__,) + args
+                if wrapped_function is function:
+                    function = function.__func__
 
         if not fbuild.inspect.isroutine(function):
             function = function.__call__
