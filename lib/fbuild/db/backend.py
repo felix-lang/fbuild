@@ -108,6 +108,12 @@ class Backend:
             fun_id = self.save_function(fun_id, fun_name, fun_digest,
                                         fun_dependents)
 
+        # __FBUILD_INNER doesn't matter here and will break pickling.
+        for kind in 'kw', 'kwargs':
+            if kind in bound and '__FBUILD_INNER' in bound[kind]:
+                bound[kind] = bound[kind].copy()
+                bound[kind].pop('__FBUILD_INNER', None)
+
         # Get the real call_id to use in the call files.
         call_id = self.save_call(call_id, fun_id, bound, result)
         self.save_call_files(call_id, call_file_digests)
