@@ -252,6 +252,12 @@ def bind_args(function, args, kwargs):
     if spec.varkw is not None:
         bound[spec.varkw] = kwargs
 
+    # Remove __FBUILD_INNER, because it doesn't really matter here and will
+    # only make the rest of the code more complicated.
+    for kind in 'kw', 'kwargs':
+        if kind in bound and '__FBUILD_INNER' in bound[kind]:
+            bound[kind].pop('__FBUILD_INNER', None)
+
     return bound
 
 # ------------------------------------------------------------------------------
