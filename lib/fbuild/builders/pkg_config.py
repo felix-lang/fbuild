@@ -46,4 +46,4 @@ class PkgConfig(fbuild.db.PersistentObject):
             requires_at_most_version=requires_at_most_version)
 
     def __str__(self):
-        return self.exe.name
+        return self.pkg
