@@ -58,10 +58,11 @@ def install_files(ctx):
         for file, froot in files:
             file = file.relpath(file.getcwd())
             # Generate the target path.
-            target = file.removeroot(ctx.buildroot / '').addroot(target_root /
-                froot)
+            target = file.basename().addroot(target_root / froot)
             # Copy the file.
-            fbuild.builders.file.copy(ctx, file, target)
+            ctx.logger.check(' * install', '%s -> %s' % (file, target),
+                             color='yellow')
+            file.copy(target)
 
 # ------------------------------------------------------------------------------
 

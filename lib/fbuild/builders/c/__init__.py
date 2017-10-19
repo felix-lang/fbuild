@@ -369,7 +369,8 @@ def _guess_builder(name, compilers, functions, ctx, *args,
             # and try another one.
 
             try:
-                return fbuild.functools.call(function, ctx, exe, *args, **new_kwargs)
+                return fbuild.functools.call(function, ctx, exe, platform=platform,
+                                             *args, **new_kwargs)
             except fbuild.ConfigFailed:
                 pass
 
