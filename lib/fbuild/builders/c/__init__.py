@@ -361,9 +361,13 @@ def _guess_builder(name, compilers, functions, ctx, *args,
         if subplatform - (compilers & platform_extra) <= platform:
             # Parse the platform options.
             new_kwargs = copy.deepcopy(kwargs)
+
+            # Make sure only the current compiler is in platform_options.
+            compiler_platform = platform - compilers | (compilers & subplatform)
+
             fbuild.builders.platform.parse_platform_options(
-                ctx, platform, platform_options, (subplatform & full_compilers),
-                new_kwargs)
+                ctx, compiler_platform, platform_options,
+                (subplatform & full_compilers), new_kwargs)
 
             # Try to use this compiler. If it doesn't work, skip this compiler
             # and try another one.
