@@ -31,29 +31,13 @@ def pre_options(parser):
 
 # -----------------------------------------------------------------------------
 
-def make_c_builder(*args, **kwargs):
-    static = call('fbuild.builders.c.guess_static', *args, **kwargs)
-    shared = call('fbuild.builders.c.guess_shared', *args, **kwargs)
+def make_c_builder(ctx, **kwargs):
+    return call('fbuild.builders.c.guess', ctx, **kwargs)
 
-    return Record(
-        static=static,
-        shared=shared)
-
-def make_cxx_builder(*args, **kwargs):
-    static = call('fbuild.builders.cxx.guess_static', *args,
-        platform_options=[
-            ({'windows'}, {'flags': ['/EHsc']}),
-        ],
-        **kwargs)
-    shared = call('fbuild.builders.cxx.guess_shared', *args,
-        platform_options=[
-            ({'windows'}, {'flags': ['/EHsc']}),
-        ],
-        **kwargs)
-
-    return Record(
-        static=static,
-        shared=shared)
+def make_cxx_builder(ctx, **kwargs):
+    return call('fbuild.builders.cxx.guess', ctx, platform_options=[
+            ({'windows'}, {'flags': ['/EHsc']})
+        ], **kwargs)
 
 @fbuild.db.caches
 def config_build(ctx, *, platform, cc, cxx):
