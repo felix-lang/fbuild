@@ -28,9 +28,9 @@ archmap = {
     'gnu/linux': {'posix', 'linux'},
     'solaris':   {'posix', 'solaris'},
     'sunos':     {'posix', 'solaris', 'sunos'},
-    'cygwin':    {'posix', 'cygwin'},
-    'nocygwin':  {'posix', 'cygwin', 'nocygwin'},
-    'mingw':     {'posix', 'mingw'},
+    'cygwin':    {'posix', 'cygwin', 'windows'},
+    'nocygwin':  {'posix', 'cygwin', 'nocygwin', 'windows'},
+    'mingw':     {'posix', 'mingw', 'windows'},
     'windows':   {'windows', 'win32'},
     'nt':        {'windows', 'win32', 'nt'},
     'win32':     {'windows', 'win32'},
@@ -159,7 +159,7 @@ def shared_lib_suffix(ctx, platform=None):
 
 def exe_suffix(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if platform & {'windows', 'mingw', 'cygwin'}:
+    if platform & {'windows'}:
         return '.exe'
     else:
         return ''
@@ -168,7 +168,7 @@ def exe_suffix(ctx, platform=None):
 
 def runtime_env_libpath(ctx, platform=None):
     platform = platform if platform else guess_platform(ctx)
-    if platform & {'windows', 'mingw'}:
+    if platform & {'windows'} and not platform & {'cygwin'}:
         return 'PATH'
     elif 'darwin' in platform:
         return 'DYLD_LIBRARY_PATH'
@@ -177,26 +177,33 @@ def runtime_env_libpath(ctx, platform=None):
 
 # ------------------------------------------------------------------------------
 
-def parse_platform_options(ctx, platform, platform_options, subplatform,
-                           kwargs):
-    supports_defaults = (str, list, tuple)
+def platform_match(platform, matcher):
+    required_present = set(p for p in matcher if not p.startswith('!'))
+    required_nonpresent = set(p for p in matcher if p.startswith('!'))
+
+    return required_present <= platform and not required_nonpresent <= platform
+
+
+def parse_platform_options(ctx, platform, platform_options, kwargs):
+    types_supporting_operations = (str, list, tuple, set)
 
     if platform is None:
         platform = guess_platform(ctx)
 
-    for plat, options in platform_options:
-        if (plat - subplatform) <= platform:
+    for matcher, options in platform_options:
+        if platform_match(platform, matcher):
             # It matches! Use it to update kwargs.
-            for opt, modifier in options.items():
-                if opt[-1] in '+-':
+            for key, modifier in options.items():
+                if key[-1] in '+-':
                     # Addition/removal.
-                    operation = opt[-1]
-                    opt = opt[:-1]
+                    operation = key[-1]
+                    key = key[:-1]
 
-                    value = kwargs.get(opt)
+                    assert isinstance(modifier, types_supporting_operations), \
+                           "type '%s' does not support + and - operations" % type(modifier)
+
+                    value = kwargs.get(key)
                     if value is None:
-                        assert isinstance(modifier, supports_defaults), \
-                               "type '%s' does not support defaults" % type(modifier)
                         value = type(modifier)()
 
                     if operation == '+':
@@ -206,22 +213,18 @@ def parse_platform_options(ctx, platform, platform_options, subplatform,
 
                         if isinstance(value, str):
                             value = ''.join(filtered)
-                        elif isinstance(value, (list, tuple)):
+                        else:
                             value = type(value)(filtered)
                     else:
                         assert False
 
-                    kwargs[opt] = value
+                    kwargs[key] = value
                 else:
-                    kwargs[opt] = modifier
+                    kwargs[key] = modifier
 
 
-def auto_platform_options(pass_platform=False, subplatform=None):
+def auto_platform_options(pass_platform=False):
     def _decorator(func):
-        nonlocal subplatform
-        if subplatform is None:
-            subplatform = set()
-
         @fbuild.functools.wraps(func)
         def _wrapper(*args, **kw):
             inner = kw.pop('__FBUILD_INNER')
@@ -240,9 +243,7 @@ def auto_platform_options(pass_platform=False, subplatform=None):
 
             if ctx is not None:
                 parse_platform_options(ctx, kw.get('platform', None),
-                                       kw.pop('platform_options', []),
-                                       subplatform,
-                                       kw)
+                                       kw.pop('platform_options', []), kw)
             if not pass_platform:
                 kw.pop('platform', None)
             return inner(*args, **kw)
