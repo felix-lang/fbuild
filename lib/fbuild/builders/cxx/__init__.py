@@ -17,10 +17,10 @@ guess = fbuild.builders.c.Guesser('c++', {'msvc++', 'g++', 'clang++', 'icpc'}, (
                             'fbuild.builders.cxx.gxx.darwin.shared'),
         ({'clang++'}, 'fbuild.builders.cxx.clangxx.static',
                       'fbuild.builders.cxx.clangxx.shared'),
-        ({'icpc'}, 'fbuild.builders.cxx.intelxx.static',
-                   'fbuild.builders.cxx.intelxx.shared'),
         ({'g++'}, 'fbuild.builders.cxx.gxx.static',
                   'fbuild.builders.cxx.gxx.static'),
+        ({'icpc'}, 'fbuild.builders.cxx.intelxx.static',
+                   'fbuild.builders.cxx.intelxx.shared'),
     ))
 
 

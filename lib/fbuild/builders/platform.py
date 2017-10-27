@@ -181,7 +181,7 @@ def platform_match(platform, matcher):
     required_present = set(p for p in matcher if not p.startswith('!'))
     required_nonpresent = set(p for p in matcher if p.startswith('!'))
 
-    return required_present <= platform and not required_nonpresent <= platform
+    return required_present <= platform and not platform & required_nonpresent
 
 
 def parse_platform_options(ctx, platform, platform_options, kwargs):
