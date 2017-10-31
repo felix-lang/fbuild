@@ -235,9 +235,10 @@ class cacheproperty:
     store or a class that has has an attribute named I{store}.
 
     >>> import fbuild.context
+    >>> import fbuild.db
     >>> ctx = fbuild.context.make_default_context(['--database=cache'])
     >>> ctx.db.connect()
-    >>> class C:
+    >>> class C(fbuild.db.PersistentObject):
     ...     def __init__(self, ctx):
     ...         self.ctx = ctx
     ...     @cacheproperty
