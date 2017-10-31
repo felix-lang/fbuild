@@ -101,7 +101,7 @@ class Popen(subprocess.Popen):
 
             real_preexec_fn = kwargs.pop("preexec_fn", None)
             def setpgid_preexec_fn():
-                os.setpgid(0, 0)
+                os.setsid()
                 if real_preexec_fn:
                     apply(real_preexec_fn)
 
@@ -208,10 +208,11 @@ class Popen(subprocess.Popen):
                 winprocess.TerminateProcess(self._handle, 127)
             self.returncode = 127
         else:
+            sig = signal.SIGINT if sigint else signal.SIGKILL
             if group:
-                os.killpg(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
+                os.killpg(os.getpgid(self.pid), sig)
             else:
-                os.kill(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
+                os.kill(self.pid, sig)
             self.returncode = -9
 
     def _try_wait(self, wait_flags):
