@@ -3,39 +3,39 @@ import fbuild.builders.ocaml.ocamlfind as ocamlfind
 # ------------------------------------------------------------------------------
 
 class Ocamldep(ocamlfind.Ocamldep):
-    def __init__(self, *args, ocamlfind_cmd='batteries/ocamldep', **kwargs):
-        super().__init__(*args, ocamlfind_cmd=ocamlfind_cmd, **kwargs)
+    def __init__(self, *args, packages=[], **kwargs):
+        super().__init__(*args, packages=packages+['batteries'], **kwargs)
 
 class Ocamlc(ocamlfind.Ocamlc):
     def __init__(self, *args,
-            ocamlfind_cmd='batteries/ocamlc',
             make_ocamldep=Ocamldep,
+            packages=[],
             **kwargs):
         super().__init__(*args,
-            ocamlfind_cmd=ocamlfind_cmd,
             make_ocamldep=make_ocamldep,
+            packages=packages+['batteries'],
             **kwargs)
 
 class Ocamlcp(ocamlfind.Ocamlcp):
     def __init__(self, *args,
-            ocamlfind_cmd='batteries/ocamlcp',
             make_ocamldep=Ocamldep,
+            packages=[],
             **kwargs):
         super().__init__(*args,
-            ocamlfind_cmd=ocamlfind_cmd,
             make_ocamldep=make_ocamldep,
+            packages=packages+['batteries'],
             **kwargs)
 
 class Ocamlopt(ocamlfind.Ocamlopt):
     def __init__(self, *args,
-            ocamlfind_cmd='batteries/ocamlopt',
             make_ocamldep=Ocamldep,
             make_ocamlc=Ocamlc,
+            packages=[],
             **kwargs):
         super().__init__(*args,
-            ocamlfind_cmd=ocamlfind_cmd,
             make_ocamldep=make_ocamldep,
             make_ocamlc=make_ocamlc,
+            packages=packages+['batteries'],
             **kwargs)
 
 class Ocaml(ocamlfind.Ocaml):
