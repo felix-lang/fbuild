@@ -116,12 +116,16 @@ class Backend:
 
     # --------------------------------------------------------------------------
 
-    def check_function(self, fun_name):
+    def check_function(self, fun_name, already_checked=None):
         """Returns whether or not the function is dirty. Returns True or false
         as well as the function's digest."""
 
         # Work around a circular import.
         from fbuild.db.database import Database
+
+        if already_checked is None:
+            already_checked = set()
+        already_checked.add(fun_name)
 
         fun_digest = Database.get_function_digest_from_map(fun_name)
         fun_id, old_digest, fun_dependents = self.find_function(fun_name)
@@ -130,7 +134,7 @@ class Backend:
         fun_dirty = old_digest is None or fun_digest != old_digest
         if not fun_dirty:
             # Have any of it's dependents changed?
-            for dep in fun_dependents:
+            for dep in set(fun_dependents) - already_checked:
                 dep_dirty, _ = self.check_function(dep)
                 if dep_dirty:
                     fun_dirty = True
