@@ -23,32 +23,51 @@ except ImportError as e:
 
 # ------------------------------------------------------------------------------
 
+def _call_or_deprecated(current, current_args, deprecated, deprecated_args):
+    '''
+    Try calling a method on the given fbuildroot. If the method does not exist, then
+    try the deprecated version. If the deprecated version exists, then also issue a
+    warning.
+    '''
+
+    try:
+        func = getattr(fbuildroot, current)
+    except AttributeError:
+        pass
+    else:
+        return func(*current_args)
+
+    try:
+        func = getattr(fbuildroot, deprecated)
+    except AttributeError:
+        pass
+    else:
+        warnings.warn('%s is deprecated; use %s instead' % (deprecated, current),
+                      DeprecationWarning)
+        return func(*deprecated_args)
+
+    return None
+
 def parse_args(argv):
     parser = fbuild.options.make_parser()
 
     # -------------------------------------------------------------------------
-    # Let the fbuildroot modify the optparse parser before parsing.
+    # Let the fbuildroot modify the argparse parser before parsing.
 
-    try:
-        pre_options = fbuildroot.pre_options
-    except AttributeError:
-        pass
-    else:
-        parser = pre_options(parser) or parser
+    parser = _call_or_deprecated(current='arguments', current_args=[parser],
+                                 deprecated='pre_options', deprecated_args=[parser]) \
+             or parser
 
-    options, args = parser.parse_args(argv[1:])
+    args = parser.parse_args(argv[1:])
 
     # -------------------------------------------------------------------------
-    # Let the fbuildroot modify the optparse parser after parsing.
+    # Let the fbuildroot modify the argparse parser after parsing.
 
-    try:
-        post_options = fbuildroot.post_options
-    except AttributeError:
-        pass
-    else:
-        options, args = post_options(options, args) or (options, args)
+    args = _call_or_deprecated(current='post_arguments', current_args=[parser, args],
+                               deprecated='post_options', deprecated_args=[args]) \
+           or args
 
-    return fbuild.context.Context(options, args)
+    return fbuild.context.Context(args)
 
 # ------------------------------------------------------------------------------
 
@@ -87,12 +106,8 @@ def build(ctx):
             raise fbuild.Error('file %r not cached' % ctx.options.delete_file)
         return 0
 
-    # Enable warnings of they aren't forcibly disabled.
-    if not ctx.options.no_warnings:
-        warnings.filterwarnings('always', category=DeprecationWarning)
-
     # We'll use the arguments as our targets.
-    targets = ctx.args or ['build']
+    targets = ctx.options.targets
 
     # Installation stuff.
     if 'install' in targets:
@@ -121,23 +136,11 @@ def main(argv=None):
         except AttributeError:
             pass
 
-    # Get the prune handlers.
-    try:
-        prune_get_all = fbuildroot.prune_get_all
-    except:
-        def prune_get_all(ctx, root=None):
-            files = set()
-            if root is None:
-                root = ctx.buildroot
-            for dirpath, dirnames, filenames in root.walk():
-                files.update(map(dirpath.__truediv__, filenames))
-            return files
+    # --------------------------------------------------------------------------
 
-    try:
-        prune_get_bad = fbuildroot.prune_get_bad
-    except:
-        def prune_get_bad(ctx, files):
-            return files
+    # Hacky way of enabling warnings before parsing options.
+    if '--no-warnings' not in sys.argv:
+        warnings.filterwarnings('always', category=DeprecationWarning)
 
     # --------------------------------------------------------------------------
 
@@ -182,8 +185,6 @@ def main(argv=None):
         # ... and then run the build.
         try:
             result = build(ctx)
-            if ctx.options.prune:
-                ctx.prune(prune_get_all, prune_get_bad)
         except fbuild.Error as e:
             ctx.logger.log(e, color='red')
             sys.exit(1)

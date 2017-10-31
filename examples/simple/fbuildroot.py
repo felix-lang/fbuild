@@ -1,4 +1,3 @@
-from optparse import make_option
 import pprint
 
 import fbuild
@@ -11,23 +10,21 @@ from fbuild.record import Record
 
 # -----------------------------------------------------------------------------
 
-def pre_options(parser):
-    group = parser.add_option_group('config options')
-    group.add_options((
-        make_option('--build-platform'),
-        make_option('--build-cc'),
-        make_option('--build-cxx'),
-        make_option('--host-platform'),
-        make_option('--host-cc'),
-        make_option('--host-cxx'),
-        make_option('--target-platform'),
-        make_option('--target-cc'),
-        make_option('--target-cxx'),
-        make_option('--ocamlc'),
-        make_option('--ocamlopt'),
-        make_option('--ocamllex'),
-        make_option('--ocamlyacc'),
-    ))
+def arguments(parser):
+    group = parser.add_argument_group('config options')
+    group.add_argument('--build-platform')
+    group.add_argument('--build-cc')
+    group.add_argument('--build-cxx')
+    group.add_argument('--host-platform')
+    group.add_argument('--host-cc')
+    group.add_argument('--host-cxx')
+    group.add_argument('--target-platform')
+    group.add_argument('--target-cc')
+    group.add_argument('--target-cxx')
+    group.add_argument('--ocamlc')
+    group.add_argument('--ocamlopt')
+    group.add_argument('--ocamllex')
+    group.add_argument('--ocamlyacc')
 
 # -----------------------------------------------------------------------------
 
