@@ -266,6 +266,4 @@ def make_default_context(args=[]):
     import fbuild.options
 
     parser = fbuild.options.make_parser()
-    options, args = parser.parse_args(args)
-
-    return Context(options, args)
+    return Context(parser.parse_args(args))
