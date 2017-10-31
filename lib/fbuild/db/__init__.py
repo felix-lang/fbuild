@@ -191,7 +191,7 @@ class cachemethod:
     >>> import fbuild.context
     >>> ctx = fbuild.context.make_default_context(['--database=cache'])
     >>> ctx.db.connect()
-    >>> class C:
+    >>> class C(fbuild.db.PersistentObject):
     ...     def __init__(self, ctx):
     ...         self.ctx = ctx
     ...     @cachemethod
