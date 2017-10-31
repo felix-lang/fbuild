@@ -2,42 +2,32 @@ import fbuild.builders.c
 
 # ------------------------------------------------------------------------------
 
-def guess_static(*args, **kwargs):
-    """L{static} tries to guess the static system c++ compiler according to the
-    platform. It accepts a I{platform} keyword that overrides the system's
-    platform. This can be used to use a non-default compiler. Any extra
-    arguments and keywords are passed to the compiler's configuration
-    functions."""
 
-    return fbuild.builders.c._guess_builder('c++ static',
-        {'g++', 'clang++', 'icpc'}, (
-        ({'windows'}, 'fbuild.builders.cxx.msvc.static'),
+guess = fbuild.builders.c.Guesser('c++', {'msvc++', 'g++', 'clang++', 'icpc'}, (
+        ({'windows', 'msvc++'}, 'fbuild.builders.cxx.msvc.static',
+                     'fbuild.builders.cxx.msvc.shared'),
         ({'iphone', 'simulator', 'g++'},
-            'fbuild.builders.cxx.gxx.iphone.static_simulator'),
-        ({'iphone', 'g++'}, 'fbuild.builders.cxx.gxx.iphone.static'),
-        ({'darwin', 'clang++'}, 'fbuild.builders.cxx.clangxx.darwin.static'),
-        ({'darwin', 'g++'}, 'fbuild.builders.cxx.gxx.darwin.static'),
-        ({'clang++'}, 'fbuild.builders.cxx.clangxx.static'),
-        ({'icpc'}, 'fbuild.builders.cxx.intelxx.static'),
-        ({'g++'}, 'fbuild.builders.cxx.gxx.static'),
-    ), *args, **kwargs)
-
-def guess_shared(*args, **kwargs):
-    """L{shared} tries to guess the shared system c++ compiler according to the
-    platform. It accepts a I{platform} keyword that overrides the system's
-    platform. This can be used to use a non-default compiler. Any extra
-    arguments and keywords are passed to the compiler's configuration
-    functions."""
-
-    return fbuild.builders.c._guess_builder('c++ shared',
-        {'g++', 'clang++', 'icpc'}, (
-        ({'windows'}, 'fbuild.builders.cxx.msvc.shared'),
-        ({'iphone', 'simulator'},
+            'fbuild.builders.cxx.gxx.iphone.static_simulator',
             'fbuild.builders.cxx.gxx.iphone.shared_simulator'),
-        ({'iphone'}, 'fbuild.builders.cxx.gxx.iphone.shared'),
-        ({'darwin', 'clang++'}, 'fbuild.builders.cxx.clangxx.darwin.shared'),
-        ({'darwin'}, 'fbuild.builders.cxx.gxx.darwin.shared'),
-        ({'clang++'}, 'fbuild.builders.cxx.clangxx.shared'),
-        ({'icpc'}, 'fbuild.builders.cxx.intelxx.shared'),
-        ({'g++'}, 'fbuild.builders.cxx.gxx.shared'),
-    ), *args, **kwargs)
+        ({'iphone', 'g++'}, 'fbuild.builders.cxx.gxx.iphone.static',
+                            'fbuild.builders.cxx.gxx.iphone.shared'),
+        ({'darwin', 'clang++'}, 'fbuild.builders.cxx.clangxx.darwin.static',
+                                'fbuild.builders.cxx.clangxx.darwin.shared'),
+        ({'darwin', 'g++'}, 'fbuild.builders.cxx.gxx.darwin.static',
+                            'fbuild.builders.cxx.gxx.darwin.shared'),
+        ({'clang++'}, 'fbuild.builders.cxx.clangxx.static',
+                      'fbuild.builders.cxx.clangxx.shared'),
+        ({'g++'}, 'fbuild.builders.cxx.gxx.static',
+                  'fbuild.builders.cxx.gxx.static'),
+        ({'icpc'}, 'fbuild.builders.cxx.intelxx.static',
+                   'fbuild.builders.cxx.intelxx.shared'),
+    ))
+
+
+@fbuild.builders.c._guess_deprecated
+def guess_static(ctx, **kwargs):
+    return guess.static(ctx, **kwargs)
+
+@fbuild.builders.c._guess_deprecated
+def guess_shared(ctx, **kwargs):
+    return guess.shared(ctx, **kwargs)

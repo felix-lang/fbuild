@@ -1,6 +1,7 @@
 import os
 import sys
 import signal
+import warnings
 
 # Make sure the current working directory is in the search path so we can find
 # the fbuildroot.py.
@@ -86,6 +87,10 @@ def build(ctx):
             raise fbuild.Error('file %r not cached' % ctx.options.delete_file)
         return 0
 
+    # Enable warnings of they aren't forcibly disabled.
+    if not ctx.options.no_warnings:
+        warnings.filterwarnings('always', category=DeprecationWarning)
+
     # We'll use the arguments as our targets.
     targets = ctx.args or ['build']
 
@@ -153,9 +158,8 @@ def main(argv=None):
     # --------------------------------------------------------------------------
 
     # If we don't wrap this in a try...finally block to shutdown the scheduler
-    # after all else finishes, fbuild will hang indefinitely
+    # after all else finishes, fbuild will hang indefinitely.
     try:
-
         # If the fbuildroot doesn't exist, error out. We do this now so that
         # there's a chance to ask fbuild for help first.
         if isinstance(fbuildroot, Exception):

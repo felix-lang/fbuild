@@ -1,23 +1,20 @@
 import fbuild.builders.cxx
 
 def build(ctx):
-    static = fbuild.builders.cxx.guess_static(ctx, platform_options=[
-        ({'windows'}, {'flags': ['/EHsc']}),
+    builders = fbuild.builders.cxx.guess(ctx, platform_options=[
+        ({'msvc++'}, {'flags': ['/EHsc']}),
         ({'posix'}, {'flags': ['-Wall', '-Werror']}),
     ])
-    lib = static.build_lib('lib_static', ['lib.cpp'], macros=['STATIC_LINK'])
-    exe = static.build_exe('exe_static', ['exe.cpp'], macros=['STATIC_LINK'],
+
+    lib = builders.static.build_lib('lib_static', ['lib.cpp'], macros=['STATIC_LINK'])
+    exe = builders.static.build_exe('exe_static', ['exe.cpp'], macros=['STATIC_LINK'],
         libs=[lib])
 
     ctx.logger.log(' * running %s:' % exe)
-    static.run([exe])
+    builders.static.run([exe])
 
-    shared = fbuild.builders.cxx.guess_shared(ctx, platform_options=[
-        ({'windows'}, {'flags': ['/EHsc']}),
-        ({'posix'}, {'flags': ['-Wall', '-Werror']}),
-    ])
-    lib = shared.build_lib('lib_shared', ['lib.cpp'], macros=['BUILD_LIB'])
-    exe = shared.build_exe('exe_shared', ['exe.cpp'], libs=[lib])
+    lib = builders.shared.build_lib('lib_shared', ['lib.cpp'], macros=['BUILD_LIB'])
+    exe = builders.shared.build_exe('exe_shared', ['exe.cpp'], libs=[lib])
 
     ctx.logger.log(' * running %s:' % exe)
-    shared.run([exe])
+    builders.shared.run([exe])

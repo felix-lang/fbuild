@@ -99,6 +99,10 @@ def make_parser():
             default='pickle',
             help='which database engine to use: (pickle, sqlite, cache). ' \
                  'pickle is the default'),
+        make_option('--no-warnings',
+            action='store_true',
+            default=False,
+            help='suppress warnings for the build script'),
     ])
 
     return parser

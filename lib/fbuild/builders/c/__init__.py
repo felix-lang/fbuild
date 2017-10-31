@@ -1,4 +1,4 @@
-import abc, copy
+import abc, copy, warnings, sys
 from functools import partial
 from itertools import chain
 
@@ -8,6 +8,7 @@ import fbuild.temp
 import fbuild.builders
 import fbuild.builders.platform
 import fbuild.functools
+import fbuild.record
 from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
@@ -330,61 +331,11 @@ class Executable(Path):
 
 # ------------------------------------------------------------------------------
 
-def _guess_builder(name, compilers, functions, ctx, *args,
-        platform=None,
-        platform_extra=None,
-        platform_options=[],
-        exe=None,
-        **kwargs):
-    if platform is None:
-        platform = fbuild.builders.platform.guess_platform(ctx, platform)
-    platform_extra = platform_extra or set()
-    if not platform_extra & compilers:
-        if exe is not None:
-            tp = identify_compiler(ctx, exe)
-            if tp is None:
-                raise fbuild.ConfigFailed('cannot identify exe given for ' +\
-                                          name)
-            platform_extra |= tp
-        else:
-            platform_extra |= compilers
-    platform |= platform_extra
-
-    full_compilers = compilers | {'windows'}
-
-    for subplatform, function in functions:
-        # XXX: this is slightly a hack to make sure:
-        # a) Clang can actually be detected
-        # b) Any compilers explicitly listed in platform_extra will have #1
-        #  priority
-
-        if subplatform - (compilers & platform_extra) <= platform:
-            # Parse the platform options.
-            new_kwargs = copy.deepcopy(kwargs)
-
-            # Make sure only the current compiler is in platform_options.
-            compiler_platform = platform - compilers | (compilers & subplatform)
-
-            fbuild.builders.platform.parse_platform_options(
-                ctx, compiler_platform, platform_options,
-                (subplatform & full_compilers), new_kwargs)
-
-            # Try to use this compiler. If it doesn't work, skip this compiler
-            # and try another one.
-
-            try:
-                return fbuild.functools.call(function, ctx, exe, platform=platform,
-                                             *args, **new_kwargs)
-            except fbuild.ConfigFailed:
-                pass
-
-    raise fbuild.ConfigFailed('cannot find a %s builder for %s' % (name, platform))
-
 @fbuild.db.caches
 def identify_compiler(ctx, exe):
     res = None
     ctx.logger.check('identifying exe %s' % exe)
-    # take a cue from the name
+    # Take a cue from the name
     if exe == 'clang' or exe == 'clang++':
         res = {'clang', 'clang++'}
     elif exe == 'gcc' or exe == 'g++' or exe == 'colorgcc':
@@ -392,19 +343,19 @@ def identify_compiler(ctx, exe):
     elif exe == 'icc' or exe == 'icpc':
         res = {'icc', 'icpc'}
     elif exe == 'cl' or exe == 'cl.exe':
-        res = {'windows'}
+        res = {'msvc', 'msvc++'}
     else:
         try:
             out, err = ctx.execute((exe, '--version'), quieter=1)
         except fbuild.ExecutionError:
+            # Is it MSVC?
             try:
-                # is it MSVC?
                 out, err = ctx.execute((exe,), quieter=1)
             except fbuild.ExecutionError:
                 pass
             else:
                 if b'Microsoft' in out or b'Microsoft' in err:
-                    res = {'windows'}
+                    res = {'msvc', 'msvc++'}
         else:
             ccmap = {'Free Software Foundation': {'gcc', 'g++'},
                      'clang': {'clang', 'clang++'},
@@ -418,43 +369,122 @@ def identify_compiler(ctx, exe):
         ctx.logger.passed(res)
     return res
 
-def guess_static(*args, **kwargs):
-    """L{static} tries to guess the static system c compiler according to the
-    platform. It accepts a I{platform} keyword that overrides the system's
-    platform and a I{platform_extra} keyword that is joined to the system's
-    platform. This can be used to use a non-default compiler. Any extra
-    arguments and keywords are passed to the compiler's configuration
-    functions."""
 
-    return _guess_builder('c static', {'gcc', 'clang', 'icc'}, (
-        ({'windows'}, 'fbuild.builders.c.msvc.static'),
-        ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.static'),
+class Guesser:
+    def __init__(self, lang, compilers, functions):
+        self.lang = lang
+        self.compilers = compilers
+        self.functions = functions
+
+    def static(self, ctx, **kwargs):
+        return self(ctx, shared=None, **kwargs).static
+
+    def shared(self, ctx, **kwargs):
+        return self(ctx, static=None, **kwargs).shared
+
+    def __call__(self, ctx, static={}, shared={}, platform=None, platform_options={},
+                 exe=None, **kwargs):
+        """Try to find a set of builders. A static builder will be located using the
+        arguments in *static* combined with *kwargs*, and the shared builder will be
+        located using *shared* arguments combined with *kwargs*. Each
+        """
+        if platform is None:
+            platform = fbuild.builders.platform.guess_platform(ctx, platform)
+
+        if exe is not None:
+            tp = identify_compiler(ctx, exe)
+            if tp is None:
+                raise fbuild.ConfigFailed('cannot identify exe given for %s' % name)
+            # Grab only the compiler type pertaining to this guess call.
+            platform |= tp & self.compilers
+        else:
+            # We're open to using all compilers.
+            platform |= self.compilers
+
+        builders = {'static': static, 'shared': shared}
+
+        for subplatform, static_function, shared_function in self.functions:
+            if subplatform <= platform:
+                # We need to go through each requested builder and check the compiler.
+                result = fbuild.record.Record()
+                for builder, builder_args in builders.items():
+                    if builder_args is None:
+                        result[builder] = None
+                        continue
+
+                    if builder == 'static':
+                        function = static_function
+                    else:
+                        function = shared_function
+
+                    # Create a new arg dict, merging both kwargs and the builder-specific args.
+                    new_kwargs = copy.deepcopy(kwargs)
+                    new_kwargs.update(copy.deepcopy(builder_args))
+
+                    # Make sure that only the current compiler used for parsing
+                    # platform_options.
+                    simplified_platform = (platform - self.compilers) | subplatform
+                    # Now parse the options.
+                    fbuild.builders.platform.parse_platform_options(ctx,
+                        simplified_platform, platform_options, new_kwargs)
+
+                    # Try to use this compiler. If it doesn't work, then give up on this
+                    # subplatform and move on.
+                    try:
+                        result[builder] = fbuild.functools.call(function, ctx, exe,
+                                                                platform=platform,
+                                                                **new_kwargs)
+                    except fbuild.ConfigFailed:
+                        break
+
+                # If both builders are present in some form, then that means this
+                # function has succeeded. Time to return the result record.
+                if len(result) == 2:
+                    return result
+
+        # If we made it all the way here, then everything failed.
+        raise fbuild.ConfigFailed('cannot find a builder for %s' % platform)
+
+
+guess = Guesser('c', {'msvc', 'gcc', 'clang', 'icc'}, (
+        ({'windows', 'msvc'}, 'fbuild.builders.c.msvc.static',
+                              'fbuild.builders.c.msvc.shared'),
+        ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.static',
+                         'fbuild.builders.c.gcc.avr.shared'),
         ({'iphone', 'simulator', 'gcc'},
-            'fbuild.builders.c.gcc.iphone.static_simulator'),
-        ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.static'),
-        ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.static'),
-        ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.static'),
-        ({'clang'}, 'fbuild.builders.c.clang.static'),
-        ({'icc'}, 'fbuild.builders.c.intel.static'),
-        ({'gcc'}, 'fbuild.builders.c.gcc.static'),
-    ), *args, **kwargs)
-
-def guess_shared(*args, **kwargs):
-    """L{shared} tries to guess the shared system c compiler according to the
-    platform. It accepts a I{platform} keyword that overrides the system's
-    platform. This can be used to use a non-default compiler. Any extra
-    arguments and keywords are passed to the compiler's configuration
-    functions."""
-
-    return _guess_builder('c shared', {'gcc', 'clang', 'icc'}, (
-        ({'windows'}, 'fbuild.builders.c.msvc.shared'),
-        ({'avr', 'gcc'}, 'fbuild.builders.c.gcc.avr.shared'),
-        ({'iphone', 'simulator', 'gcc'},
+            'fbuild.builders.c.gcc.iphone.static_simulator',
             'fbuild.builders.c.gcc.iphone.shared_simulator'),
-        ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.shared'),
-        ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.shared'),
-        ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.shared'),
-        ({'clang'}, 'fbuild.builders.c.clang.shared'),
-        ({'icc'}, 'fbuild.builders.c.intel.static'),
-        ({'gcc'}, 'fbuild.builders.c.gcc.shared'),
-    ), *args, **kwargs)
+        ({'iphone', 'gcc'}, 'fbuild.builders.c.gcc.iphone.static',
+                            'fbuild.builders.c.gcc.iphone.shared'),
+        ({'darwin', 'clang'}, 'fbuild.builders.c.clang.darwin.static',
+                              'fbuild.builders.c.clang.darwin.shared'),
+        ({'darwin', 'gcc'}, 'fbuild.builders.c.gcc.darwin.static',
+                            'fbuild.builders.c.gcc.darwin.shared'),
+        ({'clang'}, 'fbuild.builders.c.clang.static',
+                    'fbuild.builders.c.clang.shared'),
+        ({'gcc'}, 'fbuild.builders.c.gcc.static',
+                  'fbuild.builders.gcc.shared'),
+        ({'icc'}, 'fbuild.builders.c.intel.static',
+                  'fbuild.builders.c.intel.shared'),
+    ))
+
+
+def _guess_deprecated(func):
+    def wrapper(*args, **kwargs):
+        warnings.warn('guess_static and guess_shared have been deprecated. Use ' \
+                      'guess.static(...) and guess.shared(...) instead.',
+                      DeprecationWarning, stacklevel=2)
+        # Prevent the warning from getting tangled up with in-progress checks.
+        sys.stdout.flush()
+        sys.stderr.flush()
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@_guess_deprecated
+def guess_static(ctx, **kwargs):
+    return guess.static(ctx, **kwargs)
+
+@_guess_deprecated
+def guess_shared(ctx, **kwargs):
+    return guess.shared(ctx, **kwargs)

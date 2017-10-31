@@ -64,19 +64,15 @@ def test_module(ctx, builder, shared, module):
 def build(ctx):
     # C needs libm included for some math routines, but C++ links against libm
     # automatically.
-    c_static = fbuild.builders.c.guess_static(ctx, external_libs=['m'])
-    c_shared = fbuild.builders.c.guess_shared(ctx, external_libs=['m'])
-    cxx_static = fbuild.builders.cxx.guess_static(ctx, platform_options=[
-        ({'windows'}, {'flags': ['/EHsc']}),
-    ])
-    cxx_shared = fbuild.builders.cxx.guess_shared(ctx, platform_options=[
-        ({'windows'}, {'flags': ['/EHsc']}),
+    c = fbuild.builders.c.guess(ctx, external_libs=['m'])
+    cxx = fbuild.builders.cxx.guess(ctx, platform_options=[
+        ({'msvc++'}, {'flags': ['/EHsc']}),
     ])
     passed = 0
     total = 0
 
     # c tests
-    for builder in c_static, c_shared, cxx_static, cxx_shared:
+    for builder in c.static, c.shared, cxx.static, cxx.shared:
         for module in (
                 import_module('fbuild.config.c.bsd'),
                 import_module('fbuild.config.c.c90'),
@@ -100,19 +96,19 @@ def build(ctx):
                 import_module('fbuild.config.c.solaris'),
                 import_module('fbuild.config.c.stdlib'),
                 import_module('fbuild.config.c.win32')):
-            p, t = test_module(ctx, builder, c_shared, module)
+            p, t = test_module(ctx, builder, c.shared, module)
             passed += p
             total += t
 
     # c++ tests
-    for builder in cxx_static, cxx_shared:
+    for builder in cxx.static, cxx.shared:
         for module in (
                 import_module('fbuild.config.cxx.cmath'),
                 import_module('fbuild.config.cxx.cxx03'),
                 import_module('fbuild.config.cxx.gnu'),
                 import_module('fbuild.config.cxx.gtest'),
                 import_module('fbuild.config.cxx.iterator')):
-            p, t = test_module(ctx, builder, cxx_shared, module)
+            p, t = test_module(ctx, builder, cxx.shared, module)
             passed += p
             total += t
 
