@@ -253,7 +253,8 @@ class Gcc(fbuild.db.PersistentObject):
             lib = lib.name[len('lib'):]
             lib = lib.rsplit('.', 1)[0]
 
-            new_libs.append(lib)
+            if lib not in new_libs:
+                new_libs.append(lib)
 
         for lib in chain(self.libs, libs):
             f(lib)
