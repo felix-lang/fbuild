@@ -12,7 +12,7 @@ cd tests
 ./run_tests.py
 cd ../examples
 for dir in */; do
-    [ $dir == "config/" -o $dir == "ocaml-batteries/" ] && continue
+    [ $dir == "config/" -o $dir == "scala/" -o $dir == "ocaml-batteries/" ] && continue
     echo "Running example $dir"
     cd $dir
     ../../fbuild-light || fail $dir
