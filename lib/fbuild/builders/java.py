@@ -234,7 +234,8 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
 
     # --------------------------------------------------------------------------
 
-    _dep_regex = re.compile(r'\[wrote (?:RegularFileObject\[)?([^\]]+)')
+    _dep_regex = re.compile(
+        r"\[wrote (?:RegularFileObject\[)?(?:'[^']+' to )?([^\]]+)")
 
     def _run(self, builder, src, dst=None, *,
             flags=[],
