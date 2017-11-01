@@ -43,9 +43,13 @@ class OptparseShimMixin:
                     if default != ('NO', 'DEFAULT'):
                         kw[attr] = default
                 elif attr == 'type':
-                    kw[attr] = TYPE_MAP[getattr(option, attr)]
+                    ty = getattr(option, attr)
+                    if ty is not None:
+                        kw[attr] = TYPE_MAP[ty]
                 else:
-                    kw[attr] = getattr(option, attr)
+                    value = getattr(option, attr)
+                    if value is not None:
+                        kw[attr] = value
 
             args += tuple(option._short_opts + option._long_opts)
 
