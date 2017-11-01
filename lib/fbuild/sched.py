@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import io
 import operator
 import queue
@@ -87,15 +88,45 @@ class Scheduler:
             import fbuild.console
             logger = fbuild.console.Log()
 
+        # Set up the controlling lock.
+        self.__controlling_lock = threading.Lock()
+
         # Spin up our threads!
         for i in range(threadcount):
-            thread = WorkerThread(logger, self.__ready_queue)
+            thread = WorkerThread(logger, self.__ready_queue, self.__controlling_lock)
             self.__threads.append(thread)
             thread.start()
 
     @property
     def threadcount(self):
         return len(self.__threads)
+
+    @contextlib.contextmanager
+    def interruptable(self):
+        """Use to enclose blocks of code that can be interrupted. For example:
+
+        .. code-block:: python
+
+            with ctx.thread_ctrl.interruptable():
+                # Place interruptable code here
+
+        *interruptable* returns a function that can be used to force a context switch while
+        waiting for a result. For instance:
+
+        .. code-block:: python
+
+            with ctx.thread_ctrl.interruptable() as interrupt:
+                while result_is_not_ready_yet:
+                    interrupt()
+
+        Note that most *wait* operations in the Python language already perform
+        context switching automatically.
+        """
+
+        self.__controlling_lock.release()
+        # time.sleep(0) is an easy way of forcing a context switch.
+        yield lambda: time.sleep(0)
+        self.__controlling_lock.acquire()
 
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
@@ -282,12 +313,13 @@ class WorkerThread(threading.Thread):
     left.
     """
 
-    def __init__(self, logger, ready_queue):
+    def __init__(self, logger, ready_queue, controlling_lock):
         super().__init__()
         self.daemon = True
 
         self.__logger = logger
         self.__ready_queue = ready_queue
+        self.__controlling_lock = controlling_lock
         self.__finished = False
 
     def shutdown(self):
@@ -320,10 +352,11 @@ class WorkerThread(threading.Thread):
                 return False
 
             done_queue, task = queue_task
-            try:
-                task.run()
-            finally:
-                done_queue.put(task)
+            with self.__controlling_lock:
+                try:
+                    task.run()
+                finally:
+                    done_queue.put(task)
         finally:
             self.__ready_queue.task_done()
 
@@ -343,7 +376,7 @@ class Task:
         self.running = False
         self.done = False
         self.dependencies = []
-        self.exc =None
+        self.exc = None
 
     def can_run(self):
         """Returns True if all of this task's dependencies are done. Otherwise
