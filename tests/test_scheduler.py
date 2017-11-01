@@ -27,7 +27,7 @@ class TestScheduler(unittest.TestCase):
             self.assertEquals(self.scheduler.threadcount, self.threads)
 
     def tearDown(self):
-        # make sure we turn off all tht threads when shutting down
+        # make sure we turn off all the threads when shutting down
         self.scheduler.shutdown()
 
         self.assertEquals(self.scheduler.threadcount, 0)

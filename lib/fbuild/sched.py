@@ -330,8 +330,9 @@ class WorkerThread(threading.Thread):
         try:
             while not self.__finished:
                 with self.__logger.log_from_thread():
-                    if not self.run_one():
-                        break
+                    with self.__controlling_lock:
+                        if not self.run_one():
+                            break
         except KeyboardInterrupt:
             # let the main thread know we got a SIGINT
             _thread.interrupt_main()
@@ -352,11 +353,10 @@ class WorkerThread(threading.Thread):
                 return False
 
             done_queue, task = queue_task
-            with self.__controlling_lock:
-                try:
-                    task.run()
-                finally:
-                    done_queue.put(task)
+            try:
+                task.run()
+            finally:
+                done_queue.put(task)
         finally:
             self.__ready_queue.task_done()
 
