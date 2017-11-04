@@ -43,6 +43,7 @@ Windows 95, 98, or NT 4.0). It also requires ctypes, which is bundled with
 Python 2.5+ or available from http://python.net/crew/theller/ctypes/
 """
 
+import errno
 import subprocess
 import sys
 import os
@@ -209,10 +210,14 @@ class Popen(subprocess.Popen):
             self.returncode = 127
         else:
             sig = signal.SIGINT if sigint else signal.SIGKILL
-            if group:
-                os.killpg(os.getpgid(self.pid), sig)
-            else:
-                os.kill(self.pid, sig)
+            try:
+                if group:
+                    os.killpg(os.getpgid(self.pid), sig)
+                else:
+                    os.kill(self.pid, sig)
+            except OSError as ex:
+                if ex.errno != errno.ESRCH:
+                    raise
             self.returncode = -9
 
     def _try_wait(self, wait_flags):

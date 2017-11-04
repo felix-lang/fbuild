@@ -201,8 +201,9 @@ class Context:
                     timer = threading.Timer(timeout, timeout_function, (p,))
                     timer.start()
 
-                stdout, stderr = p.communicate(input)
-                returncode = p.wait()
+                with self.scheduler.interruptable():
+                    stdout, stderr = p.communicate(input)
+                    returncode = p.wait()
             except KeyboardInterrupt:
                 # Make sure if we get a keyboard interrupt to kill the process.
                 p.kill(group=True, sigint=True)
