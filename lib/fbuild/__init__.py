@@ -31,3 +31,6 @@ class ExecutionTimedOut(ExecutionError):
             cmd = ' '.join(self.cmd)
 
         return 'Timed out running %r exited with %d' % (cmd, self.returncode)
+
+class Deprecation(DeprecationWarning):
+    pass

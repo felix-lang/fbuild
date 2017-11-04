@@ -21,7 +21,7 @@ class OptparseShimMixin:
             return
 
         warnings.warn('optparse-style API is deprecated; use argparse API instead',
-                      DeprecationWarning, stacklevel=3)
+                      fbuild.Deprecation, stacklevel=3)
         self._optparse_already_warned = True
 
     def _optparse_add_option(self, *args, **kw):

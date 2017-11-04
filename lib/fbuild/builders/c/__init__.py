@@ -473,7 +473,7 @@ def _guess_deprecated(func):
     def wrapper(*args, **kwargs):
         warnings.warn('guess_static and guess_shared have been deprecated. Use ' \
                       'guess.static(...) and guess.shared(...) instead.',
-                      DeprecationWarning, stacklevel=2)
+                      fbuild.Deprecation, stacklevel=2)
         # Prevent the warning from getting tangled up with in-progress checks.
         sys.stdout.flush()
         sys.stderr.flush()

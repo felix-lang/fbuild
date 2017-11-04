@@ -43,7 +43,7 @@ def _call_or_deprecated(current, current_args, deprecated, deprecated_args):
         pass
     else:
         warnings.warn('%s is deprecated; use %s instead' % (deprecated, current),
-                      DeprecationWarning)
+                      fbuild.Deprecation)
         return func(*deprecated_args)
 
     return None
@@ -140,7 +140,7 @@ def main(argv=None):
 
     # Hacky way of enabling warnings before parsing options.
     if '--no-warnings' not in sys.argv:
-        warnings.filterwarnings('always', category=DeprecationWarning)
+        warnings.filterwarnings('always', category=fbuild.Deprecation)
 
     # --------------------------------------------------------------------------
 
