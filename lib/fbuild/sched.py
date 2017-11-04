@@ -123,10 +123,18 @@ class Scheduler:
         context switching automatically.
         """
 
-        self.__controlling_lock.release()
+        try:
+            self.__controlling_lock.release()
+        except RuntimeError:
+            was_locked = False
+        else:
+            was_locked = True
         # time.sleep(0) is an easy way of forcing a context switch.
-        yield lambda: time.sleep(0)
-        self.__controlling_lock.acquire()
+        try:
+            yield lambda: time.sleep(0)
+        finally:
+            if was_locked:
+                self.__controlling_lock.acquire()
 
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
@@ -232,7 +240,7 @@ class Scheduler:
                 # We're inside an already running thread, so we're going to run
                 # until all of our tasks are done.
                 try:
-                    current_thread.run_one(block=False)
+                    current_thread.run_one(current_thread.read_task(block=False))
                 except queue.Empty:
                     pass
 
@@ -330,21 +338,27 @@ class WorkerThread(threading.Thread):
         try:
             while not self.__finished:
                 with self.__logger.log_from_thread():
+                    queue_task = self.read_task()
                     with self.__controlling_lock:
-                        if not self.run_one():
+                        if not self.run_one(queue_task):
                             break
         except KeyboardInterrupt:
             # let the main thread know we got a SIGINT
             _thread.interrupt_main()
             raise
 
-    def run_one(self, *args, **kwargs):
+    def read_task(self, *args, **kwargs):
+        """
+        Try to read one task.
+        """
+
+        return self.__ready_queue.get(*args, **kwargs)
+
+    def run_one(self, queue_task):
         """
         Try to run one task. Returns True if we actually ran a function,
         otherwise return False.
         """
-
-        queue_task = self.__ready_queue.get(*args, **kwargs)
 
         try:
             # This should be tested in the try block so that we update the done
