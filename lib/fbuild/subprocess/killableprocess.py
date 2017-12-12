@@ -101,12 +101,12 @@ class Popen(subprocess.Popen):
                 raise Exception("Arguments preexec_fn and after must be passed by keyword.")
 
             real_preexec_fn = kwargs.pop("preexec_fn", None)
-            def setpgid_preexec_fn():
+            def setsid_preexec_fn():
                 os.setsid()
                 if real_preexec_fn:
                     apply(real_preexec_fn)
 
-            kwargs['preexec_fn'] = setpgid_preexec_fn
+            kwargs['preexec_fn'] = setsid_preexec_fn
 
             subprocess.Popen.__init__(self, *args, **kwargs)
 
