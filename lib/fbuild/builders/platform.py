@@ -179,7 +179,7 @@ def runtime_env_libpath(ctx, platform=None):
 
 def platform_match(platform, matcher):
     required_present = set(p for p in matcher if not p.startswith('!'))
-    required_nonpresent = set(p for p in matcher if p.startswith('!'))
+    required_nonpresent = set(p[1:] for p in matcher if p.startswith('!'))
 
     return required_present <= platform and not platform & required_nonpresent
 
