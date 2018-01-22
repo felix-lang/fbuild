@@ -38,5 +38,9 @@ setup(
         'console_scripts': ['fbuild = fbuild.main:main']
     },
     package_dir={'': 'lib'},
+    data_files=[
+        ('/usr/local/share/uprocd/modules', ['misc/fbuild.module']),
+    ],
     cmdclass=cmdclass,
+    zip_safe=False,
 )
