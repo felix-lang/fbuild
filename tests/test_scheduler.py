@@ -22,23 +22,23 @@ class TestScheduler(unittest.TestCase):
         self.scheduler = Scheduler(self.threads)
 
         if self.threads == 0:
-            self.assertEquals(self.scheduler.threadcount, 1)
+            self.assertEqual(self.scheduler.threadcount, 1)
         else:
-            self.assertEquals(self.scheduler.threadcount, self.threads)
+            self.assertEqual(self.scheduler.threadcount, self.threads)
 
     def tearDown(self):
         # make sure we turn off all the threads when shutting down
         self.scheduler.shutdown()
 
-        self.assertEquals(self.scheduler.threadcount, 0)
-        self.assertEquals(threading.active_count(), self.initial_thread_count)
+        self.assertEqual(self.scheduler.threadcount, 0)
+        self.assertEqual(threading.active_count(), self.initial_thread_count)
 
     def testMap(self):
         def f(x):
             time.sleep(random.random() * 0.01)
             return x + 1
 
-        self.assertEquals(
+        self.assertEqual(
             self.scheduler.map(f, [0,1,2,3,4,5,6,7,8,9]),
             [1,2,3,4,5,6,7,8,9,10])
 
@@ -47,7 +47,7 @@ class TestScheduler(unittest.TestCase):
             time.sleep(random.random() * 0.01)
             return self.scheduler.map(f, x)
 
-        self.assertEquals(
+        self.assertEqual(
             self.scheduler.map(g, [[0,1,2],[3,4,5],[6,7,8]]),
             [[1,2,3],[4,5,6],[7,8,9]])
 
