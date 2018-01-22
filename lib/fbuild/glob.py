@@ -50,10 +50,11 @@ def _iglob(pathname, recursive, dironly):
         return
     if not dirname:
         if recursive and _isrecursive(basename):
-            yield from _glob2(dirname, basename, dironly)
+            items = _glob2(dirname, basename, dironly)
         else:
-            yield from _glob1(dirname, basename, dironly)
-        return
+            items = _glob1(dirname, basename, dironly)
+        for item in items:
+            yield item
     # `os.path.split()` returns the argument itself as a dirname if it is a
     # drive or UNC path.  Prevent an infinite recursion if a drive or UNC path
     # contains magic characters (i.e. r'\\?\C:').
@@ -107,7 +108,8 @@ def glob1(dirname, pattern):
 def _glob2(dirname, pattern, dironly):
     assert _isrecursive(pattern)
     yield pattern[:0]
-    yield from _rlistdir(dirname, dironly)
+    for item in _rlistdir(dirname, dironly):
+        yield item
 
 # If dironly is false, yields all file names inside a directory.
 # If dironly is true, yields only directory names.
