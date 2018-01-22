@@ -10,6 +10,10 @@ try:
 except ImportError:
     cmdclass = {}
 
+data_files = []
+if sys.platform != 'win32':
+    data_files.append(('/usr/local/share/uprocd/modules', ['misc/fbuild.module']))
+
 setup(
     name='fbuild',
     version=fbuild.__version__,
@@ -38,9 +42,7 @@ setup(
         'console_scripts': ['fbuild = fbuild.main:main']
     },
     package_dir={'': 'lib'},
-    data_files=[
-        ('/usr/local/share/uprocd/modules', ['misc/fbuild.module']),
-    ],
+    data_files=data_files,
     cmdclass=cmdclass,
     zip_safe=False,
 )
