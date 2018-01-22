@@ -201,7 +201,7 @@ class Context:
                     timer = threading.Timer(timeout, timeout_function, (p,))
                     timer.start()
 
-                with self.scheduler.interruptable():
+                with self.scheduler.interruptible():
                     stdout, stderr = p.communicate(input)
                     returncode = p.wait()
             except KeyboardInterrupt:
