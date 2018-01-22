@@ -239,13 +239,13 @@ class Scheduler:
             if isinstance(current_thread, WorkerThread):
                 # We're inside an already running thread, so we're going to run
                 # until all of our tasks are done.
-                with self.interruptible():
-                    try:
+                try:
+                    with self.interruptible():
                         task = current_thread.read_task(block=False)
-                    except queue.Empty:
-                        pass
-                    else:
-                        current_thread.run_one(task)
+                except queue.Empty:
+                    pass
+                else:
+                    current_thread.run_one(task)
 
                 # See if any of our tasks finished.
                 try:
