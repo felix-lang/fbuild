@@ -50,7 +50,7 @@ class Context:
         self.options = options
 
         self.install_prefix = Path('/usr/local')
-        self.to_install = {'bin': [], 'lib': [], 'share': [], 'include': []}
+        self.to_install = []
 
         self.tmpdir = self.buildroot / '.tmp'
         fbuild.temp.set_default_tempdir(self.tmpdir)
@@ -251,13 +251,9 @@ class Context:
 
         return stdout, stderr
 
-    def install(self, path, category, addroot=''):
-        try:
-            self.to_install[category].append((Path(path).abspath(), addroot))
-        except AttributeError:
-            pass
-        except KeyError:
-            raise fbuild.Error('invalid install category: {}'.format(category))
+    def install(self, path, target, *, rename=None, perms=None):
+        """Set the given file to be installed after  the build completes."""
+        self.to_install.append((Path(path).abspath(), target, rename, perms))
 
 # ------------------------------------------------------------------------------
 

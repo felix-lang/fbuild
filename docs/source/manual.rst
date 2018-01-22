@@ -750,19 +750,19 @@ this:
 
 .. code-block:: python
 
-  def install(self, path, category, addroot=''):
+  def install(self, path, target, *, rename=None, perms=None):
 
-The ``path`` is the path to install. If it's inside of ``ctx.buildroot``, then
-that will be stripped off; for instance, if you have ``build/myfile.exe``, then
-the ``build/`` portion will be removed to result in ``myfile.exe``.
+The ``path`` is the path to install of the file to install, and ``target`` is a
+subdirectory of the installation prefix to install into. For instance,
+``ctx.install('somehwere/my-file', 'share/my-app')`` will copy ``somewhere/my-file``
+to ``$PREFIX/share/my-app/my-file``.
 
-``category`` is the subdirectory of ``ctx.installroot`` to install the file into.
+If you want to change the file name (e.g. ``my-new-file`` instead), you can pass that
+as the ``rename`` parameter, e.g.
+``ctx.install('somewhere/my-file', 'share/my-app', 'my-new-file')``.
 
-``addroot`` is a *further* subdirectory of ``ctx.installroot`` that the files will
-be put into.
-
-For instance, ``ctx.install('x', 'y', 'z')`` will install ``x`` into
-``ctx.installroot / 'y' / 'z'``.
+``perms`` can be used to assign custom permissions to the target file. By default, it
+will use the same permissions as the original file.
 
 Platforms
 ^^^^^^^^^

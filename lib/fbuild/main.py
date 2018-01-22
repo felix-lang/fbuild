@@ -72,17 +72,22 @@ def parse_args(argv):
 # ------------------------------------------------------------------------------
 
 def install_files(ctx):
-    for subdir, files in ctx.to_install.items():
+    for file, subdir, rename, perms in ctx.to_install:
         # Generate the full subdirectory.
         target_root = fbuild.path.Path(subdir).addroot(ctx.install_prefix)
-        for file, froot in files:
-            file = file.relpath(file.getcwd())
-            # Generate the target path.
-            target = file.basename().addroot(target_root / froot)
-            # Copy the file.
-            ctx.logger.check(' * install', '%s -> %s' % (file, target),
-                             color='yellow')
-            file.copy(target)
+        target_root.makedirs(exist_ok=True)
+
+        # Generate the target path.
+        target = target_root / (rename or file.basename())
+        file = file.relpath(file.getcwd())
+
+        # Copy the file.
+        ctx.logger.check(' * install', '%s -> %s' % (file, target), color='yellow')
+        file.copy(target)
+
+        # Set permissions.
+        if perms is not None:
+            file.chmod(perms)
 
 # ------------------------------------------------------------------------------
 
