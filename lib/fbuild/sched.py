@@ -107,7 +107,7 @@ class Scheduler:
 
         .. code-block:: python
 
-            with ctx.thread_ctrl.interruptable():
+            with ctx.scheduler.interruptable():
                 # Place interruptable code here
 
         *interruptable* returns a function that can be used to force a context switch while
@@ -115,7 +115,7 @@ class Scheduler:
 
         .. code-block:: python
 
-            with ctx.thread_ctrl.interruptable() as interrupt:
+            with ctx.scheduler.interruptable() as interrupt:
                 while result_is_not_ready_yet:
                     interrupt()
 
@@ -239,10 +239,13 @@ class Scheduler:
             if isinstance(current_thread, WorkerThread):
                 # We're inside an already running thread, so we're going to run
                 # until all of our tasks are done.
-                try:
-                    current_thread.run_one(current_thread.read_task(block=False))
-                except queue.Empty:
-                    pass
+                with self.interruptable():
+                    try:
+                        task = current_thread.read_task(block=False)
+                    except queue.Empty:
+                        pass
+                    else:
+                        current_thread.run_one(task)
 
                 # See if any of our tasks finished.
                 try:
