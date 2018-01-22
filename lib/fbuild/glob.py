@@ -6,7 +6,7 @@ from . import fnmatch
 
 __all__ = ["glob", "iglob", "escape"]
 
-def glob(pathname, *, recursive=False):
+def glob(pathname, *, recursive=True):
     """Return a list of paths matching a pathname pattern.
 
     The pattern may contain simple shell-style wildcards a la
@@ -19,7 +19,7 @@ def glob(pathname, *, recursive=False):
     """
     return list(iglob(pathname, recursive=recursive))
 
-def iglob(pathname, *, recursive=False):
+def iglob(pathname, *, recursive=True):
     """Return an iterator which yields the paths matching a pathname pattern.
 
     The pattern may contain simple shell-style wildcards a la
@@ -30,6 +30,7 @@ def iglob(pathname, *, recursive=False):
     If recursive is true, the pattern '**' will match any files and
     zero or more directories and subdirectories.
     """
+
     it = _iglob(pathname, recursive)
     if recursive and _isrecursive(pathname):
         s = next(it)  # skip empty string
@@ -130,8 +131,8 @@ def _rlistdir(dirname):
                 yield os.path.join(x, y)
 
 
-magic_check = re.compile('([*?[])')
-magic_check_bytes = re.compile(b'([*?[])')
+magic_check = re.compile('([*?[{])')
+magic_check_bytes = re.compile(b'([*?[{])')
 
 def has_magic(s):
     if isinstance(s, bytes):
