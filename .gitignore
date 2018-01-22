@@ -5,3 +5,4 @@ dist/
 lib/fbuild.egg-info
 __pycache__/
 ocamlprof.dump
+bluesnow-out/
