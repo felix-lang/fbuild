@@ -108,7 +108,9 @@ class Builder(fbuild.builders.AbstractCompilerBuilder):
                     libs=[lib],
                     quieter=1)
 
-            if not self.cross_compiler:
+            if self.cross_compiler:
+                self.ctx.logger.passed()
+            else:
                 try:
                     stdout, stderr = self.run([exe], quieter=1)
                 except fbuild.ExecutionError:
