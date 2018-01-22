@@ -4,6 +4,12 @@ import sys
 sys.path.append('lib')
 import fbuild
 
+try:
+    import bluesnow
+    cmdclass = bluesnow.setuptools_cmdclass
+except ImportError:
+    cmdclass = {}
+
 setup(
     name='fbuild',
     version=fbuild.__version__,
@@ -32,4 +38,9 @@ setup(
         'console_scripts': ['fbuild = fbuild.main:main']
     },
     package_dir={'': 'lib'},
+    data_files=[
+        ('/usr/local/share/uprocd/modules', ['misc/fbuild.module']),
+    ],
+    cmdclass=cmdclass,
+    zip_safe=False,
 )

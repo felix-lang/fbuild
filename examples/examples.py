@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 import os
-import optparse
+import argparse
 import subprocess
 import sys
 
-parser = optparse.OptionParser()
-parser.add_option('--clean',
+parser = argparse.ArgumentParser()
+parser.add_argument('--clean',
     action='store_true',
     help='clean build files first')
-parser.add_option('-j', '--jobs',
+parser.add_argument('-j', '--jobs',
     metavar='N',
-    type='int',
+    type=int,
     default=1,
     help='Allow N jobs at once')
-parser.add_option('--database-engine',
+parser.add_argument('--database-engine',
     default='pickle',
     help='specify the database engine')
 
-options, args = parser.parse_args()
+options = parser.parse_args()
 
 examples_dir = os.path.dirname(__file__) or os.getcwd()
 for d in os.listdir(examples_dir):

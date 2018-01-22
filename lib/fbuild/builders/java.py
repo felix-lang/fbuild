@@ -117,6 +117,7 @@ class Java(fbuild.db.PersistentObject):
 # ------------------------------------------------------------------------------
 
 class AbstractCompiler(fbuild.db.PersistentObject):
+    @fbuild.builders.platform.auto_platform_options()
     def __init__(self, ctx, exe, src_suffix, *,
             classpaths=[],
             sourcepaths=[],
@@ -141,6 +142,7 @@ class AbstractCompiler(fbuild.db.PersistentObject):
         if debug_flags and not self.check_flags(debug_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)
 
+    @fbuild.builders.platform.auto_platform_options()
     def _run(self, srcs, *args,
             dst=None,
             classpaths=[],
@@ -232,7 +234,8 @@ class AbstractBuilder(fbuild.builders.AbstractLibLinker):
 
     # --------------------------------------------------------------------------
 
-    _dep_regex = re.compile(r'\[wrote (?:RegularFileObject\[)?([^\]]+)')
+    _dep_regex = re.compile(
+        r"\[wrote (?:RegularFileObject\[)?(?:'[^']+' to )?([^\]]+)")
 
     def _run(self, builder, src, dst=None, *,
             flags=[],

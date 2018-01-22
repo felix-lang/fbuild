@@ -1,7 +1,39 @@
 import abc
 import functools
+import itertools
 import inspect
 import types
+
+# ------------------------------------------------------------------------------
+
+def wraps(inner):
+    '''
+    Basically functools.wraps, but designed to play nicely with Fbuild's
+    database code.
+    '''
+
+    def _decorator(outer):
+        @functools.wraps(inner)
+        def _wrapper(*args, **kw):
+            if '__FBUILD_INNER' not in kw:
+                kw['__FBUILD_INNER'] = inner
+
+            return outer(*args, **kw)
+
+        _wrapper.__fbuild_member_of__ = None
+        _wrapper.__fbuild_wrapped__ = inner
+        return _wrapper
+
+    return _decorator
+
+
+def unwrap(func):
+    '''
+    unwrap will unwrap any Fbuild-originating decorators and return the
+    underlying function.
+    '''
+    return getattr(func, '__fbuild_wrapped__', func)
+
 
 # ------------------------------------------------------------------------------
 
@@ -167,13 +199,14 @@ def normalize_args(function, args, kwargs):
         bound_kwargs.update(kwargs)
     else:
         for key, value in kwargs.items():
-            # if the key isn't in the fn_args, it's unknown
-            if key not in fn_args:
+            # if the key isn't in the fn_args and isn't related to
+            # magic method decorators, it's unknown
+            if key not in fn_args and key != '__FBUILD_INNER':
                 raise TypeError(
                     '%s() got an unexpected keyword argument %r' %
                     (function.__name__, key))
 
-            bound_args[key] = value
+            bound_kwargs[key] = value
 
     return tuple(bound_args), bound_kwargs
 
@@ -195,6 +228,8 @@ def bind_args(function, args, kwargs):
     ...     'args': (4, 5), 'kwargs': {'f': 8}}
     True
     """
+
+    function = unwrap(function)
     args, kwargs = normalize_args(function, args, kwargs)
     spec = inspect.getfullargspec(function)
     fn_args = spec.args
@@ -204,6 +239,7 @@ def bind_args(function, args, kwargs):
 
     bound = {}
     arg_iterator = iter(args)
+
     for key, value in zip(fn_args, arg_iterator):
         bound[key] = value
 
@@ -215,6 +251,12 @@ def bind_args(function, args, kwargs):
 
     if spec.varkw is not None:
         bound[spec.varkw] = kwargs
+
+    # Remove __FBUILD_INNER, because it doesn't really matter here and will
+    # only make the rest of the code more complicated.
+    for kind in 'kw', 'kwargs':
+        if kind in bound and '__FBUILD_INNER' in bound[kind]:
+            bound[kind].pop('__FBUILD_INNER', None)
 
     return bound
 

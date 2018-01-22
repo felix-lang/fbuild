@@ -6,13 +6,14 @@ from fbuild.path import Path
 
 class AbstractCompiler(fbuild.builders.java.AbstractCompiler):
     def __init__(self, ctx, exe, *args,
+            debug_flags=['-g:vars'],
             optimize=False,
             optimize_flags=['-optimise'],
             **kwargs):
         self.optimize = optimize
         self.optimize_flags = optimize_flags
 
-        super().__init__(ctx, exe, '.scala', *args, **kwargs)
+        super().__init__(ctx, exe, '.scala', debug_flags=debug_flags, *args, **kwargs)
 
         if optimize_flags and not self.check_flags(optimize_flags):
             raise fbuild.ConfigFailed('%s failed to compile an exe' % self)

@@ -1,0 +1,21 @@
+[DerivedModule]
+Base=python
+Preload=
+  import fbuild
+  import fbuild.builders
+  import fbuild.builders.c
+  import fbuild.builders.c.clang
+  import fbuild.builders.c.gcc
+  import fbuild.builders.cxx
+  import fbuild.builders.cxx.clangxx
+  import fbuild.builders.cxx.gxx
+  import fbuild.builders.ocaml
+  import fbuild.config
+  import fbuild.config.c
+  import fbuild.config.cxx
+  import fbuild.db
+  import fbuild.subprocess
+Run=
+  from fbuild.main import main
+  import sys
+  sys.exit(main())

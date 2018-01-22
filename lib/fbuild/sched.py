@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import io
 import operator
 import queue
@@ -87,15 +88,53 @@ class Scheduler:
             import fbuild.console
             logger = fbuild.console.Log()
 
+        # Set up the controlling lock.
+        self.__controlling_lock = threading.Lock()
+
         # Spin up our threads!
         for i in range(threadcount):
-            thread = WorkerThread(logger, self.__ready_queue)
+            thread = WorkerThread(logger, self.__ready_queue, self.__controlling_lock)
             self.__threads.append(thread)
             thread.start()
 
     @property
     def threadcount(self):
         return len(self.__threads)
+
+    @contextlib.contextmanager
+    def interruptible(self):
+        """Use to enclose blocks of code that can be interrupted. For example:
+
+        .. code-block:: python
+
+            with ctx.scheduler.interruptible():
+                # Place interruptible code here
+
+        *interruptible* returns a function that can be used to force a context switch while
+        waiting for a result. For instance:
+
+        .. code-block:: python
+
+            with ctx.scheduler.interruptible() as interrupt:
+                while result_is_not_ready_yet:
+                    interrupt()
+
+        Note that most *wait* operations in the Python language already perform
+        context switching automatically.
+        """
+
+        try:
+            self.__controlling_lock.release()
+        except (RuntimeError, _thread.error):
+            was_locked = False
+        else:
+            was_locked = True
+        # time.sleep(0) is an easy way of forcing a context switch.
+        try:
+            yield lambda: time.sleep(0)
+        finally:
+            if was_locked:
+                self.__controlling_lock.acquire()
 
     def map(self, function, srcs):
         """Run the function over the input sources concurrently. This function
@@ -201,9 +240,12 @@ class Scheduler:
                 # We're inside an already running thread, so we're going to run
                 # until all of our tasks are done.
                 try:
-                    current_thread.run_one(block=False)
+                    with self.interruptible():
+                        task = current_thread.read_task(block=False)
                 except queue.Empty:
                     pass
+                else:
+                    current_thread.run_one(task)
 
                 # See if any of our tasks finished.
                 try:
@@ -282,12 +324,13 @@ class WorkerThread(threading.Thread):
     left.
     """
 
-    def __init__(self, logger, ready_queue):
+    def __init__(self, logger, ready_queue, controlling_lock):
         super().__init__()
         self.daemon = True
 
         self.__logger = logger
         self.__ready_queue = ready_queue
+        self.__controlling_lock = controlling_lock
         self.__finished = False
 
     def shutdown(self):
@@ -298,20 +341,27 @@ class WorkerThread(threading.Thread):
         try:
             while not self.__finished:
                 with self.__logger.log_from_thread():
-                    if not self.run_one():
-                        break
+                    queue_task = self.read_task()
+                    with self.__controlling_lock:
+                        if not self.run_one(queue_task):
+                            break
         except KeyboardInterrupt:
             # let the main thread know we got a SIGINT
             _thread.interrupt_main()
             raise
 
-    def run_one(self, *args, **kwargs):
+    def read_task(self, *args, **kwargs):
+        """
+        Try to read one task.
+        """
+
+        return self.__ready_queue.get(*args, **kwargs)
+
+    def run_one(self, queue_task):
         """
         Try to run one task. Returns True if we actually ran a function,
         otherwise return False.
         """
-
-        queue_task = self.__ready_queue.get(*args, **kwargs)
 
         try:
             # This should be tested in the try block so that we update the done
@@ -343,7 +393,7 @@ class Task:
         self.running = False
         self.done = False
         self.dependencies = []
-        self.exc =None
+        self.exc = None
 
     def can_run(self):
         """Returns True if all of this task's dependencies are done. Otherwise

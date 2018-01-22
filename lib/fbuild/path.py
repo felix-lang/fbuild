@@ -140,8 +140,8 @@ class Path(str):
         """
         return Path(os.path.basename(self))
 
-    def chmod(self):
-        return os.chmod(self)
+    def chmod(self, *args, **kw):
+        return os.chmod(self, *args, **kw)
 
     def commonprefix(self):
         return os.path.commonprefix(self)

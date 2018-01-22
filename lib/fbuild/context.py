@@ -16,16 +16,28 @@ from fbuild.path import Path
 
 # ------------------------------------------------------------------------------
 
+
+STATE_FILE_DEFAULTS = {
+    'pickle': 'fbuild-state.db',
+    'cache': 'fbuild-state.db',
+    'sqlite': 'fbuild-state.sqldb',
+}
+
+
 class Context:
-    def __init__(self, options, args):
+    def __init__(self, options):
         # Convert the paths to Path objects.
         options.buildroot = Path(options.buildroot)
+
+        if options.state_file is None:
+            options.state_file = STATE_FILE_DEFAULTS[options.database_engine]
+
         options.state_file = options.buildroot / options.state_file
         options.log_file = options.buildroot / options.log_file
 
         self.logger = fbuild.console.Log(
             verbose=options.verbose,
-            nocolor=options.nocolor,
+            nocolor=options.nocolor or options.no_color,
             threadcount=options.threadcount,
             show_threads=options.show_threads)
 
@@ -36,10 +48,9 @@ class Context:
             logger=self.logger)
 
         self.options = options
-        self.args = args
 
         self.install_prefix = Path('/usr/local')
-        self.to_install = {'bin': [], 'lib': [], 'share': [], 'include': []}
+        self.to_install = []
 
         self.tmpdir = self.buildroot / '.tmp'
         fbuild.temp.set_default_tempdir(self.tmpdir)
@@ -65,7 +76,7 @@ class Context:
     def load_configuration(self):
         # Optionally do `not` load the old database by deleting the old state
         # file.
-        if self.options.force_configuration and \
+        if (self.options.force_rebuild or self.options.force_configuration) and \
                 self.options.state_file.exists():
             self.options.state_file.remove()
 
@@ -84,45 +95,6 @@ class Context:
 
     def clear_temp_dir(self):
         self.tmpdir.rmtree(ignore_errors=True)
-
-    def prune(self, prune_get_all, prune_get_bad):
-        """Delete all destination files that were not referenced during this
-           build. This will leave any files outside the build directory. To
-           override this function's behavior, use prune_get_all and
-           prune_get_bad."""
-        all_targets = set(prune_get_all(self))
-        bad_targets = prune_get_bad(self, all_targets - self.db.active_files -
-                                          {self.options.state_file,
-                                           self.options.log_file})
-        def error_handler(func, path, exc):
-            self.logger.log('error deleting file %s: %s' % (path, exc[1]),
-                color='red')
-        for file in bad_targets:
-            file = Path(file)
-            # XXX: There should be a color better than 'compile' for this.
-            self.logger.check(' * prune', file, color='compile')
-            if file.isdir():
-                file.rmtree(ignore_errors=True, on_error=error_handler)
-            else:
-                try:
-                    file.remove()
-                except:
-                    error_handler(None, file, sys.exc_info())
-
-    # --------------------------------------------------------------------------
-    # Logging wrapper functions
-
-#    def log(self, *args, **kwargs):
-#        return self.logger.log(*args, **kwargs)
-#
-#    def check(self, *args, **kwargs):
-#        return self.logger.check(*args, **kwargs)
-#
-#    def passed(self, *args, **kwargs):
-#        return self.logger.passed(*args, **kwargs)
-#
-#    def failed(self, *args, **kwargs):
-#        return self.logger.failed(*args, **kwargs)
 
     # --------------------------------------------------------------------------
 
@@ -229,8 +201,9 @@ class Context:
                     timer = threading.Timer(timeout, timeout_function, (p,))
                     timer.start()
 
-                stdout, stderr = p.communicate(input)
-                returncode = p.wait()
+                with self.scheduler.interruptible():
+                    stdout, stderr = p.communicate(input)
+                    returncode = p.wait()
             except KeyboardInterrupt:
                 # Make sure if we get a keyboard interrupt to kill the process.
                 p.kill(group=True, sigint=True)
@@ -278,13 +251,9 @@ class Context:
 
         return stdout, stderr
 
-    def install(self, path, category, addroot=''):
-        try:
-            self.to_install[category].append((Path(path).abspath(), addroot))
-        except AttributeError:
-            pass
-        except KeyError:
-            raise fbuild.Error('invalid install category: {}'.format(category))
+    def install(self, path, target, *, rename=None, perms=None):
+        """Set the given file to be installed after  the build completes."""
+        self.to_install.append((Path(path).abspath(), target, rename, perms))
 
 # ------------------------------------------------------------------------------
 
@@ -294,6 +263,4 @@ def make_default_context(args=[]):
     import fbuild.options
 
     parser = fbuild.options.make_parser()
-    options, args = parser.parse_args(args)
-
-    return Context(options, args)
+    return Context(parser.parse_args(args))

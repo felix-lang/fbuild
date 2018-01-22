@@ -125,10 +125,7 @@ class Log:
         try:
             yield
         finally:
-            msgs = self._thread_stack.pop()
-            with self._lock:
-                for msg, kwargs in msgs:
-                    self._write(msg, **kwargs)
+            self.flush()
 
     def write(self, msg, *, buffer=True, **kwargs):
         if not buffer or self._threadcount == 1:
@@ -137,6 +134,8 @@ class Log:
         else:
             if buffer and self._thread_stack:
                 self._thread_stack[-1].append((msg, kwargs))
+                if msg.endswith('\n'):
+                    self.flush()
             else:
                 self._write(msg, **kwargs)
 
@@ -153,6 +152,12 @@ class Log:
         self.flush()
 
     def flush(self):
+        if self._thread_stack:
+            msgs = self._thread_stack.pop()
+            with self._lock:
+                for msg, kwargs in msgs:
+                    self._write(msg, **kwargs)
+
         if self.file:
             self.file.flush()
         sys.stdout.flush()

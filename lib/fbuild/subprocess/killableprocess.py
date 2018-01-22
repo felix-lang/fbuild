@@ -43,6 +43,7 @@ Windows 95, 98, or NT 4.0). It also requires ctypes, which is bundled with
 Python 2.5+ or available from http://python.net/crew/theller/ctypes/
 """
 
+import errno
 import subprocess
 import sys
 import os
@@ -100,12 +101,12 @@ class Popen(subprocess.Popen):
                 raise Exception("Arguments preexec_fn and after must be passed by keyword.")
 
             real_preexec_fn = kwargs.pop("preexec_fn", None)
-            def setpgid_preexec_fn():
-                os.setpgid(0, 0)
+            def setsid_preexec_fn():
+                os.setsid()
                 if real_preexec_fn:
                     apply(real_preexec_fn)
 
-            kwargs['preexec_fn'] = setpgid_preexec_fn
+            kwargs['preexec_fn'] = setsid_preexec_fn
 
             subprocess.Popen.__init__(self, *args, **kwargs)
 
@@ -151,21 +152,6 @@ class Popen(subprocess.Popen):
                 startupinfo.wShowWindow = winprocess.SW_HIDE
                 comspec = os.environ.get("COMSPEC", "cmd.exe")
                 args = comspec + " /c " + args
-                if (GetVersion() >= 0x80000000 or
-                        os.path.basename(comspec).lower() == "command.com"):
-                    # Win9x, or using command.com on NT. We need to
-                    # use the w9xpopen intermediate program. For more
-                    # information, see KB Q150956
-                    # (http://web.archive.org/web/20011105084002/http://support.microsoft.com/support/kb/articles/Q150/9/56.asp)
-                    w9xpopen = self._find_w9xpopen()
-                    args = '"%s" %s' % (w9xpopen, args)
-                    # Not passing CREATE_NEW_CONSOLE has been known to
-                    # cause random failures on win9x.  Specifically a
-                    # dialog: "Your program accessed mem currently in
-                    # use at xxx" and a hopeful warning about the
-                    # stability of your system.  Cost is Ctrl+C wont
-                    # kill children.
-                    creationflags |= CREATE_NEW_CONSOLE
 
             # We create a new job for this process, so that we can kill
             # the process and any sub-processes
@@ -208,10 +194,15 @@ class Popen(subprocess.Popen):
                 winprocess.TerminateProcess(self._handle, 127)
             self.returncode = 127
         else:
-            if group:
-                os.killpg(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
-            else:
-                os.kill(self.pid, signal.SIGINT if sigint else signal.SIGKILL)
+            sig = signal.SIGINT if sigint else signal.SIGKILL
+            try:
+                if group:
+                    os.killpg(os.getpgid(self.pid), sig)
+                else:
+                    os.kill(self.pid, sig)
+            except OSError as ex:
+                if ex.errno != errno.ESRCH:
+                    raise
             self.returncode = -9
 
     def _try_wait(self, wait_flags):

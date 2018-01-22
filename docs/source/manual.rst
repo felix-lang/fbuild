@@ -12,10 +12,10 @@ Getting Started
 
 This manual is for the most recent version of Fbuild from Git. In order to get it,
 just run::
-   
-   $ git clone https://github.com/felix-lang/fbuild.git
-   $ cd fbuild
-   $ python3 setup.py install
+
+  $ git clone https://github.com/felix-lang/fbuild.git
+  $ cd fbuild
+  $ python3 setup.py install
 
 You can also use Fbuild without installing it by running the ``fbuild-light``
 script.
@@ -27,46 +27,46 @@ Let's start with a simple build script: it just builds a "Hello, world!" program
 written in C. Here's the C code:
 
 .. code-block:: c
-   
-   #include <stdio.h>
-   
-   int main() {
-       puts("Hello, world!");
-       return 0;
-   }
+
+  #include <stdio.h>
+
+  int main() {
+      puts("Hello, world!");
+      return 0;
+  }
 
 and the Fbuild build script:
 
 .. code-block:: python
-   
-   from fbuild.builders.c import guess_static
-   
-   def build(ctx):
-       builder = guess_static(ctx)
-       builder.build_exe('hello', ['hello.c'])
 
-It's pretty simple. First, ``guess_static`` is imported. That function returns a
+  from fbuild.builders.c import guess
+
+  def build(ctx):
+      builder = guess.static(ctx)
+      builder.build_exe('hello', ['hello.c'])
+
+It's pretty simple. First, ``guess`` is imported. That object will let us create a
 new builder for building C programs (we'll get to builders in a moment). Then, the
 script defines a ``build`` function that takes an object of type
 ``fbuild.context.Context`` (``ctx``). That object is kind of like the "build
-engine." The next line calls ``guess_static``, and the line after calls the
+engine." The next line calls ``guess.static``, and the line after calls the
 ``build_exe`` method. It can take several keyword arguments, but the only two
 positional ones are the output file (``hello``) and a list of source files
 (``['hello.c']``). Let's run it::
 
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc$ fbuild
-   determining platform     : {'linux', 'posix'}
-   looking for clang        : ok /home/ryan/stuff/Downloads/clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.04/bin/clang
-   checking clang           : ok
-   looking for ar           : ok /usr/bin/ar
-   looking for ranlib       : ok /usr/bin/ranlib
-   checking if clang can make objects : ok
-   checking if clang can make libraries : ok
-   checking if clang can make exes      : ok
-   checking if clang can link lib to exe : ok
-    * clang                              : hello.c -> build/obj/hello/hello.o
-    * clang                              : build/obj/hello/hello.o -> build/hello
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc$ 
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc$ fbuild
+  determining platform     : {'linux', 'posix'}
+  looking for clang        : ok /home/ryan/stuff/Downloads/clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.04/bin/clang
+  checking clang           : ok
+  looking for ar           : ok /usr/bin/ar
+  looking for ranlib       : ok /usr/bin/ranlib
+  checking if clang can make objects : ok
+  checking if clang can make libraries : ok
+  checking if clang can make exes      : ok
+  checking if clang can link lib to exe : ok
+   * clang                              : hello.c -> build/obj/hello/hello.o
+   * clang                              : build/obj/hello/hello.o -> build/hello
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc$
 
 That just:
 
@@ -106,29 +106,29 @@ Any attempt to explain this any more would likely fail, so I'll just show an
 example. Put this in a new ``fbuildroot.py``:
 
 .. code-block:: python
-   
-   import fbuild.db
-   
-   @fbuild.db.caches
-   def myfunc(ctx, name):
-       print('Hello, %s!' % name)
-   
-   def build(ctx):
-       myfunc(ctx, 'Fbuild world')
+
+  import fbuild.db
+
+  @fbuild.db.caches
+  def myfunc(ctx, name):
+      print('Hello, %s!' % name)
+
+  def build(ctx):
+      myfunc(ctx, 'Fbuild world')
 
 I'll explain ``fbuild.db.caches`` in a moment, but for now, note that any function
 that you use it on *must* take a context object as its first argument.
 
 When the script is run, the output is what one would expect::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
-   Hello, Fbuild world!
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
+  Hello, Fbuild world!
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$
 
 However, watch what happens if you run it again::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$
 
 Nothing was shown! But why?
 
@@ -140,33 +140,33 @@ running it, Fbuild will just return the previous result. This is more obvious
 with a slightly different example:
 
 .. code-block:: python
-   
-   import fbuild.db
-   
-   @fbuild.db.caches
-   def myfunc(ctx, name):
-       print('Hello, %s!' % name)
-       return 'myfunc was called'
-   
-   def build(ctx):
-       message = myfunc(ctx, 'Fbuild world')
-       print(message)
+
+  import fbuild.db
+
+  @fbuild.db.caches
+  def myfunc(ctx, name):
+      print('Hello, %s!' % name)
+      return 'myfunc was called'
+
+  def build(ctx):
+      message = myfunc(ctx, 'Fbuild world')
+      print(message)
 
 If you run it, this happens::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
-   Hello, Fbuild world!
-   myfunc was called
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
+  Hello, Fbuild world!
+  myfunc was called
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$
 
 Note that the database didn't need to be deleted; Fbuild will automatically
 re-run a function if its contents have changed.
 
 Watch what happens if you run it again::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
-   myfunc was called
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$ fbuild
+  myfunc was called
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw$
 
 When ``myfunc`` was called the first time, it's return value (
 ``'myfunc was called'``) was saved into the database. On the second run, Fbuild
@@ -189,82 +189,82 @@ Wrong! Fbuild has several function annotations that you can use to help with thi
 Take a look at this build script:
 
 .. code-block:: python
-   
-   import fbuild.db
-   
-   @fbuild.db.caches
-   def build_a_file(ctx, src: fbuild.db.SRC):
-       print('This is supposed to build the file %s...' % src)
-   
-   def build(ctx):
-       build_a_file(ctx, 'myfile')
+
+  import fbuild.db
+
+  @fbuild.db.caches
+  def build_a_file(ctx, src: fbuild.db.SRC):
+      print('This is supposed to build the file %s...' % src)
+
+  def build(ctx):
+      build_a_file(ctx, 'myfile')
 
 I'll explain the details in a moment; for now, just know that ``build_a_file`` is
 supposed to do something with its input argument ``myfile``. Let's run it::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
-   Traceback (most recent call last):
-     File "/media/ryan/stuff/anaconda/bin/fbuild", line 9, in <module>
-       load_entry_point('fbuild==0.2', 'console_scripts', 'fbuild')()
-     File "/media/ryan/stuff/fbuild/lib/fbuild/main.py", line 179, in main
-       result = build(ctx)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/main.py", line 104, in build
-       target.function(ctx)
-     File "/media/ryan/stuff/fbuild/playground/doc-rw-dep/fbuildroot.py", line 8, in build
-       build_a_file(ctx, 'myfile')
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/__init__.py", line 121, in __call__
-       result, srcs, dsts = self.call(*args, **kwargs)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/__init__.py", line 125, in call
-       return ctx.db.call(self.function, ctx, *args, **kwargs)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/database.py", line 101, in call
-       dsts)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/rpc.py", line 68, in call
-       raise result.result
-     File "/media/ryan/stuff/fbuild/lib/fbuild/rpc.py", line 112, in _process
-       result.result = self._handler(*args, **kwargs)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/database.py", line 24, in handle_rpc
-       return method(*args, **kwargs)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 42, in prepare
-       call_file_digests = self.check_call_files(call_id, srcs)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 143, in check_call_files
-       d, file_id, file_digest = self.check_call_file(call_id, file_name)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 165, in check_call_file
-       dirty, file_id, mtime, digest = self.add_file(file_name)
-     File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 249, in add_file
-       file_mtime = file_path.getmtime()
-     File "/media/ryan/stuff/fbuild/lib/fbuild/path.py", line 224, in getmtime
-       return os.path.getmtime(self)
-     File "/media/ryan/stuff/anaconda/lib/python3.4/genericpath.py", line 55, in getmtime
-       return os.stat(filename).st_mtime
-   FileNotFoundError: [Errno 2] No such file or directory: Path('myfile')
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+  Traceback (most recent call last):
+    File "/media/ryan/stuff/anaconda/bin/fbuild", line 9, in <module>
+      load_entry_point('fbuild==0.2', 'console_scripts', 'fbuild')()
+    File "/media/ryan/stuff/fbuild/lib/fbuild/main.py", line 179, in main
+      result = build(ctx)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/main.py", line 104, in build
+      target.function(ctx)
+    File "/media/ryan/stuff/fbuild/playground/doc-rw-dep/fbuildroot.py", line 8, in build
+      build_a_file(ctx, 'myfile')
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/__init__.py", line 121, in __call__
+      result, srcs, dsts = self.call(*args, **kwargs)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/__init__.py", line 125, in call
+      return ctx.db.call(self.function, ctx, *args, **kwargs)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/database.py", line 101, in call
+      dsts)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/rpc.py", line 68, in call
+      raise result.result
+    File "/media/ryan/stuff/fbuild/lib/fbuild/rpc.py", line 112, in _process
+      result.result = self._handler(*args, **kwargs)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/database.py", line 24, in handle_rpc
+      return method(*args, **kwargs)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 42, in prepare
+      call_file_digests = self.check_call_files(call_id, srcs)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 143, in check_call_files
+      d, file_id, file_digest = self.check_call_file(call_id, file_name)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 165, in check_call_file
+      dirty, file_id, mtime, digest = self.add_file(file_name)
+    File "/media/ryan/stuff/fbuild/lib/fbuild/db/backend.py", line 249, in add_file
+      file_mtime = file_path.getmtime()
+    File "/media/ryan/stuff/fbuild/lib/fbuild/path.py", line 224, in getmtime
+      return os.path.getmtime(self)
+    File "/media/ryan/stuff/anaconda/lib/python3.4/genericpath.py", line 55, in getmtime
+      return os.stat(filename).st_mtime
+  FileNotFoundError: [Errno 2] No such file or directory: Path('myfile')
 
 Whoops! I forgot to create ``myfile``::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ touch myfile
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
-   This is supposed to build the file myfile...
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ touch myfile
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+  This is supposed to build the file myfile...
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$
 
 As usual, let's also run it again::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$
 
 Nothing happened! This is caching at work again.
 
 Now try adding something to ``myfile`` and running it again::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 1234 > myfile
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
-   This is supposed to build the file myfile...
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 1234 > myfile
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+  This is supposed to build the file myfile...
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$
 
 ``build_a_file`` is run again! Look back at these two lines in ``fbuildroot.py``:
 
 .. code-block:: python
-   
-   @fbuild.db.caches
-   def build_a_file(ctx, src: fbuild.db.SRC):
+
+  @fbuild.db.caches
+  def build_a_file(ctx, src: fbuild.db.SRC):
 
 I already explained how ``fbuild.db.caches`` works. However, the new addition is
 the function annotation ``fbuild.db.SRC``. This works with ``fbuild.db.caches`` to
@@ -283,15 +283,15 @@ somewhat complex, at it's core, it uses a similar method to this.
 You can also create functions that take multiple sources:
 
 .. code-block:: python
-   
-   import fbuild.db
-   
-   @fbuild.db.caches
-   def build_a_file(ctx, first_source: fbuild.db.SRC, other_sources: fbuild.db.SRCS):
-       print('Do something with %s and %s...' % (first_source, other_sources))
 
-   def build(ctx):
-       build_a_file(ctx, 'myfile1', ['myfile2', 'myfile3'])
+  import fbuild.db
+
+  @fbuild.db.caches
+  def build_a_file(ctx, first_source: fbuild.db.SRC, other_sources: fbuild.db.SRCS):
+      print('Do something with %s and %s...' % (first_source, other_sources))
+
+  def build(ctx):
+      build_a_file(ctx, 'myfile1', ['myfile2', 'myfile3'])
 
 As you might expect by now, ``fbuild.db.SRCS`` takes a list of source files, not
 just one.
@@ -301,38 +301,38 @@ also keep track of its output files. Unlike other example scripts, this is
 actually not just a toy; it's actually a quite useful function:
 
 .. code-block:: python
-   
-   import fbuild.db, shutil, io
-   
-   @fbuild.db.caches
-   def merge_files(ctx, srcs: fbuild.db.SRCS, dst: fbuild.db.DST):
-       print('Merging files...')
-   
-       result = io.StringIO()
-       for src in srcs:
-           with open(src) as f:
-               shutil.copyfileobj(f, result)
-   
-       result.seek(0)
-       with open(dst, 'w') as f:
-           shutil.copyfileobj(result, f)
-   
-   def build(ctx):
-       merge_files(ctx, ['input1', 'input2'], 'output')
+
+  import fbuild.db, shutil, io
+
+  @fbuild.db.caches
+  def merge_files(ctx, srcs: fbuild.db.SRCS, dst: fbuild.db.DST):
+      print('Merging files...')
+
+      result = io.StringIO()
+      for src in srcs:
+          with open(src) as f:
+              shutil.copyfileobj(f, result)
+
+      result.seek(0)
+      with open(dst, 'w') as f:
+          shutil.copyfileobj(result, f)
+
+  def build(ctx):
+      merge_files(ctx, ['input1', 'input2'], 'output')
 
 The details of ``merge_files`` don't really matter as much as the function
 annotations. Note that another annotation was added: ``fbuild.db.DST``, which
 annotates the destination parameter. The results of running it are like you'd
 expect::
-   
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 1 > input1
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 2 > input2
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
-   Merging files...
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ cat output 
-   1
-   2
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ 
+
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 1 > input1
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ echo 2 > input2
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ fbuild
+  Merging files...
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$ cat output
+  1
+  2
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-dep$
 
 As before, any changes to ``input1`` or ``input2`` will cause ``output`` to be
 re-built.
@@ -363,12 +363,12 @@ Rule Destinations and Cached Objects
 Back on topic: recall the very first Fbuild script in the tutorial:
 
 .. code-block:: python
-   
-   from fbuild.builders.c import guess_static
-   
-   def build(ctx):
-       builder = guess_static(ctx)
-       builder.build_exe('hello', ['hello.c'])
+
+  from fbuild.builders.c import guess
+
+  def build(ctx):
+      builder = guess.static(ctx)
+      builder.build_exe('hello', ['hello.c'])
 
 See ``builder.build_exe``? That function actually returns a value: the full path
 to the resulting executable. The reason is that, usually, the developer doesn't
@@ -377,27 +377,27 @@ well want to know where it's located. To handle this case, Fbuild supports
 annotating the function's *return value* as a destination. For example:
 
 .. code-block:: python
-   
-   from fbuild.path import Path
-   import fbuild.db, shutil
-   
-   @fbuild.db.caches
-   def do_something(ctx, src: fbuild.db.SRC) -> fbuild.db.DST:
-       src = Path(src)
-       dst = ctx.buildroot / src.replaceext('.out')
-       print('Copying %s to %s...' % (src, dst))
-       src.copy(dst)
-       return dst
-   
-   def build(ctx):
-       do_something(ctx, 'x.in')
+
+  from fbuild.path import Path
+  import fbuild.db, shutil
+
+  @fbuild.db.caches
+  def do_something(ctx, src: fbuild.db.SRC) -> fbuild.db.DST:
+      src = Path(src)
+      dst = ctx.buildroot / src.replaceext('.out')
+      print('Copying %s to %s...' % (src, dst))
+      src.copy(dst)
+      return dst
+
+  def build(ctx):
+      do_something(ctx, 'x.in')
 
 Let's run it::
 
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ echo 123 > x.in
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ fbuild
-   Copying x.in to build/x.out...
-   ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ 
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ echo 123 > x.in
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$ fbuild
+  Copying x.in to build/x.out...
+  ryan@DevPC-LX:~/stuff/fbuild/playground/doc-rw-out$
 
 This script has a lot of new stuff! It uses the ``Path`` objects mentioned in the
 previous section. In particular:
@@ -418,45 +418,45 @@ The entirety of Fbuild, including the C builder that I first showed, consists of
 what I've just shown here, with three exceptions:
 
 1. In ``fbuild.db``, there's a very important class:
-   ``fbuild.db.PersistentObject``. If you want to contain any cached functions
-   within a class, the class must derive from ``PersistentObject``, and the cached
-   functions should instead use ``cachemethod`` (see below). Note that the default
-   constructor for objects derived from ``PersistentObject`` takes a context
-   object as its argument. If you define a custom ``__init__``, you need to take a
-   context object and assign it to ``self.ctx``. Example:
-   
-   .. code-block:: python
-      
-      class MyObject(fbuild.db.PersistentObject):
-          def __init__(self, ctx):
-              self.ctx = ctx
-      
-      def build(ctx):
-          obj = MyObject(ctx)
+  ``fbuild.db.PersistentObject``. If you want to contain any cached functions
+  within a class, the class must derive from ``PersistentObject``, and the cached
+  functions should instead use ``cachemethod`` (see below). Note that the default
+  constructor for objects derived from ``PersistentObject`` takes a context
+  object as its argument. If you define a custom ``__init__``, you need to take a
+  context object and assign it to ``self.ctx``. Example:
+
+  .. code-block:: python
+
+     class MyObject(fbuild.db.PersistentObject):
+         def __init__(self, ctx):
+             self.ctx = ctx
+
+     def build(ctx):
+         obj = MyObject(ctx)
 
 2. ``fbuild.db.cachemethod`` is equivalent to ``fbuild.db.caches``, but it is
-   instead designed to annotate methods that are in a subclass of
-   ``PersistentObject``. In addition, methods annotated with ``cachemethod`` don't
-   need to be passed a context argument. Example:
-   
-   .. code-block:: python
-      
-      class MyObject(fbuild.db.PersistentObject):
-          def __init__(self, ctx):
-              self.ctx = ctx
-          
-          @fbuild.db.cachemethod
-          def myfunc(self, msg):
-              print('Message:', msg)
-      
-      def build(ctx):
-          obj = MyObject(ctx)
-          obj.myfunc('Hello, world!')
+  instead designed to annotate methods that are in a subclass of
+  ``PersistentObject``. In addition, methods annotated with ``cachemethod`` don't
+  need to be passed a context argument. Example:
+
+  .. code-block:: python
+
+     class MyObject(fbuild.db.PersistentObject):
+         def __init__(self, ctx):
+             self.ctx = ctx
+
+         @fbuild.db.cachemethod
+         def myfunc(self, msg):
+             print('Message:', msg)
+
+     def build(ctx):
+         obj = MyObject(ctx)
+         obj.myfunc('Hello, world!')
 
 3. Sometimes, you may not want to return a whole object. For this case, Fbuild
-   provides ``fbuild.record.Record``. A ``Record`` is basically a ``dict``, except
-   that you can also set and get keys via attributes. For example, ``my_record.a``
-   is equivalent to ``my_record['a']``.
+  provides ``fbuild.record.Record``. A ``Record`` is basically a ``dict``, except
+  that you can also set and get keys via attributes. For example, ``my_record.a``
+  is equivalent to ``my_record['a']``.
 
 Many examples of this are in the Fbuild source.
 
@@ -475,25 +475,25 @@ Technically, you're not supposed to do this! In order to handle this, Fbuild
 provides ``ctx.logger``. Here's a basic example:
 
 .. code-block:: python
-   
-   def build(ctx):
-       ctx.logger.log('This will be written to the log file: build/fbuild.log.',
-                      verbose=1)
-       ctx.logger.log('This will be written to the console.')
-   
-       ctx.logger.log('This will be written to the console in red.', color='red')
-       ctx.logger.log('This will be written to the console in a color designated for '
-                      'compiling files.', color='compile')
-       ctx.logger.log('And for linking files!', color='link')
-   
-       ctx.logger.check('this is used when configuring various things in Fbuild')
-       ctx.logger.passed()
-   
-       ctx.logger.check('you can also give custom messages and colors', color='blue')
-       ctx.logger.passed('it worked!')
-   
-       ctx.logger.check('things can also fail')
-       ctx.logger.failed('dang it!')
+
+  def build(ctx):
+      ctx.logger.log('This will be written to the log file: build/fbuild.log.',
+                     verbose=1)
+      ctx.logger.log('This will be written to the console.')
+
+      ctx.logger.log('This will be written to the console in red.', color='red')
+      ctx.logger.log('This will be written to the console in a color designated for '
+                     'compiling files.', color='compile')
+      ctx.logger.log('And for linking files!', color='link')
+
+      ctx.logger.check('this is used when configuring various things in Fbuild')
+      ctx.logger.passed()
+
+      ctx.logger.check('you can also give custom messages and colors', color='blue')
+      ctx.logger.passed('it worked!')
+
+      ctx.logger.check('things can also fail')
+      ctx.logger.failed('dang it!')
 
 and here's the output:
 
@@ -506,21 +506,21 @@ Executing Shell Commands
 ``execute``. Here's the definition from the source code:
 
 .. code-block:: python
-   
-   def execute(self, cmd, msg1=None, msg2=None, *,
-           color=None,
-           quieter=0,
-           stdout_quieter=None,
-           stderr_quieter=None,
-           input=None,
-           stdin=None,
-           stdout=fbuild.subprocess.PIPE,
-           stderr=fbuild.subprocess.PIPE,
-           timeout=None,
-           env=None,
-           runtime_libpaths=None,
-           ignore_error=False,
-           **kwargs):
+
+  def execute(self, cmd, msg1=None, msg2=None, *,
+          color=None,
+          quieter=0,
+          stdout_quieter=None,
+          stderr_quieter=None,
+          input=None,
+          stdin=None,
+          stdout=fbuild.subprocess.PIPE,
+          stderr=fbuild.subprocess.PIPE,
+          timeout=None,
+          env=None,
+          runtime_libpaths=None,
+          ignore_error=False,
+          **kwargs):
 
 That's a lot of arguments! I'll break them down one by one:
 
@@ -564,27 +564,27 @@ and ``stderr`` are byte strings.
 That's a lot to take in at once, so here are some examples of using ``execute``:
 
 .. code-block:: python
-   
-   def build(ctx):
-       ctx.execute(['echo', '123']) # Run `echo 123` and print the output.
-   
-       # Run echo, but print the message "running echo" first, with NO NEWLINE.
-       ctx.execute(['echo', 'Echoed text here!'], msg1='running echo')
-       # Run echo, but print the message "running echo: 123" first.
-       ctx.execute(['echo', 'Echoed text here!'], msg1='running echo', msg2='123')
-       # This is the color of `msg2`.
-       ctx.execute(['echo', '123'], msg1='running echo', msg2='123', color='compile')
-       # This would normally be an error, but ignore_error is True.
-       ctx.execute(['printf'], ignore_error=True)
-   
-       ctx.execute(['echo', '123'], stdout_quieter=1) # Don't print the output.
-       # msg1 and msg2 will still be printed.
-       ctx.execute(['echo', '123'], msg1='running echo', msg2='123', stdout_quieter=1)
-   
-       ctx.execute(['cat'], input=b'Input here!') # Send some text to stdin.
-   
-       # This will throw an error because running `sleep` timed out.
-       ctx.execute(['sleep', '1'], msg1='running sleep', msg2='1', timeout=0.5)
+
+  def build(ctx):
+      ctx.execute(['echo', '123']) # Run `echo 123` and print the output.
+
+      # Run echo, but print the message "running echo" first, with NO NEWLINE.
+      ctx.execute(['echo', 'Echoed text here!'], msg1='running echo')
+      # Run echo, but print the message "running echo: 123" first.
+      ctx.execute(['echo', 'Echoed text here!'], msg1='running echo', msg2='123')
+      # This is the color of `msg2`.
+      ctx.execute(['echo', '123'], msg1='running echo', msg2='123', color='compile')
+      # This would normally be an error, but ignore_error is True.
+      ctx.execute(['printf'], ignore_error=True)
+
+      ctx.execute(['echo', '123'], stdout_quieter=1) # Don't print the output.
+      # msg1 and msg2 will still be printed.
+      ctx.execute(['echo', '123'], msg1='running echo', msg2='123', stdout_quieter=1)
+
+      ctx.execute(['cat'], input=b'Input here!') # Send some text to stdin.
+
+      # This will throw an error because running `sleep` timed out.
+      ctx.execute(['sleep', '1'], msg1='running sleep', msg2='1', timeout=0.5)
 
 And the output:
 
@@ -603,12 +603,12 @@ instance, you may want to find the ``awk`` executable on the system. For this,
 Fbuild has ``fbuild.builders.find_program``. It works like this:
 
 .. code-block:: python
-   
-   from fbuild.builders import find_program
-   
-   def build(ctx):
-       awk = find_program(ctx, ['awk', 'gawk'])
-       print(awk)
+
+  from fbuild.builders import find_program
+
+  def build(ctx):
+      awk = find_program(ctx, ['awk', 'gawk'])
+      print(awk)
 
 It takes two arguments: the context object and a list of programs to search for.
 The return value is the first program it found. If none are found, it will throw
@@ -628,34 +628,35 @@ even defining arguments in a totally different file.
 
 Fbuild takes the easy route: since your build rules are in one function, your
 arguments can be defined in another. Instead of using some weird, arcane,
-home-grown, undocumented module for this, Fbuild uses the `optparse module <
-https://docs.python.org/3/library/optparse.html>`_. Note that argparse isn't used
-because Fbuild build scripts are designed to run under Python 3.1, which didn't
-include argparse yet.
+home-grown, undocumented module for this, Fbuild uses the `argparse module <
+https://docs.python.org/3/library/argparse.html>`_.
 
 Here's a simple example of command-line arguments in Fbuild:
 
 .. code-block:: python
-   
-   from optparse import make_option
-   
-   def pre_options(parser):
-       group = parser.add_option_group('config options')
-       group.add_options((
-           make_option('--build-mode', help='Define the desired build mode',
-                       choices=['debug', 'release']),
-           make_option('--mini', help='Attempt to minify the built code',
-                       action='store_true', dest='minify'),
-           make_option('--arch', help='The target build architecture', default='x64'),
-       ))
-   
-   def build(ctx):
-       print('Build mode:', ctx.options.build_mode)
-       print('Minify?', ctx.options.minify)
-       print('Arch:', ctx.options.arch)
+
+  def arguments(parser):
+      group = parser.add_argument_group('config options')
+      group.add_argument('--build-mode', help='Define the desired build mode',
+                         choices=['debug', 'release'])
+      group.add_argument('--mini', help='Attempt to minify the built code',
+                         action='store_true', dest='minify')
+      group.add_argument('--arch', help='The target build architecture', default='x64')
+      group.add_options((
+          make_option('--build-mode', help='Define the desired build mode',
+                      choices=['debug', 'release']),
+          make_option('--mini', help='Attempt to minify the built code',
+                      action='store_true', dest='minify'),
+          make_option('--arch', help='The target build architecture', default='x64'),
+      ))
+
+  def build(ctx):
+      print('Build mode:', ctx.options.build_mode)
+      print('Minify?', ctx.options.minify)
+      print('Arch:', ctx.options.arch)
 
 The example is mostly self-explanatory; if you have any questions, consult the
-`optparse documentation <https://docs.python.org/3/library/optparse.html>`_.
+`argparse documentation <https://docs.python.org/3/library/argparse.html>`_.
 
 Advanced Core Topics: Adding External Dependencies and Installing Files
 ***********************************************************************
@@ -665,37 +666,37 @@ External Dependencies
 
 Let's say you're creating your own programming language called Qux. When you run
 it, it looks kind of like this::
-   
-   ryan@DevPC-LX:~$ qux myfile.qux myfile.out
-   Qux version 0.0.0
-   Building myfile.qux...
-   NOTE: myfile.qux imports myotherfile.qux!
-   Building myotherfile.qux...
-   Successfully built myfile.out!
-   ryan@DevPC-LX:~$ 
+
+  ryan@DevPC-LX:~$ qux myfile.qux myfile.out
+  Qux version 0.0.0
+  Building myfile.qux...
+  NOTE: myfile.qux imports myotherfile.qux!
+  Building myotherfile.qux...
+  Successfully built myfile.out!
+  ryan@DevPC-LX:~$
 
 Take this simple rule for building Qux programs:
 
 .. code-block:: python
-   
-   from fbuild.builders import find_program
-   from fbuild.path import Path
-   import fbuild.db
-   
-   class QuxBuilder(fbuild.db.PersistentObject):
-       def __init__(self, ctx):
-           self.ctx = ctx
-           self.qux = find_program(ctx, ['qux'])
-   
-       @fbuild.db.cachemethod
-       def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
-           dst = self.ctx.buildroot / Path(src).replaceext('.out')
-           self.ctx.execute([self.qux, src, dst])
-           return dst
-   
-   def build(ctx):
-       qux = QuxBuilder(ctx)
-       qux.build('myfile.qux')
+
+  from fbuild.builders import find_program
+  from fbuild.path import Path
+  import fbuild.db
+
+  class QuxBuilder(fbuild.db.PersistentObject):
+      def __init__(self, ctx):
+          self.ctx = ctx
+          self.qux = find_program(ctx, ['qux'])
+
+      @fbuild.db.cachemethod
+      def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
+          dst = self.ctx.buildroot / Path(src).replaceext('.out')
+          self.ctx.execute([self.qux, src, dst])
+          return dst
+
+  def build(ctx):
+      qux = QuxBuilder(ctx)
+      qux.build('myfile.qux')
 
 This *sort of* works. Remember, ``myfile.qux`` depends on ``myotherfile.qux``, but
 Fbuild doesn't know that. Therefore, if you edit ``myotherfile.qux``,
@@ -704,32 +705,32 @@ Fbuild doesn't know that. Therefore, if you edit ``myotherfile.qux``,
 For this purpose, Fbuild has ``ctx.db.add_external_dependencies_to_call``:
 
 .. code-block:: python
-   
-   from fbuild.builders import find_program
-   from fbuild.path import Path
-   import fbuild.db, re
-   
-   class QuxBuilder(fbuild.db.PersistentObject):
-       def __init__(self, ctx):
-           self.ctx = ctx
-           self.qux = find_program(ctx, ['qux'])
-   
-       @fbuild.db.cachemethod
-       def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
-           dst = self.ctx.buildroot / Path(src).replaceext('.out')
-   
-           stdout, stderr = self.ctx.execute([self.qux, src, dst])
-           regex = re.compile(r'Building (.*)...$')
-           for line in stdout.decode('ascii').splitlines():
-               m = regex.match(line)
-               if m:
-                   self.ctx.db.add_external_dependencies_to_call(srcs=[m.group(1)])
-   
-           return dst
-   
-   def build(ctx):
-       qux = QuxBuilder(ctx)
-       qux.build('myfile.qux')
+
+  from fbuild.builders import find_program
+  from fbuild.path import Path
+  import fbuild.db, re
+
+  class QuxBuilder(fbuild.db.PersistentObject):
+      def __init__(self, ctx):
+          self.ctx = ctx
+          self.qux = find_program(ctx, ['qux'])
+
+      @fbuild.db.cachemethod
+      def build(self, src: fbuild.db.SRC) -> fbuild.db.DST:
+          dst = self.ctx.buildroot / Path(src).replaceext('.out')
+
+          stdout, stderr = self.ctx.execute([self.qux, src, dst])
+          regex = re.compile(r'Building (.*)...$')
+          for line in stdout.decode('ascii').splitlines():
+              m = regex.match(line)
+              if m:
+                  self.ctx.db.add_external_dependencies_to_call(srcs=[m.group(1)])
+
+          return dst
+
+  def build(ctx):
+      qux = QuxBuilder(ctx)
+      qux.build('myfile.qux')
 
 This is quite a bit more complex than the last example! If you're unfamiliar with
 Python's `re module <https://docs.python.org/3/library/re.html>`_, this may look
@@ -748,20 +749,20 @@ user's system. Fbuild has this covered with ``ctx.install``. It's defined like
 this:
 
 .. code-block:: python
-   
-   def install(self, path, category, addroot=''):
 
-The ``path`` is the path to install. If it's inside of ``ctx.buildroot``, then
-that will be stripped off; for instance, if you have ``build/myfile.exe``, then
-the ``build/`` portion will be removed to result in ``myfile.exe``.
+  def install(self, path, target, *, rename=None, perms=None):
 
-``category`` is the subdirectory of ``ctx.installroot`` to install the file into.
+The ``path`` is the path to install of the file to install, and ``target`` is a
+subdirectory of the installation prefix to install into. For instance,
+``ctx.install('somehwere/my-file', 'share/my-app')`` will copy ``somewhere/my-file``
+to ``$PREFIX/share/my-app/my-file``.
 
-``addroot`` is a *furthur* subdirectory of ``ctx.installroot`` that the files will
-be put into.
+If you want to change the file name (e.g. ``my-new-file`` instead), you can pass that
+as the ``rename`` parameter, e.g.
+``ctx.install('somewhere/my-file', 'share/my-app', 'my-new-file')``.
 
-For instance, ``ctx.install('x', 'y', 'z')`` will install ``x`` into
-``ctx.installroot / 'y' / 'z'``.
+``perms`` can be used to assign custom permissions to the target file. By default, it
+will use the same permissions as the original file.
 
 Platforms
 ^^^^^^^^^
@@ -800,8 +801,42 @@ result, Fbuild provides a large amount of tools to help with this. Note that thi
 section of the manual is *not* aimed at documenting every single feature, but it
 focuses on the important parts.
 
-Builders, ``guess_static``, and ``guess_shared``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Builders, and the ``guess`` api
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Let's take a look at this example:
+
+.. code-block:: python
+
+  from fbuild.builders.c import guess
+
+  def build(ctx):
+      builder = guess.static(ctx)
+      lib = builder.build_lib('mylib', ['mylib.c'])
+      builder.build_exe('hello', ['hello.c'], libs=[lib])
+
+Now that you know how builders are defined, I can start convering building C code. The
+magic here is all in the function ``guess.static``. The ``guess`` object has two members:
+
+- *guess.static*: Returns a builder that can be used to build normal executables via
+  ``build_exe`` and static libraries via ``build_lib``.
+- *guess.shared*: Returns a builder that can be used to build position-independent
+  executables (``-fPIC``) via ``build_exe`` and and shared libraries via ``build_lib``.
+
+In this example, ``guess.static`` is used, so it returns a builder for building "normal"
+executables and static libraries.
+
+If you want both a static *and* a shared builder, you can use ``guess(...)``:
+
+.. code-block:: python
+
+  from fbuild.builders.c import guess
+
+  def build(ctx);
+      builders = guess(ctx)
+
+      static = builders.static.build_lib('mylib-static', ['mylib.c'])
+      shared = builders.shared.build_lib('mylib-shared', ['mylib.c'])
 
 TODO
 
