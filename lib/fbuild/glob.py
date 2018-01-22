@@ -2,7 +2,7 @@
 
 import os
 import re
-import fnmatch
+from . import fnmatch
 
 __all__ = ["glob", "iglob", "escape"]
 
