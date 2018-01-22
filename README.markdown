@@ -1,5 +1,5 @@
-Fbuild Build System v0.2
-========================
+Fbuild Build System
+===================
 
 **MASTER BRANCH:**
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/felix-lang/fbuild?svg=true)](https://ci.appveyor.com/project/erickt/fbuild)
@@ -69,7 +69,7 @@ will drive the compilation. We'll step through each line in a moment:
     import fbuild.builders.c
 
     def build(ctx):
-        builder = fbuild.builders.c.guess_static(ctx)
+        builder = fbuild.builders.c.guess.static(ctx)
         exe = builder.build_exe('helloworld', ['helloworld.c'])
 
         ctx.logger.log(' * running ' + exe)
@@ -117,13 +117,13 @@ points with the `fbuild.target` module, which is described further on.
 
     import fbuild.builders.c
     ...
-    builder = fbuild.builders.c.guess_static(ctx)
+    builder = fbuild.builders.c.guess.static(ctx)
     ...
 
 Next we have to make a C builder. Since pretty much each platform has it's own
 C compiler, Fbuild provides a mechanism to guess the platform's preferred one.
-`fbuild.builders.c.guess_static` creates a C builder that is capable of
-creating static libraries. You can also use `fbuild.builders.c.guess_shared`
+`fbuild.builders.c.guess.static` creates a C builder that is capable of
+creating static libraries. You can also use `fbuild.builders.c.guess.shared`
 if you want to create dynamically loadable libraries. In this case though,
 we're just creating an executable, so it doesn't matter which function we use.
 
