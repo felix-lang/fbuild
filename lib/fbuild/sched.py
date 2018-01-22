@@ -125,7 +125,7 @@ class Scheduler:
 
         try:
             self.__controlling_lock.release()
-        except RuntimeError:
+        except (RuntimeError, _thread.error):
             was_locked = False
         else:
             was_locked = True
