@@ -49,9 +49,11 @@ def _iglob(pathname, recursive):
         return
     if not dirname:
         if recursive and _isrecursive(basename):
-            yield from glob2(dirname, basename)
+            items = glob2(dirname, basename)
         else:
-            yield from glob1(dirname, basename)
+            items = glob1(dirname, basename)
+        for item in items:
+            yield item
         return
     # `os.path.split()` returns the argument itself as a dirname if it is a
     # drive or UNC path.  Prevent an infinite recursion if a drive or UNC path
@@ -106,7 +108,8 @@ def glob0(dirname, basename):
 def glob2(dirname, pattern):
     assert _isrecursive(pattern)
     yield pattern[:0]
-    yield from _rlistdir(dirname)
+    for item in _rlistdir(dirname):
+        yield item
 
 # Recursively yields relative pathnames inside a literal directory.
 def _rlistdir(dirname):
