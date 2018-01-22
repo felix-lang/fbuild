@@ -53,6 +53,8 @@ class OptparseShimMixin:
 
             args += tuple(option._short_opts + option._long_opts)
 
+        if kw.get('nargs') == 1:
+            kw.pop('nargs')
         self.add_argument(*args, **kw)
 
 class _ArgumentGroup(argparse._ArgumentGroup, OptparseShimMixin):
