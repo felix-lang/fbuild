@@ -102,20 +102,20 @@ class Scheduler:
         return len(self.__threads)
 
     @contextlib.contextmanager
-    def interruptable(self):
+    def interruptible(self):
         """Use to enclose blocks of code that can be interrupted. For example:
 
         .. code-block:: python
 
-            with ctx.scheduler.interruptable():
-                # Place interruptable code here
+            with ctx.scheduler.interruptible():
+                # Place interruptible code here
 
-        *interruptable* returns a function that can be used to force a context switch while
+        *interruptible* returns a function that can be used to force a context switch while
         waiting for a result. For instance:
 
         .. code-block:: python
 
-            with ctx.scheduler.interruptable() as interrupt:
+            with ctx.scheduler.interruptible() as interrupt:
                 while result_is_not_ready_yet:
                     interrupt()
 
@@ -239,7 +239,7 @@ class Scheduler:
             if isinstance(current_thread, WorkerThread):
                 # We're inside an already running thread, so we're going to run
                 # until all of our tasks are done.
-                with self.interruptable():
+                with self.interruptible():
                     try:
                         task = current_thread.read_task(block=False)
                     except queue.Empty:
