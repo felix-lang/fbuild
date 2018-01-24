@@ -11,8 +11,10 @@ except ImportError:
     cmdclass = {}
 
 data_files = []
-if sys.platform != 'win32':
+if sys.platform.startswith('linux'):
     data_files.append(('/usr/local/share/uprocd/modules', ['misc/fbuild.module']))
+    data_files.append(('/usr/share/polkit-1/actions',
+                      ['misc/com.github.fbuild.install.policy']))
 
 setup(
     name='fbuild',

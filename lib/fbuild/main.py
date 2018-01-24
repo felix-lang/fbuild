@@ -14,6 +14,7 @@ import fbuild.path
 import fbuild.context
 import fbuild.options
 import fbuild.builders.file
+import fbuild.install
 
 # If we can't import fbuildroot, save the exception and raise it later.
 try:
@@ -72,22 +73,8 @@ def parse_args(argv):
 # ------------------------------------------------------------------------------
 
 def install_files(ctx):
-    for file, subdir, rename, perms in ctx.to_install:
-        # Generate the full subdirectory.
-        target_root = fbuild.path.Path(subdir).addroot(ctx.install_prefix)
-        target_root.makedirs(exist_ok=True)
-
-        # Generate the target path.
-        target = target_root / (rename or file.basename())
-        file = file.relpath(file.getcwd())
-
-        # Copy the file.
-        ctx.logger.check(' * install', '%s -> %s' % (file, target), color='yellow')
-        file.copy(target)
-
-        # Set permissions.
-        if perms is not None:
-            file.chmod(perms)
+    installer = fbuild.install.Installer(ctx)
+    installer.install()
 
 # ------------------------------------------------------------------------------
 

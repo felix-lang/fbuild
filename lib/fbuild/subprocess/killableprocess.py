@@ -250,6 +250,7 @@ class Popen(subprocess.Popen):
                 # time.sleep is interrupted by signals (good!)
                 newtimeout = timeout - time.time() + starttime
                 time.sleep(newtimeout)
+                time.sleep(0.1)
 
             self.kill(group)
             signal.signal(signal.SIGCHLD, oldsignal)
