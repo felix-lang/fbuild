@@ -764,6 +764,15 @@ as the ``rename`` parameter, e.g.
 ``perms`` can be used to assign custom permissions to the target file. By default, it
 will use the same permissions as the original file.
 
+**By default, nothing is installed yet.** ``ctx.install`` just *marks* the file for
+installation. Later on, when the user runs ``fbuild install``, Fbuild will run the
+build script, then install any files that were marked for installation.
+
+Bonus points: if you use a Linux system that has polkit available (which is basically
+most modern Linux distros), you'll never need to prefix your install commands with
+``sudo``. Fbuild will automatically use polkit to ask for escalated privileges to allow
+installation.
+
 Platforms
 ^^^^^^^^^
 
