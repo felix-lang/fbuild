@@ -1,4 +1,5 @@
 import base64
+import errno
 import os
 import pickle
 import subprocess
@@ -25,16 +26,22 @@ class LocalCommander:
 
 
 class PolkitCommander:
-    def __init__(self, proc):
+    def __init__(self, ctx, proc):
+        self.ctx = ctx
         self.proc = proc
-
         self._send('chdir', os.getcwd())
 
     def _send(self, *message):
-        encoded = self._encode(message)
-        self.proc.stdin.write(encoded)
-        self.proc.stdin.write('\n')
-        self.proc.stdin.flush()
+        try:
+            encoded = self._encode(message)
+            self.proc.stdin.write(encoded)
+            self.proc.stdin.write('\n')
+            self.proc.stdin.flush()
+        except OSError as ex:
+            if ex.errno == errno.EPIPE:
+                # Broken pipe error...the child process probably died.
+                self.close(ask=False)
+            raise
 
     @staticmethod
     def _encode(data):
@@ -47,9 +54,14 @@ class PolkitCommander:
     def install(self, file, target, perms=None):
         self._send('install', file, target, perms)
 
-    def close(self):
-        self._send('close')
+    def close(self, *, ask=True):
+        if ask:
+            self._send('close')
         self.proc.wait()
+
+        if self.proc.returncode != 0:
+            self.ctx.logger.log("Failed to run 'fbuild install' via pkexec.", color='red')
+            sys.exit(self.proc.returncode)
 
 
 def polkit_process():
@@ -120,17 +132,6 @@ class Installer:
         proc.stdout.readline()
         return proc
 
-        # try:
-        #     p.wait()
-        # except KeyboardInterrupt:
-        #     os.kill(os.getpid(), signal.SIGKILL)
-        #     # p.wait()
-            # raise
-
-        # if p.returncode != 0:
-        #     self.ctx.logger.log("Failed to run 'fbuild install' via pkexec.", color='red')
-        #     sys.exit(p.returncode)
-
     def install(self):
         """Install all the files that are marked for installation. If the user does
         not have permissions to install to the installation prefix, but Polkit's pkexec
@@ -150,7 +151,7 @@ class Installer:
                                     'installation directory.', color='red')
             else:
                 proc = self._load_polkit_process(pkexec)
-                commander = PolkitCommander(proc)
+                commander = PolkitCommander(self.ctx, proc)
 
         try:
             self._install(commander)
