@@ -465,7 +465,7 @@ guess = Guesser('c', {'msvc', 'gcc', 'clang', 'icc'}, (
         ({'clang'}, 'fbuild.builders.c.clang.static',
                     'fbuild.builders.c.clang.shared'),
         ({'gcc'}, 'fbuild.builders.c.gcc.static',
-                  'fbuild.builders.gcc.shared'),
+                  'fbuild.builders.c.gcc.shared'),
         ({'icc'}, 'fbuild.builders.c.intel.static',
                   'fbuild.builders.c.intel.shared'),
     ))
