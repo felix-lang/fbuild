@@ -18,7 +18,15 @@ class Commander: pass
 
 class LocalCommander:
     def install(self, file, target, perms=None):
-        file.copy(target)
+        target.parent.makedirs(exist_ok=True)
+
+        if file.islink():
+            # Assume the user knows what they're doing, and just copy the link itself.
+            if target.exists():
+                target.remove()
+            os.symlink(file.readlink(), target)
+        else:
+            file.copy(target)
         if perms is not None:
             file.chmod(perms)
 
@@ -93,12 +101,15 @@ class Installer:
     def _install(self, commander):
         for file, subdir, rename, perms in self.ctx.to_install:
             # Generate the full subdirectory.
-            target_root = fbuild.path.Path(subdir).addroot(self.ctx.install_prefix)
-            target_root.makedirs(exist_ok=True)
+            if subdir.startswith('/'):
+                target_root = subdir
+            else:
+                target_root = fbuild.path.Path(subdir).addroot(self.ctx.install_prefix)
 
             # Generate the target path.
             target = target_root / (rename or file.basename())
-            file = file.relpath(file.getcwd())
+            if not file.startswith('/'):
+                file = file.relpath(file.getcwd())
 
             # Install the file.
             self.ctx.logger.check(' * install', '%s -> %s' % (file, target),

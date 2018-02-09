@@ -490,7 +490,7 @@ class Path(str):
         def statvfs(self):  return os.statvfs(self)
 
     if hasattr(os, 'symlink'):
-        def symlink(self):  return os.symlink(self)
+        def symlink(self, target):  return os.symlink(self, target)
 
     if hasattr(os.path, 'samefile'):
         def samefile(self): return os.path.samefile(self)
