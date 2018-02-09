@@ -111,7 +111,21 @@ def build(ctx):
     # Step through each target and execute it.
     for target_name in targets:
         if target_name == 'install':
+            try:
+                pre_install = getattr(fbuildroot, 'pre_install')
+            except AttributeError:
+                pass
+            else:
+                pre_install(ctx)
+
             install_files(ctx)
+
+            try:
+                post_install = getattr(fbuildroot, 'post_install')
+            except AttributeError:
+                pass
+            else:
+                post_install(ctx)
         else:
             target = fbuild.target.find(target_name)
             target.function(ctx)
