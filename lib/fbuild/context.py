@@ -49,6 +49,7 @@ class Context:
 
         self.options = options
 
+        self.install_destdir = Path('/')
         self.install_prefix = Path('/usr/local')
         self.to_install = []
 

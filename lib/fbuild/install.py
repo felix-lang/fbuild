@@ -99,12 +99,14 @@ class Installer:
         self.privileged = False
 
     def _install(self, commander):
+        prefix = self.ctx.install_destdir / self.ctx.install_prefix
+
         for file, subdir, rename, perms in self.ctx.to_install:
             # Generate the full subdirectory.
             if subdir.startswith('/'):
                 target_root = subdir
             else:
-                target_root = fbuild.path.Path(subdir).addroot(self.ctx.install_prefix)
+                target_root = fbuild.path.Path(subdir).addroot(prefix)
 
             # Generate the target path.
             target = target_root / (rename or file.basename())
