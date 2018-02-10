@@ -105,9 +105,9 @@ class Installer:
         for file, subdir, rename, perms in self.ctx.to_install:
             # Generate the full subdirectory.
             if subdir.startswith('/'):
-                target_root = fbuild.path.Path(subdir).addroot(destdir)
+                target_root = destdir / subdir[1:]
             else:
-                target_root = fbuild.path.Path(subdir).addroot(destdir / prefix)
+                target_root = destdir / prefix / subdir
 
             # Generate the target path.
             target = target_root / (rename or file.basename())
@@ -153,7 +153,9 @@ class Installer:
 
         commander = LocalCommander()
 
-        if not self.ctx.install_prefix.access(os.W_OK):
+        self.ctx.install_destdir.makedirs(exist_ok=True)
+
+        if not self.ctx.install_destdir.access(os.W_OK):
             pkexec = None
 
             if not self.privileged:
