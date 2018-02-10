@@ -110,8 +110,7 @@ class Installer:
 
             # Generate the target path.
             target = target_root / (rename or file.basename())
-            if not file.startswith('/'):
-                file = file.relpath(file.getcwd())
+            file = file.relpath(file.getcwd())
 
             # Install the file.
             self.ctx.logger.check(' * install', '%s -> %s' % (file, target),
