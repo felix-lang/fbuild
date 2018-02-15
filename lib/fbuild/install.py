@@ -37,6 +37,7 @@ class PolkitCommander:
     def __init__(self, ctx, proc):
         self.ctx = ctx
         self.proc = proc
+        self.closed = False
         self._send('chdir', os.getcwd())
 
     def _send(self, *message):
@@ -45,11 +46,16 @@ class PolkitCommander:
             self.proc.stdin.write(encoded)
             self.proc.stdin.write('\n')
             self.proc.stdin.flush()
+
+            line = self.proc.stdout.readline()
         except OSError as ex:
             if ex.errno == errno.EPIPE:
                 # Broken pipe error...the child process probably died.
                 self.close(ask=False)
             raise
+        else:
+            if line != 'done\n':
+                self.close(ask=False)
 
     @staticmethod
     def _encode(data):
@@ -63,9 +69,13 @@ class PolkitCommander:
         self._send('install', file, target, perms)
 
     def close(self, *, ask=True):
+        if self.closed:
+            return
+
         if ask:
             self._send('close')
         self.proc.wait()
+        self.closed = True
 
         if self.proc.returncode != 0:
             self.ctx.logger.log("Failed to run 'fbuild install' via pkexec.", color='red')
@@ -75,8 +85,8 @@ class PolkitCommander:
 def polkit_process():
     commander = LocalCommander()
 
-    sys.stdout.write('\n')
-    sys.stdout.close()
+    stdout = sys.stdout
+    print(file=stdout, flush=True)
     sys.stdout = sys.stderr
 
     for line in sys.stdin:
@@ -89,6 +99,8 @@ def polkit_process():
             commander.install(*args)
         elif command == 'close':
             sys.exit()
+
+        print('done', file=stdout, flush=True)
 
 
 class Installer:
