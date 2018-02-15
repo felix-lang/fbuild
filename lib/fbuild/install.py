@@ -165,6 +165,9 @@ class Installer:
 
         commander = LocalCommander()
 
+        self.ctx.install_destdir = fbuild.path.Path(self.ctx.install_destdir)
+        self.ctx.install_prefix = fbuild.path.Path(self.ctx.install_prefix)
+
         self.ctx.install_destdir.makedirs(exist_ok=True)
 
         if not self.ctx.install_destdir.access(os.W_OK):
