@@ -1,5 +1,5 @@
 from setuptools import setup
-import sys
+import os, sys
 
 sys.path.append('lib')
 import fbuild
@@ -11,10 +11,13 @@ except ImportError:
     cmdclass = {}
 
 data_files = []
-if sys.platform.startswith('linux'):
+if sys.platform.startswith('linux') and 'FBUILD_SKIP_INSTALL' not in os.environ:
     data_files.append(('/usr/local/share/uprocd/modules', ['misc/fbuild.module']))
     data_files.append(('/usr/share/polkit-1/actions',
                       ['misc/com.github.fbuild.install.policy']))
+
+# This ensures BlueSnow will avoid trying to install polkit files.
+os.environ['FBUILD_SKIP_INSTALL'] = '1'
 
 setup(
     name='fbuild',
