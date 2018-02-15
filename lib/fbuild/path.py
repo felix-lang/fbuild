@@ -98,8 +98,8 @@ class Path(str):
     # -------------------------------------------------------------------------
     # methods
 
-    def access(self):
-        return os.access(self)
+    def access(self, *args, **kw):
+        return os.access(self, *args, **kw)
 
     def addprefix(self, prefix):
         """Add the prefix before the basename of the path.
@@ -490,7 +490,7 @@ class Path(str):
         def statvfs(self):  return os.statvfs(self)
 
     if hasattr(os, 'symlink'):
-        def symlink(self):  return os.symlink(self)
+        def symlink(self, target):  return os.symlink(self, target)
 
     if hasattr(os.path, 'samefile'):
         def samefile(self): return os.path.samefile(self)

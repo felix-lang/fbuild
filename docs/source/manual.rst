@@ -755,7 +755,28 @@ this:
 The ``path`` is the path to install of the file to install, and ``target`` is a
 subdirectory of the installation prefix to install into. For instance,
 ``ctx.install('somehwere/my-file', 'share/my-app')`` will copy ``somewhere/my-file``
-to ``$PREFIX/share/my-app/my-file``.
+to ``$TARGET/share/my-app/my-file``.
+
+The installation target (shown above as ``$TARGET``) is defined as
+``ctx.install_destdir / ctx.install_prefix``. ``install_destdir`` is ``/`` by default,
+and ``install_prefix`` is ``/usr``. (This separation is done to ensure that packaging
+apps using Fbuild for Unix systems can be done in an autoconf-compatible way.) Both of
+these can be set inside your application; for example, you can assign them in ``build``
+using values passed on the command line:
+
+.. code-block:: python
+
+  def arguments(parser):
+      group = parser.add_argument_group('config options')
+      group.add_argument('--destdir', help='Set the installation destdir', default='/')
+      group.add_argument('--prefix', help='Set the installation prefix', default='usr')
+
+
+  def build(ctx):
+      ctx.install_destdir = ctx.options.destdir
+      ctx.install_prefix = ctx.options.prefix
+
+      # Continue as normal.
 
 If you want to change the file name (e.g. ``my-new-file`` instead), you can pass that
 as the ``rename`` parameter, e.g.
@@ -763,6 +784,27 @@ as the ``rename`` parameter, e.g.
 
 ``perms`` can be used to assign custom permissions to the target file. By default, it
 will use the same permissions as the original file.
+
+**By default, nothing is installed yet.** ``ctx.install`` just *marks* the file for
+installation. Later on, when the user runs ``fbuild install``, Fbuild will run the
+build script, then install any files that were marked for installation.
+
+**Bonus points:** if you use a Linux system that has polkit available (which is basically
+most modern Linux distros), you'll never need to prefix your install commands with
+``sudo``. Fbuild will automatically use polkit to ask for escalated privileges to allow
+installation.
+
+One more note: Fbuild provides two hooks, *pre_install* and *post_install*, that can be
+used to have code run before and after installation:
+
+.. code-block:: python
+
+  def pre_install(ctx):
+      print('Going to install...')
+
+  def post_install(ctx):
+      print('Done installing!')
+
 
 Platforms
 ^^^^^^^^^

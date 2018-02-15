@@ -49,6 +49,7 @@ class Context:
 
         self.options = options
 
+        self.install_destdir = Path('/')
         self.install_prefix = Path('/usr/local')
         self.to_install = []
 
@@ -252,7 +253,12 @@ class Context:
         return stdout, stderr
 
     def install(self, path, target, *, rename=None, perms=None):
-        """Set the given file to be installed after  the build completes."""
+        """Set the given file to be installed after the build completes.
+
+        *path* is the path of the file to install, and *target* is a subdirectory
+        of the installation prefix where the file should be installed to. If *rename*
+        is given, it should be a new basename for the file when installed into the
+        target directory."""
         self.to_install.append((Path(path).abspath(), target, rename, perms))
 
 # ------------------------------------------------------------------------------
