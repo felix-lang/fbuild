@@ -4,6 +4,7 @@ import signal
 import threading
 import time
 
+import collections
 import fbuild
 import fbuild.builders.platform
 import fbuild.console
@@ -22,6 +23,9 @@ STATE_FILE_DEFAULTS = {
     'cache': 'fbuild-state.db',
     'sqlite': 'fbuild-state.sqldb',
 }
+
+
+InstallSpec = collections.namedtuple('InstallSpec', ['source', 'target', 'perms'])
 
 
 class Context:
@@ -252,14 +256,27 @@ class Context:
 
         return stdout, stderr
 
-    def install(self, path, target, *, rename=None, perms=None):
+    def install(self, path, subdir, *, rename=None, perms=None):
         """Set the given file to be installed after the build completes.
 
         *path* is the path of the file to install, and *target* is a subdirectory
         of the installation prefix where the file should be installed to. If *rename*
         is given, it should be a new basename for the file when installed into the
         target directory."""
-        self.to_install.append((Path(path).abspath(), target, rename, perms))
+        path = Path(path)
+        destdir = Path(self.install_destdir)
+        prefix = Path(self.install_prefix)
+
+        if subdir.startswith('/'):
+            target_root = destdir / subdir[1:]
+        else:
+            if prefix.startswith('/'):
+                prefix = prefix[1:]
+            target_root = destdir / prefix / subdir
+
+        # Generate the target path.
+        target = target_root / (rename or path.basename())
+        self.to_install.append(InstallSpec(path.abspath(), target, perms))
 
 # ------------------------------------------------------------------------------
 
