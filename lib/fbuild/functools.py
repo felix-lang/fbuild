@@ -301,3 +301,7 @@ class decorator(descriptor, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __call__(self): pass
+
+# ------------------------------------------------------------------------------
+
+cached = functools.lru_cache(maxsize=None)
