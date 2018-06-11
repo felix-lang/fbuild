@@ -24,7 +24,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 from ctypes import c_void_p, POINTER, sizeof, Structure, windll, WinError, WINFUNCTYPE
-from ctypes.wintypes import BOOL, BYTE, DWORD, HANDLE, LPCWSTR, LPWSTR, UINT, WORD
+from ctypes.wintypes import (BOOL, BYTE, DWORD, HANDLE, LPCSTR, LPCWSTR, LPWSTR, UINT,
+                             WORD)
 
 LPVOID = c_void_p
 LPBYTE = POINTER(BYTE)
@@ -126,7 +127,7 @@ class EnvironmentBlock:
             values = ["%s=%s" % (key, value)
                       for (key, value) in dict.items()]
             values.append("")
-            self._as_parameter_ = LPCWSTR("\0".join(values))
+            self._as_parameter_ = LPCSTR("\0".join(values).encode("utf-16le"))
 
 # CreateProcess()
 
