@@ -225,12 +225,13 @@ class Database:
         """Add the function to the global function map."""
         fun_name, function, _, _ = self._find_function_name(function, (), {})
         if fun_name not in self._FUN_DIGESTS:
-            self._FUN_DIGESTS[fun_name] = self._digest_function(function)
+            self._FUN_DIGESTS[fun_name] = lambda: self._digest_function(function)
 
     @classmethod
+    @fbuild.functools.cached
     def get_function_digest_from_map(self, fun_name):
         """Get the function digest from the global function map."""
-        return self._FUN_DIGESTS[fun_name]
+        return self._FUN_DIGESTS[fun_name]()
 
     @staticmethod
     def _find_function_name(wrapped_function, args, kwargs):

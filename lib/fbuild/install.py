@@ -114,21 +114,10 @@ class Installer:
         destdir = self.ctx.install_destdir
         prefix = self.ctx.install_prefix
 
-        for file, subdir, rename, perms in self.ctx.to_install:
-            # Generate the full subdirectory.
-            if subdir.startswith('/'):
-                target_root = destdir / subdir[1:]
-            else:
-                target_root = destdir / prefix / subdir
-
-            # Generate the target path.
-            target = target_root / (rename or file.basename())
-            file = file.relpath(file.getcwd())
-
-            # Install the file.
-            self.ctx.logger.check(' * install', '%s -> %s' % (file, target),
+        for item in self.ctx.to_install:
+            self.ctx.logger.check(' * install', '%s -> %s' % (item.source, item.target),
                                   color='yellow')
-            commander.install(file, target, perms)
+            commander.install(item.source, item.target, item.perms)
 
     def _find_pkexec(self):
         try:
